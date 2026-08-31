@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Climate Pro - OS</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root { 
+      --bg-main: #0b1120;
+      --bg-surface: #151e32;
+      --border-color: #2a3441;
+      --text-main: #f8fafc; 
+      --text-muted: #8b98a5; 
+      --cyan-light: #2dd4bf;
+      --cyan-dark: #0ea5e9;
+      --orange-alert: #fb923c;
+      --danger: #ef4444;
+      --success: #10b981; 
+      --ring-off: #334155;
+    }
+    
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: var(--bg-main); color: var(--text-main); margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    
+    /* --- LOGIN --- */
+    #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; width: 100vw; background: var(--bg-main); position: absolute; z-index: 100; }
+    .login-box { background: var(--bg-surface); padding: 40px; border-radius: 15px; width: 90%; max-width: 350px; text-align: center; border: 1px solid var(--border-color); }
+    .login-box h2 { color: var(--cyan-light); margin-top: 0; margin-bottom: 25px; letter-spacing: 2px;}
+    .input-group { margin-bottom: 15px; text-align: left; }
+    .input-group label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; }
+    .input-group input { width: 100%; padding: 12px; border-radius: 8px; border: none; background: var(--bg-main); color: white; outline: none; }
+    .login-btn { width: 100%; padding: 12px; background: linear-gradient(90deg, var(--cyan-light), var(--cyan-dark)); color: #000; font-weight: bold; font-size: 16px; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px;}
+    .error-msg { color: var(--danger); font-size: 13px; margin-top: 10px; display: none; }
+ 
+    .alert-banner { display: none; background: rgba(239, 68, 68, 0.2); border-bottom: 2px solid var(--danger); color: white; padding: 15px; text-align: center; font-weight: bold; z-index: 50; width: 100%; }
+
+    /* --- HEADER & HAMBURGER --- */
+    #app-screen { display: none; height: 100vh; width: 100vw; flex-direction: column; }
+    .app-header { display: flex; align-items: center; padding: 12px 20px; background: var(--bg-surface); border-bottom: 1px solid var(--border-color); z-index: 20;}
+    .hamburger-btn { background: none; border: none; color: var(--text-main); cursor: pointer; padding: 0; margin-right: 20px; display: flex; align-items: center; justify-content: center;}
+    .hamburger-btn svg { width: 28px; height: 28px; fill: currentColor; }
+    .app-title { font-size: 16px; font-weight: 700; color: var(--cyan-light); letter-spacing: 2px; }
+
+    .app-body { display: flex; flex: 1; overflow: hidden; position: relative; }
+
+    /* --- SIDEBAR --- */
+    .sidebar { width: 220px; flex-shrink: 0; background: var(--bg-surface); display: flex; flex-direction: column; border-right: 1px solid var(--border-color); padding: 20px 10px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 10; white-space: nowrap; overflow: hidden; }
+    .sidebar.collapsed { width: 0; padding-left: 0; padding-right: 0; border: none; opacity: 0; }
+    
+    .nav-btn { background: none; border: none; color: var(--text-muted); border-radius: 8px; cursor: pointer; display: flex; align-items: center; font-size: 14px; font-weight: 600; padding: 15px; margin-bottom: 5px; transition: 0.2s;}
+    .nav-btn.active { color: var(--cyan-light); background: rgba(45, 212, 191, 0.05); }
+    .nav-icon-svg { margin-right: 15px; width: 20px; height: 20px; fill: currentColor; display: flex; align-items: center; justify-content: center; }
+
+    .main-content { flex: 1; overflow-y: auto; padding: 20px; }
+    .view { display: none; width: 100%; max-width: 1200px; margin: 0 auto; }
+    .view.active { display: block; }
+
+    /* --- MODE BAR --- */
+    .mode-bar { 
+      display: flex; 
+      flex-direction: row;
+      flex-wrap: nowrap;
+      gap: 10px; 
+      margin-bottom: 15px; 
+      width: 100%; 
+    }
+    .mode-btn { 
+      flex: 1; 
+      background: var(--bg-surface); 
+      border: 1px solid var(--border-color); 
+      color: var(--text-muted); 
+      border-radius: 25px; 
+      padding: 12px 10px; 
+      font-size: 12px; 
+      font-weight: 700; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      gap: 6px; 
+      cursor: pointer; 
+      white-space: nowrap;
+      transition: 0.2s; 
+    }
+    .mode-btn.active { background: linear-gradient(90deg, #34d399, #38bdf8); color: #020617; border: none; box-shadow: 0 0 15px rgba(56, 189, 248, 0.2); }
+    .mode-btn.manual.active { background: linear-gradient(90deg, #fb923c, #f59e0b); box-shadow: 0 0 15px rgba(245, 158, 11, 0.2); }
+
+    /* --- PWM SLIDER --- */
+    #manual-slider-container { 
+      display: flex; 
+      background: var(--bg-surface); 
+      border-radius: 15px; 
+      padding: 12px 16px; 
+      margin-bottom: 25px; 
+      align-items: center; 
+      gap: 15px; 
+      border: 1px solid var(--border-color); 
+      transition: all 0.3s ease;
+    }
+    #manual-slider-container.locked {
+      opacity: 0.5;
+    }
+    #manual-slider-container.active {
+      border-color: var(--orange-alert);
+      opacity: 1;
+    }
+    input[type="range"] { -webkit-appearance: none; background: transparent; flex: 1; }
+    input[type="range"]::-webkit-slider-runnable-track { width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: var(--text-muted); margin-top: -5px; cursor: not-allowed; transition: 0.2s; }
+    #manual-slider-container.active input[type="range"]::-webkit-slider-thumb { background: var(--orange-alert); cursor: pointer; }
+    
+    .btn-auto { background: var(--border-color); color: white; border: none; padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.2s; }
+    .btn-auto:hover { background: var(--cyan-dark); }
+
+    /* --- GRID LAYOUT (ALIGNED AT TOP) --- */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 25px;
+      align-items: start; /* Même position en hauteur */
+      width: 100%;
+    }
+    .cards-column {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      justify-content: flex-start;
+    }
+
+    /* --- DIAL POWER BUTTON (MATCHES TOP ALIGNMENT) --- */
+    .dial-wrapper { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: flex-start; 
+      width: 100%; 
+      margin: 0 auto; 
+    }
+    .dial-outer { 
+      width: 280px; 
+      height: 280px; 
+      min-width: 280px;
+      min-height: 280px;
+      max-width: 280px;
+      max-height: 280px;
+      border-radius: 50%; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      position: relative; 
+      cursor: pointer; 
+      background: conic-gradient(from -90deg, #334155 0%, #334155 100%);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+      transition: background 0.3s ease; 
+      box-sizing: border-box;
+    }
+    
+    .dial-inner { 
+      width: 236px; 
+      height: 236px; 
+      min-width: 236px;
+      min-height: 236px;
+      max-width: 236px;
+      max-height: 236px;
+      background-color: var(--bg-main); 
+      border-radius: 50%; 
+      display: flex; 
+      flex-direction: column; 
+      justify-content: center; 
+      align-items: center; 
+      z-index: 2; 
+      user-select: none; 
+      box-sizing: border-box;
+    }
+    
+    .power-text { font-size: 58px; font-weight: 800; letter-spacing: 2px; margin: 0; line-height: 1; }
+    .power-text.off { color: var(--text-muted); }
+    .power-text.on { color: var(--text-main); }
+    
+    .status-container { display: flex; align-items: center; justify-content: center; margin-top: 10px; }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; transition: 0.3s; }
+    .status-dot.on { background: var(--cyan-light); box-shadow: 0 0 10px var(--cyan-light); }
+    .status-dot.off { background: var(--text-muted); }
+
+    /* ESTIMATED TIME (LARGER BOX, FORCED SINGLE LINE) */
+    .dial-time-est { 
+      color: var(--cyan-light); 
+      font-size: 15px; 
+      font-weight: 700; 
+      margin-top: 25px; 
+      letter-spacing: 0.3px; 
+      text-align: center;
+      line-height: 1.2;
+      width: 100%;
+      max-width: 100%;
+      white-space: nowrap; /* Force à rester sur une seule ligne */
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding: 0 5px;
+    }
+    .dial-time-est.off { color: var(--text-muted); }
+
+    /* --- TILES --- */
+    .ui-card { 
+      background: var(--bg-surface); 
+      border: 1px solid var(--border-color); 
+      border-radius: 18px; 
+      padding: 16px 20px; 
+      width: 100%; 
+      min-height: 125px; 
+      display: flex; 
+      flex-direction: column; 
+      justify-content: center; 
+    }
+    .card-header { display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+    .card-header svg { width: 14px; height: 14px; fill: currentColor; }
+
+    .room-temp-val { font-size: 28px; font-weight: 700; }
+    
+    .card-main-row { display: flex; justify-content: space-between; align-items: center; }
+    .tile-val { font-size: 26px; font-weight: 700; }
+    .tile-sub { color: var(--text-muted); font-size: 12px; margin-top: 4px; }
+    
+    /* Target Controls */
+    .target-controls { display: flex; align-items: center; gap: 12px; transition: 0.3s; }
+    .target-controls.disabled { opacity: 0.4; pointer-events: none; }
+    .temp-adjust-btn { width: 34px; height: 34px; border-radius: 50%; background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-main); font-size: 18px; font-weight: 400; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+    .temp-adjust-btn:hover { background: var(--border-color); }
+    
+    /* Timer Controls Container */
+    .timer-controls-area { transition: 0.3s; opacity: 1; }
+    .timer-controls-area.disabled { opacity: 0.4; pointer-events: none; }
+    
+    .presets-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .preset-btn { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); border-radius: 8px; padding: 5px 10px; font-size: 11px; font-weight: 600; cursor: pointer; transition: 0.2s; flex: 1; text-align: center; }
+    .preset-btn.active { color: var(--cyan-light); border-color: var(--cyan-light); }
+
+    .timer-custom-inputs { display: flex; align-items: center; gap: 5px; margin-top: 8px; visibility: hidden; height: 0; overflow: hidden; transition: height 0.2s ease; }
+    .timer-custom-inputs.active { visibility: visible; height: 32px; }
+    .timer-custom-inputs input { width: 45px; background: var(--bg-main); border: 1px solid var(--border-color); color: white; padding: 4px; border-radius: 5px; text-align: center; font-weight: bold; }
+
+    .toggle-switch { position: relative; display: inline-block; width: 45px; height: 26px; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border-color); transition: .4s; border-radius: 30px; }
+    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--cyan-dark); }
+    input:checked + .slider:before { transform: translateX(19px); }
+
+    /* --- STATS & SETTINGS --- */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+    .mini-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 15px; padding: 20px; display: flex; flex-direction: column; justify-content: center; }
+    .mini-card.full { grid-column: 1 / -1; }
+    .mini-label { font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-bottom: 5px; }
+    .mini-val { font-size: 20px; font-weight: 700; }
+    
+    .chart-container { position: relative; height: 250px; width: 100%; margin-top: 15px; }
+    .doughnut-container { position: relative; height: 180px; width: 100%; max-width: 180px; }
+
+    .settings-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-btn { padding: 8px 15px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
+    .btn-outline { background: transparent; border: 1px solid var(--cyan-light); color: var(--cyan-light); }
+    .btn-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+  </style>
+</head>
+<body>
+  
+  <div id="login-screen">
+    <div class="login-box">
+      <h2>PoC ACCESS</h2>
+      <div class="input-group">
+        <label>Username</label>
+        <input type="text" id="username" value="admin">
+      </div>
+      <div class="input-group">
+        <label>Password</label>
+        <input type="password" id="password" value="admin">
+      </div>
+      <button class="login-btn" onclick="checkLogin()">SIGN IN</button>
+      <div class="error-msg" id="login-error">Invalid credentials.</div>
+    </div>
+  </div>
+
+  <div id="app-screen">
+    
+    <header class="app-header">
+      <button class="hamburger-btn" onclick="toggleSidebar()">
+        <svg viewBox="0 0 24 24"><path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"/></svg>
+      </button>
+      <div class="app-title">CLIMATE PRO</div>
+    </header>
+
+    <div class="alert-banner" id="watchdog-banner">
+      ALERT: Sensor communication lost. Safety shutoff in <span id="watchdog-timer">30</span>s...
+    </div>
+
+    <div class="app-body">
+      
+      <nav class="sidebar collapsed" id="sidebar">
+        <button class="nav-btn active" onclick="switchTab('clim', this)">
+          <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4Z"/></svg></span>
+          Climate
+        </button>
+        <button class="nav-btn" onclick="switchTab('stats', this)">
+          <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M22,21H2V3H4V19H6V10H10V19H12V6H16V19H18V14H22V21Z"/></svg></span>
+          Statistics
+        </button>
+        <button class="nav-btn" onclick="switchTab('settings', this)">
+          <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/></svg></span>
+          Settings
+        </button>
+        <button class="nav-btn" onclick="switchTab('account', this)">
+          <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/></svg></span>
+          Account
+        </button>
+      </nav>
+
+      <main class="main-content">
+        
+        <!-- === CLIMATE VIEW === -->
+        <div id="view-clim" class="view active">
+          
+          <!-- MODE BAR -->
+          <div class="mode-bar">
+            <button class="mode-btn" onclick="setMode('eco+', this)">ECO+</button>
+            <button class="mode-btn" onclick="setMode('eco', this)">ECO</button>
+            <button class="mode-btn active" id="btn-default-mode" onclick="setMode('normal', this)">NORMAL</button>
+            <button class="mode-btn" onclick="setMode('boost', this)">BOOST</button>
+            <button class="mode-btn" onclick="setMode('boost+', this)">BOOST+</button>
+            <button class="mode-btn manual" id="btn-manual" onclick="setManualMode()">MANUAL</button>
+          </div>
+
+          <!-- PWM SLIDER -->
+          <div id="manual-slider-container" class="locked">
+            <div style="font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Fan Speed</div>
+            <input type="range" id="fan-slider" min="0" max="100" value="60" oninput="updateFanSpeed()" disabled>
+            <span id="fan-val" style="font-weight: bold; width: 45px; text-align: right; color: var(--text-muted);">60%</span>
+            <button class="btn-auto" onclick="returnToAuto()">AUTO</button>
+          </div>
+
+          <div class="dashboard-grid">
+            
+            <!-- DIAL: SAME TOP POSITION AND EXPANDED SINGLE-LINE TEXT -->
+            <div class="dial-wrapper">
+              <div class="dial-outer" id="main-dial" onclick="togglePower()">
+                <div class="dial-inner">
+                  <div class="power-text off" id="power-status-text">OFF</div>
+                  <div class="status-container">
+                    <div class="status-dot off" id="status-dot"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="dial-time-est off" id="dial-time-est">Estimated time until device is ready: 1h30</div>
+            </div>
+
+            <!-- TILES COLUMN -->
+            <div class="cards-column">
+              
+              <!-- 1. ROOM TEMPERATURE -->
+              <div class="ui-card">
+                <div class="card-header">
+                  <svg viewBox="0 0 24 24"><path d="M15,13V5A3,3 0 0,0 9,5V13A5,5 0 1,0 15,13M12,4A1,1 0 0,1 13,5V8H11V5A1,1 0 0,1 12,4Z"/></svg>
+                  ROOM TEMPERATURE
+                </div>
+                <div class="room-temp-val" id="v_t_amb">23.4°</div>
+                <div class="tile-sub">Real-time room monitoring</div>
+              </div>
+
+              <!-- 2. TARGET TEMPERATURE (THERMOSTAT TILE) -->
+              <div class="ui-card">
+                <div class="card-header">
+                  <svg viewBox="0 0 24 24"><path d="M12,2A10,10 0 1,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,7V13H17V11H13V7H11Z"/></svg>
+                  TARGET TEMPERATURE
+                </div>
+                <div class="card-main-row">
+                  <div class="target-controls disabled" id="target-controls">
+                    <button class="temp-adjust-btn" onclick="changeTemp(-0.5)">-</button>
+                    <div class="tile-val" id="target_temp">21.0°</div>
+                    <button class="temp-adjust-btn" onclick="changeTemp(0.5)">+</button>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="target-toggle" onchange="toggleTarget()">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                <div class="tile-sub" id="target-sub">Thermostat disabled</div>
+              </div>
+
+              <!-- 3. TIMER -->
+              <div class="ui-card">
+                <div class="card-header">
+                  <svg viewBox="0 0 24 24"><path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/></svg>
+                  TIMER
+                </div>
+                <div class="card-main-row">
+                  <div class="tile-val" id="timer-display">00h 00m</div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="timer-toggle" onchange="toggleTimerSwitch()">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                
+                <div class="timer-controls-area disabled" id="timer-controls-area">
+                  <div class="presets-row">
+                    <button class="preset-btn" onclick="setPreset('30m', this)">30m</button>
+                    <button class="preset-btn" onclick="setPreset('1h', this)">1h</button>
+                    <button class="preset-btn" onclick="setPreset('2h', this)">2h</button>
+                    <button class="preset-btn" onclick="setPreset('perso', this)">Custom</button>
+                  </div>
+                  <div class="timer-custom-inputs" id="timer-inputs">
+                    <input type="number" id="t-hours" min="0" max="24" value="0"> h 
+                    <input type="number" id="t-mins" min="0" max="59" value="30"> m
+                    <button class="btn-outline" style="padding: 4px 8px; font-size: 10px;" onclick="applyCustomTimer()">OK</button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
+        <!-- === VIEW 2: STATISTICS === -->
+        <div id="view-stats" class="view">
+          <h2 style="margin-top:0;">R&D Dashboard</h2>
+          <div class="stats-grid">
+            <div class="mini-card"><div class="mini-label">Setpoint Hold Rate (Comfort)</div><div class="mini-val" style="color: var(--success);">88%</div></div>
+            <div class="mini-card"><div class="mini-label">Total Energy Consumed</div><div class="mini-val" id="v_energy" style="color: #a78bfa;">12.4 kWh</div></div>
+            <div class="mini-card"><div class="mini-label">Total Runtime</div><div class="mini-val">142h 30m</div></div>
+            <div class="mini-card"><div class="mini-label">Water Circuit Temp.</div><div class="mini-val" id="t_water">12.0°</div></div>
+            
+            <div class="mini-card full">
+              <div class="mini-label">Thermal Trends & Setpoint</div>
+              <div class="chart-container"><canvas id="tempChart"></canvas></div>
+            </div>
+
+            <div class="mini-card full" style="display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-evenly; gap: 20px;">
+              <div style="flex: 1; min-width: 200px; text-align: center;">
+                <div class="mini-label" style="margin-bottom: 15px;">Mode Distribution</div>
+                <div class="doughnut-container"><canvas id="modeChart"></canvas></div>
+              </div>
+              <div style="flex: 1; min-width: 200px; font-size: 14px; color: var(--text-muted); line-height: 2;">
+                <ul style="list-style:none; padding:0; margin: 0;">
+                  <li><span style="color:#0ea5e9; font-size:18px; vertical-align: middle;">■</span> NORMAL : 60%</li>
+                  <li><span style="color:#34d399; font-size:18px; vertical-align: middle;">■</span> ECO : 30%</li>
+                  <li><span style="color:#fb923c; font-size:18px; vertical-align: middle;">■</span> BOOST : 10%</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- === VIEW 3: SETTINGS === -->
+        <div id="view-settings" class="view">
+          <h2 style="margin-top:0;">System Settings</h2>
+          <div class="stats-grid">
+            <!-- WATER CHILLER TOGGLE (VAN LONG-STANDBY / BATTERY SAVER) -->
+            <div class="mini-card full" style="display:flex; justify-content: space-between; align-items:center; flex-direction:row; flex-wrap: wrap; gap: 15px;">
+              <div>
+                <div style="font-weight:bold;">Water Cooling (Chiller)</div>
+                <div style="font-size:12px; color:var(--text-muted)" id="chiller-sub">Auto-chills water to minimum temp. Turn off for van parking / battery save.</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="chiller-toggle" checked onchange="toggleChiller()">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="mini-card full" style="display:flex; justify-content: space-between; align-items:center; flex-direction:row; flex-wrap: wrap; gap: 15px;">
+              <div>
+                <div style="font-weight:bold;">Hysteresis (Regulation)</div>
+                <div style="font-size:12px; color:var(--text-muted)">Temperature threshold buffer before triggering</div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <button class="temp-adjust-btn" style="width:30px; height:30px; font-size:16px;" onclick="changeHyst(-0.1)">-</button>
+                <div id="target_hyst" style="font-weight:bold; font-size:16px;">±0.5°</div>
+                <button class="temp-adjust-btn" style="width:30px; height:30px; font-size:16px;" onclick="changeHyst(0.1)">+</button>
+              </div>
+            </div>
+            <div class="settings-row"><span style="font-size: 14px;">Compressor (Chiller)</span><span id="compressor-state" style="color: var(--cyan-light); font-weight: bold; font-size: 14px;">Targeting -16.0°C</span></div>
+            <div class="settings-row"><span style="font-size: 14px;">Wi-Fi Network</span><span style="color: var(--text-muted); font-size: 14px;">Prototype_Clim</span></div>
+            <div class="settings-row"><span style="font-size: 14px;">IP Address</span><span style="color: var(--text-muted); font-size: 14px;">192.168.4.1</span></div>
+            <div class="settings-row"><span style="font-size: 14px;">DS18B20 Probes</span><span style="color: var(--success); font-weight: bold; font-size: 14px;">OK (5/5)</span></div>
+            <div class="settings-row"><span style="font-size: 14px;">Safety Watchdog Test</span><button class="settings-btn btn-outline" onclick="triggerWatchdogTest()">Simulate Loss</button></div>
+            <div class="settings-row"><span style="font-size: 14px;">System Reboot</span><button class="settings-btn btn-danger" onclick="alert('Rebooting...')">Reboot ESP32</button></div>
+          </div>
+        </div>
+
+        <!-- === VIEW 4: ACCOUNT === -->
+        <div id="view-account" class="view">
+          <h2 style="margin-top:0;">Account Management</h2>
+          <div class="mini-card full">
+            <div style="margin-top: 10px; font-size: 14px; color: var(--text-muted); line-height: 1.6;">
+              Access Level: <strong style="color:white;">Root (R&D)</strong><br>
+              Last Login: Today<br>
+              Data Logging: Active (LittleFS)
+            </div>
+            <button style="width:100%; margin-top: 20px; padding: 12px; background: var(--bg-surface); color: var(--danger); border: 1px solid var(--danger); border-radius: 8px; font-weight:bold; cursor: pointer;" onclick="logout()">Sign Out</button>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script>
+    let systemOn = false;
+    let targetEnabled = false;
+    let targetTemp = 21.0;
+    let currentRoomTemp = 23.4; 
+    let startTemp = null; 
+    let estimatedTimeToTarget = "45min";
+    let estimatedTimeToReady = "1h30";
+    let isWaterReady = true;
+    let waterCoolingEnabled = true;
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('collapsed');
+    }
+
+    function checkLogin() {
+      if(document.getElementById('username').value === 'admin' && document.getElementById('password').value === 'admin') {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app-screen').style.display = 'flex';
+        
+        if(window.innerWidth >= 768) {
+          document.getElementById('sidebar').classList.remove('collapsed');
+        }
+
+        initCharts(); 
+        startTelemetry();
+      } else { document.getElementById('login-error').style.display = 'block'; }
+    }
+    
+    function logout() { location.reload(); }
+
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('view-' + tabId).classList.add('active');
+      btn.classList.add('active');
+      
+      if(window.innerWidth < 768) {
+        document.getElementById('sidebar').classList.add('collapsed');
+      }
+    }
+
+    /* --- RING & ESTIMATION UPDATE --- */
+    function updateRing() {
+      const dial = document.getElementById('main-dial');
+      const timeEstDisplay = document.getElementById('dial-time-est');
+      
+      if (!systemOn) {
+        dial.style.background = 'conic-gradient(from -90deg, #334155 0%, #334155 100%)';
+        timeEstDisplay.classList.add('off');
+        timeEstDisplay.innerText = waterCoolingEnabled ? ("Estimated time until device is ready: " + estimatedTimeToReady) : "Water Cooling (Chiller) Standby";
+        return;
+      }
+
+      if (!waterCoolingEnabled) {
+        dial.style.background = 'conic-gradient(from -90deg, #fb923c 0%, #fb923c 100%)';
+        timeEstDisplay.classList.remove('off');
+        timeEstDisplay.innerText = "Water Cooling OFF (Fan Only / Standby)";
+        return;
+      }
+
+      if (!isWaterReady) {
+        dial.style.background = 'conic-gradient(from -90deg, #334155 0%, #334155 100%)';
+        timeEstDisplay.classList.remove('off');
+        timeEstDisplay.innerText = "Estimated time until device is ready: " + estimatedTimeToReady;
+        return;
+      }
+
+      timeEstDisplay.classList.remove('off');
+      if (targetEnabled) {
+        timeEstDisplay.innerText = "Estimated time to " + targetTemp.toFixed(1) + "°: " + estimatedTimeToTarget;
+      } else {
+        timeEstDisplay.innerText = "Continuous Cooling Active";
+      }
+
+      let progress = 0;
+      if (targetEnabled && startTemp !== null && startTemp > targetTemp) { 
+        progress = ((startTemp - currentRoomTemp) / (startTemp - targetTemp)) * 100;
+      } else if (systemOn) {
+        progress = 100;
+      }
+
+      if (progress < 5) progress = 5; 
+      if (progress > 100) progress = 100;
+      if (isNaN(progress)) progress = 0;
+
+      dial.style.background = `conic-gradient(from -90deg, #2dd4bf 0%, #0ea5e9 ${progress}%, #334155 ${progress}%, #334155 100%)`;
+    }
+
+    /* --- POWER BUTTON --- */
+    function togglePower() {
+      systemOn = !systemOn;
+      const dot = document.getElementById('status-dot');
+      const powerStatus = document.getElementById('power-status-text');
+      
+      if(systemOn) {
+        startTemp = currentRoomTemp; 
+        dot.classList.remove('off'); dot.classList.add('on');
+        powerStatus.classList.remove('off'); powerStatus.classList.add('on');
+        powerStatus.innerText = 'ON';
+      } else {
+        startTemp = null;
+        dot.classList.remove('on'); dot.classList.add('off');
+        powerStatus.classList.remove('on'); powerStatus.classList.add('off');
+        powerStatus.innerText = 'OFF';
+      }
+      
+      updateRing(); 
+      fetch('/action?power=' + (systemOn ? '1' : '0')).catch(() => {});
+    }
+
+    /* --- TARGET TEMPERATURE TOGGLE & ADJUST --- */
+    function toggleTarget() {
+      targetEnabled = document.getElementById('target-toggle').checked;
+      const controls = document.getElementById('target-controls');
+      const sub = document.getElementById('target-sub');
+      
+      if(targetEnabled) {
+        controls.classList.remove('disabled');
+        sub.innerText = 'Thermostat active';
+        sub.style.color = 'var(--cyan-light)';
+      } else {
+        controls.classList.add('disabled');
+        sub.innerText = 'Thermostat disabled';
+        sub.style.color = 'var(--text-muted)';
+      }
+
+      if(window.myTempChart) {
+        window.myTempChart.data.datasets[2].hidden = !targetEnabled;
+        window.myTempChart.update();
+      }
+
+      updateRing();
+      fetch('/action?target_enabled=' + (targetEnabled ? '1' : '0')).catch(() => {});
+    }
+
+    function changeTemp(change) {
+      if(!targetEnabled) return;
+      targetTemp += change;
+      if (targetTemp < 16.0) targetTemp = 16.0;
+      if (targetTemp > 30.0) targetTemp = 30.0;
+      
+      document.getElementById('target_temp').innerText = targetTemp.toFixed(1) + '°';
+      
+      if(window.myTempChart) {
+         window.myTempChart.data.datasets[2].data = Array(6).fill(targetTemp);
+         window.myTempChart.update();
+      }
+
+      updateRing(); 
+      fetch('/action?temp=' + targetTemp.toFixed(1)).catch(() => {});
+    }
+
+    /* --- MODES & PWM --- */
+    function setMode(mode, btnElement) {
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      btnElement.classList.add('active');
+      
+      const sliderBox = document.getElementById('manual-slider-container');
+      const slider = document.getElementById('fan-slider');
+      const fanVal = document.getElementById('fan-val');
+      
+      sliderBox.classList.remove('active');
+      sliderBox.classList.add('locked');
+      slider.disabled = true;
+      fanVal.style.color = 'var(--text-muted)';
+      
+      let speed = 60;
+      if(mode === 'eco+') speed = 15;
+      if(mode === 'eco') speed = 30;
+      if(mode === 'normal') speed = 60;
+      if(mode === 'boost') speed = 85;
+      if(mode === 'boost+') speed = 100;
+      
+      slider.value = speed;
+      fanVal.innerText = speed + '%';
+      
+      fetch('/action?fan=' + speed).catch(() => {});
+    }
+
+    function setManualMode() {
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('btn-manual').classList.add('active');
+      
+      const sliderBox = document.getElementById('manual-slider-container');
+      const slider = document.getElementById('fan-slider');
+      const fanVal = document.getElementById('fan-val');
+      
+      sliderBox.classList.remove('locked');
+      sliderBox.classList.add('active');
+      slider.disabled = false;
+      fanVal.style.color = 'var(--orange-alert)';
+    }
+
+    function returnToAuto() {
+      let defaultBtn = document.getElementById('btn-default-mode');
+      setMode('normal', defaultBtn);
+    }
+    
+    function updateFanSpeed() {
+      const val = document.getElementById('fan-slider').value;
+      document.getElementById('fan-val').innerText = val + '%';
+      fetch('/action?fan=' + val).catch(() => {});
+    }
+
+    /* --- TIMER --- */
+    function toggleTimerSwitch() {
+      const isChecked = document.getElementById('timer-toggle').checked;
+      const controlsArea = document.getElementById('timer-controls-area');
+      
+      if(!isChecked) {
+        controlsArea.classList.add('disabled');
+        document.getElementById('timer-display').innerText = '00h 00m';
+        document.getElementById('timer-inputs').classList.remove('active');
+        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      } else {
+        controlsArea.classList.remove('disabled');
+        setPreset('30m', document.querySelector('.preset-btn'));
+      }
+    }
+
+    function setPreset(time, btn) {
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      const inputs = document.getElementById('timer-inputs');
+      const display = document.getElementById('timer-display');
+      
+      if(time === 'perso') {
+        inputs.classList.add('active');
+      } else {
+        inputs.classList.remove('active');
+        if(time === '30m') display.innerText = '00h 30m';
+        if(time === '1h') display.innerText = '01h 00m';
+        if(time === '2h') display.innerText = '02h 00m';
+      }
+    }
+    
+    function applyCustomTimer() {
+      const h = String(document.getElementById('t-hours').value).padStart(2, '0');
+      const m = String(document.getElementById('t-mins').value).padStart(2, '0');
+      document.getElementById('timer-display').innerText = h + 'h ' + m + 'm';
+    }
+
+    let hyst = 0.5;
+    function changeHyst(val) { 
+      hyst += val; if(hyst < 0.1) hyst = 0.1; 
+      document.getElementById('target_hyst').innerText = '±' + hyst.toFixed(1) + '°'; 
+    }
+
+    function toggleChiller() {
+      waterCoolingEnabled = document.getElementById('chiller-toggle').checked;
+      const sub = document.getElementById('chiller-sub');
+      if (waterCoolingEnabled) {
+        sub.innerText = 'Auto-chills water to minimum temp.';
+        sub.style.color = 'var(--text-muted)';
+      } else {
+        sub.innerText = 'Water cooling OFF (Van parked / Battery save mode).';
+        sub.style.color = 'var(--orange-alert)';
+      }
+      updateRing();
+      fetch('/action?chiller=' + (waterCoolingEnabled ? '1' : '0')).catch(() => {});
+    }
+
+    let watchdogInterval, watchdogCount = 30;
+    function triggerWatchdogTest() {
+      document.getElementById('watchdog-banner').style.display = 'block';
+      document.getElementById('watchdog-timer').innerText = watchdogCount;
+      switchTab('clim', document.querySelector('.nav-btn'));
+      clearInterval(watchdogInterval);
+      watchdogCount = 30; 
+      watchdogInterval = setInterval(() => {
+        watchdogCount--;
+        document.getElementById('watchdog-timer').innerText = watchdogCount;
+        if(watchdogCount <= 0) {
+          clearInterval(watchdogInterval);
+          document.getElementById('watchdog-banner').innerHTML = 'SAFETY CUTOFF TRIGGERED.';
+          if(systemOn) {
+            togglePower();
+          }
+        }
+      }, 1000);
+    }
+
+    let chartsInitialized = false;
+    function initCharts() {
+      if(chartsInitialized) return;
+      
+      const ctxLine = document.getElementById('tempChart').getContext('2d');
+      window.myTempChart = new Chart(ctxLine, {
+        type: 'line',
+        data: {
+          labels: ['0m', '5m', '10m', '15m', '20m', '25m'],
+          datasets: [
+            { label: 'Room Air (°C)', borderColor: '#2dd4bf', backgroundColor: 'transparent', data: [26, 25.5, 24.8, 24.2, 23.5, 22.9] }, 
+            { label: 'Water Circuit (°C)', borderColor: '#0ea5e9', backgroundColor: 'transparent', data: [15, 12, 9, 8.5, 7.2, 6.8] },
+            { label: 'Setpoint (°C)', borderColor: '#fb923c', backgroundColor: 'transparent', borderDash: [5, 5], data: [21, 21, 21, 21, 21, 21], hidden: true }
+          ]
+        },
+        options: { 
+          responsive: true, maintainAspectRatio: false, 
+          plugins: { legend: { labels: { color: '#8b98a5', usePointStyle: true, boxWidth: 8 } } }, 
+          scales: { x: { ticks: { color: '#2a3441' }, grid:{color:'#151e32'} }, y: { ticks: { color: '#2a3441' }, grid:{color:'#151e32'} } },
+          elements: { line: { tension: 0.3 } }
+        }
+      });
+
+      const ctxDoughnut = document.getElementById('modeChart').getContext('2d');
+      new Chart(ctxDoughnut, {
+        type: 'doughnut',
+        data: {
+          labels: ['Normal', 'Eco', 'Boost'],
+          datasets: [{
+            data: [60, 30, 10],
+            backgroundColor: ['#0ea5e9', '#34d399', '#fb923c'],
+            borderWidth: 0,
+            hoverOffset: 4
+          }]
+        },
+        options: { 
+          responsive: true, 
+          maintainAspectRatio: false, 
+          cutout: '75%', 
+          plugins: { legend: { display: false }, tooltip: { enabled: true } }
+        }
+      });
+
+      chartsInitialized = true;
+    }
+
+    function startTelemetry() {
+      setInterval(function() {
+        fetch('/data')
+          .then(response => response.json())
+          .then(data => {
+            currentRoomTemp = parseFloat(data.t_amb);
+            if(data.est_time) estimatedTimeToTarget = data.est_time + " min";
+            if(data.est_water) estimatedTimeToReady = data.est_water;
+            if(typeof data.water_ready !== 'undefined') isWaterReady = data.water_ready;
+            if(data.compressor_status) {
+              const compState = document.getElementById('compressor-state');
+              if (compState) compState.innerText = data.compressor_status;
+            }
+            if(typeof data.chiller_enabled !== 'undefined') {
+              waterCoolingEnabled = (data.chiller_enabled === 1 || data.chiller_enabled === true);
+              const cToggle = document.getElementById('chiller-toggle');
+              if (cToggle) cToggle.checked = waterCoolingEnabled;
+              const sub = document.getElementById('chiller-sub');
+              if (sub) {
+                sub.innerText = waterCoolingEnabled ? 'Auto-chills water to minimum temp.' : 'Water cooling OFF (Van parked / Battery save mode).';
+                sub.style.color = waterCoolingEnabled ? 'var(--text-muted)' : 'var(--orange-alert)';
+              }
+            }
+            
+            document.getElementById('v_t_amb').innerText = currentRoomTemp.toFixed(1) + '°';
+            if(data.t_water) document.getElementById('t_water').innerText = data.t_water + '°';
+            
+            if(data.energy) {
+               document.getElementById('v_energy').innerText = (data.energy / 1000).toFixed(2) + ' kWh';
+            }
+            
+            updateRing();
+          })
+          .catch(err => {
+            if (systemOn && targetEnabled && currentRoomTemp > targetTemp) {
+                currentRoomTemp -= 0.1;
+                document.getElementById('v_t_amb').innerText = currentRoomTemp.toFixed(1) + '°';
+                updateRing(); 
+            }
+          });
+      }, 2000);
+    }
+  </script>
+</body>
+</html>
