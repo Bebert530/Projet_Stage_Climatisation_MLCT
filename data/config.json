@@ -1,0 +1,32 @@
+{
+  "devices": [
+    {
+      "id": 1,
+      "name": "Pompe boucle froide",
+      "type": "RELAY",
+      "gpio": 4,
+      "state": 0,
+      "value": 0,
+      "isCore": true
+    },
+    {
+      "id": 2,
+      "name": "Lanterneau Fiamma",
+      "type": "PWM",
+      "gpio": 19,
+      "state": 0,
+      "value": 0,
+      "isCore": false
+    },
+    {
+      "id": 3,
+      "name": "Spot Salon",
+      "type": "RELAY",
+      "gpio": 23,
+      "state": 0,
+      "value": 0,
+      "isCore": false
+    }
+  ]
+}
+

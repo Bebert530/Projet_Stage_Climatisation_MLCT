@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Climate Pro - OS | ESP32 Device Manager</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <!-- ÉCRAN DE CONNEXION -->
+  <div id="login-screen">
+    <div class="login-box">
+      <h2>CLIMATE PRO</h2>
+      <div class="input-group">
+        <label>Identifiant</label>
+        <input type="text" id="username" value="admin">
+      </div>
+      <div class="input-group">
+        <label>Mot de passe</label>
+        <input type="password" id="password" value="admin">
+      </div>
+      <button class="login-btn" onclick="checkLogin()">SE CONNECTER</button>
+      <div class="error-msg" id="login-error">Identifiants incorrects.</div>
+    </div>
+  </div>
+
+  <!-- APPLICATION PRINCIPALE -->
+  <div id="app-screen">
+    
+    <header class="app-header">
+      <div class="header-left">
+        <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">
+          <svg viewBox="0 0 24 24"><path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"/></svg>
+        </button>
+        <div class="app-title">CLIMATE PRO</div>
+      </div>
+      <div class="header-status">
+        <div class="header-status-indicator"></div>
+        <span>ESP32 Connecté</span>
+      </div>
+    </header>
+
+    <div class="alert-banner" id="watchdog-banner">
+      ALERTE : Perte de communication capteurs. Coupure de sécurité dans <span id="watchdog-timer">30</span>s...
+    </div>
+
+    <div class="app-body">
+      
+      <!-- MENU LATÉRAL DE NAVIGATION -->
+      <nav class="sidebar collapsed" id="sidebar">
+        <button class="nav-btn active" onclick="switchTab('clim', this)">
+          <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4Z"/></svg></span>
+          Climatisation
+        </button>
+        <button class="nav-btn" onclick="switchTab('devices', this)">
+          <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M4,6H20V16H4M20,18A2,2 0 0,0 22,16V6C22,4.89 21.1,4 20,4H4C2.89,4 2,4.89 2,6V16A2,2 0 0,0 4,18H0V20H24V18H20Z"/></svg></span>
+          Matériel (GPIO)
+        </button>
+        <button class="nav-btn" onclick="switchTab('stats', this)">
+          <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M22,21H2V3H4V19H6V10H10V19H12V6H16V19H18V14H22V21Z"/></svg></span>
+          Statistiques R&D
+        </button>
+        <button class="nav-btn" onclick="switchTab('settings', this)">
+          <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/></svg></span>
+          Paramètres
+        </button>
+        <button class="nav-btn" onclick="switchTab('account', this)">
+          <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/></svg></span>
+          Compte
+        </button>
+      </nav>
+
+      <main class="main-content">
+        
+        <!-- ========================================== -->
+        <!-- VUE 1 : CLIMATISATION & DASHBOARD           -->
+        <!-- ========================================== -->
+        <div id="view-clim" class="view active">
+          
+          <!-- BARRE DE SÉLECTION DE MODE -->
+          <div class="mode-bar">
+            <button class="mode-btn" onclick="setMode('eco+', this)">ECO+</button>
+            <button class="mode-btn" onclick="setMode('eco', this)">ECO</button>
+            <button class="mode-btn active" id="btn-default-mode" onclick="setMode('normal', this)">NORMAL</button>
+            <button class="mode-btn" onclick="setMode('boost', this)">BOOST</button>
+            <button class="mode-btn" onclick="setMode('boost+', this)">BOOST+</button>
+            <button class="mode-btn manual" id="btn-manual" onclick="setManualMode()">MANUEL</button>
+          </div>
+
+          <!-- SLIDER PWM VENTILATION -->
+          <div id="manual-slider-container" class="locked">
+            <div style="font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Ventilation</div>
+            <input type="range" id="fan-slider" min="0" max="100" value="60" oninput="updateFanSpeed()" disabled>
+            <span id="fan-val" style="font-weight: bold; width: 45px; text-align: right; color: var(--text-muted);">60%</span>
+            <button class="btn-auto" onclick="returnToAuto()">AUTO</button>
+          </div>
+
+          <!-- GRILLE PRINCIPALE -->
+          <div class="dashboard-grid">
+            
+            <!-- CADRAN CENTRAL -->
+            <div class="dial-wrapper">
+              <div class="dial-outer" id="main-dial" onclick="togglePower()">
+                <div class="dial-inner">
+                  <div class="power-text off" id="power-status-text">OFF</div>
+                  <div class="status-container">
+                    <div class="status-dot off" id="status-dot"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="dial-time-est off" id="dial-time-est">Temps estimé avant disponibilité : 1h30</div>
+            </div>
+
+            <!-- CARTES DE CONTRÔLE -->
+            <div class="cards-column">
+              
+              <!-- TEMPÉRATURE AMBIANTE -->
+              <div class="ui-card">
+                <div class="card-header">
+                  <svg viewBox="0 0 24 24"><path d="M15,13V5A3,3 0 0,0 9,5V13A5,5 0 1,0 15,13M12,4A1,1 0 0,1 13,5V8H11V5A1,1 0 0,1 12,4Z"/></svg>
+                  TEMPÉRATURE AMBIANTE
+                </div>
+                <div class="room-temp-val" id="v_t_amb">23.4°</div>
+                <div class="tile-sub">Capteur intérieur habitacle</div>
+              </div>
+
+              <!-- THERMOSTAT CIBLE -->
+              <div class="ui-card">
+                <div class="card-header">
+                  <svg viewBox="0 0 24 24"><path d="M12,2A10,10 0 1,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,7V13H17V11H13V7H11Z"/></svg>
+                  TEMPÉRATURE CIBLE
+                </div>
+                <div class="card-main-row">
+                  <div class="target-controls disabled" id="target-controls">
+                    <button class="temp-adjust-btn" onclick="changeTemp(-0.5)">-</button>
+                    <div class="tile-val" id="target_temp">21.0°</div>
+                    <button class="temp-adjust-btn" onclick="changeTemp(0.5)">+</button>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="target-toggle" onchange="toggleTarget()">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                <div class="tile-sub" id="target-sub">Thermostat inactif</div>
+              </div>
+
+              <!-- MINUTERIE -->
+              <div class="ui-card">
+                <div class="card-header">
+                  <svg viewBox="0 0 24 24"><path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/></svg>
+                  MINUTERIE
+                </div>
+                <div class="card-main-row">
+                  <div class="tile-val" id="timer-display">00h 00m</div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="timer-toggle" onchange="toggleTimerSwitch()">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                <div class="timer-controls-area disabled" id="timer-controls-area">
+                  <div class="presets-row">
+                    <button class="preset-btn" onclick="setPreset('30m', this)">30m</button>
+                    <button class="preset-btn" onclick="setPreset('1h', this)">1h</button>
+                    <button class="preset-btn" onclick="setPreset('2h', this)">2h</button>
+                    <button class="preset-btn" onclick="setPreset('perso', this)">Perso</button>
+                  </div>
+                  <div class="timer-custom-inputs" id="timer-inputs">
+                    <input type="number" id="t-hours" min="0" max="24" value="0"> h 
+                    <input type="number" id="t-mins" min="0" max="59" value="30"> m
+                    <button class="btn-outline" style="padding: 4px 8px; font-size: 10px;" onclick="applyCustomTimer()">OK</button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- SECTION DYNAMIQUE : ACTIONNEURS & MATÉRIEL SUR LE DASHBOARD -->
+          <div class="aux-section-title">
+            <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M4,6H20V16H4M20,18A2,2 0 0,0 22,16V6C22,4.89 21.1,4 20,4H4C2.89,4 2,4.89 2,6V16A2,2 0 0,0 4,18H0V20H24V18H20Z"/></svg>
+            Équipements & Sorties Matérielles
+          </div>
+          <div class="aux-devices-grid" id="aux-devices-container">
+            <!-- Rempli automatiquement par app.js -->
+          </div>
+
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VUE 2 : GESTIONNAIRE DE MATÉRIEL (DEVICE MGR)-->
+        <!-- ========================================== -->
+        <div id="view-devices" class="view">
+          <div class="device-manager-header">
+            <div class="device-manager-title">
+              <h2>Gestionnaire de Matériel</h2>
+              <p>Configurez et pilotez dynamiquement les broches GPIO de l'ESP32 sans recompiler.</p>
+            </div>
+            <button class="btn-primary" onclick="openAddDeviceModal()">
+              <svg viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
+              + Ajouter un équipement
+            </button>
+          </div>
+
+          <div class="table-card">
+            <div class="table-responsive">
+              <table class="device-table">
+                <thead>
+                  <tr>
+                    <th>Nom de l'équipement</th>
+                    <th>Type</th>
+                    <th>Broche GPIO</th>
+                    <th>Statut</th>
+                    <th>État Actuel</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="device-table-body">
+                  <!-- Rempli dynamiquement par app.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VUE 3 : STATISTIQUES R&D                   -->
+        <!-- ========================================== -->
+        <div id="view-stats" class="view">
+          <h2 style="margin-top:0;">Tableau de Bord R&D</h2>
+          <div class="stats-grid">
+            <div class="mini-card"><div class="mini-label">Maintien de consigne</div><div class="mini-val" style="color: var(--success);">88%</div></div>
+            <div class="mini-card"><div class="mini-label">Énergie totale consommée</div><div class="mini-val" id="v_energy" style="color: #a78bfa;">12.4 kWh</div></div>
+            <div class="mini-card"><div class="mini-label">Durée de fonctionnement</div><div class="mini-val">142h 30m</div></div>
+            <div class="mini-card"><div class="mini-label">Température boucle d'eau</div><div class="mini-val" id="t_water">11.8°</div></div>
+            
+            <div class="mini-card full">
+              <div class="mini-label">Courbes thermiques & Consigne</div>
+              <div class="chart-container"><canvas id="tempChart"></canvas></div>
+            </div>
+
+            <div class="mini-card full" style="display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-evenly; gap: 20px;">
+              <div style="flex: 1; min-width: 200px; text-align: center;">
+                <div class="mini-label" style="margin-bottom: 15px;">Répartition des modes</div>
+                <div class="doughnut-container"><canvas id="modeChart"></canvas></div>
+              </div>
+              <div style="flex: 1; min-width: 200px; font-size: 14px; color: var(--text-muted); line-height: 2;">
+                <ul style="list-style:none; padding:0; margin: 0;">
+                  <li><span style="color:#0ea5e9; font-size:18px; vertical-align: middle;">■</span> NORMAL : 60%</li>
+                  <li><span style="color:#34d399; font-size:18px; vertical-align: middle;">■</span> ECO : 30%</li>
+                  <li><span style="color:#fb923c; font-size:18px; vertical-align: middle;">■</span> BOOST : 10%</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VUE 4 : PARAMÈTRES SYSTÈME                 -->
+        <!-- ========================================== -->
+        <div id="view-settings" class="view">
+          <h2 style="margin-top:0;">Paramètres Système</h2>
+          <div class="stats-grid">
+            <div class="mini-card full" style="display:flex; justify-content: space-between; align-items:center; flex-direction:row; flex-wrap: wrap; gap: 15px;">
+              <div>
+                <div style="font-weight:bold;">Refroidissement d'eau (Chiller)</div>
+                <div style="font-size:12px; color:var(--text-muted)" id="chiller-sub">Auto-refroidissement à basse température. Économie batterie van.</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="chiller-toggle" checked onchange="toggleChiller()">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="mini-card full" style="display:flex; justify-content: space-between; align-items:center; flex-direction:row; flex-wrap: wrap; gap: 15px;">
+              <div>
+                <div style="font-weight:bold;">Hystérésis de régulation</div>
+                <div style="font-size:12px; color:var(--text-muted)">Plage de déclenchement avant réactivation</div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <button class="temp-adjust-btn" style="width:30px; height:30px; font-size:16px;" onclick="changeHyst(-0.1)">-</button>
+                <div id="target_hyst" style="font-weight:bold; font-size:16px;">±0.5°</div>
+                <button class="temp-adjust-btn" style="width:30px; height:30px; font-size:16px;" onclick="changeHyst(0.1)">+</button>
+              </div>
+            </div>
+            <div class="settings-row"><span style="font-size: 14px;">Compresseur (Chiller)</span><span id="compressor-state" style="color: var(--cyan-light); font-weight: bold; font-size: 14px;">Cible : -16.0°C</span></div>
+            <div class="settings-row"><span style="font-size: 14px;">Réseau Wi-Fi (Point d'accès)</span><span style="color: var(--text-muted); font-size: 14px;">Prototype_Clim</span></div>
+            <div class="settings-row"><span style="font-size: 14px;">Adresse IP</span><span style="color: var(--text-muted); font-size: 14px;">192.168.4.1</span></div>
+            <div class="settings-row"><span style="font-size: 14px;">Sondes DS18B20</span><span style="color: var(--success); font-weight: bold; font-size: 14px;">OK (5/5 connectées)</span></div>
+            <div class="settings-row"><span style="font-size: 14px;">Test Watchdog Sécurité</span><button class="settings-btn btn-outline" onclick="triggerWatchdogTest()">Simuler Perte</button></div>
+            <div class="settings-row"><span style="font-size: 14px;">Redémarrage ESP32</span><button class="settings-btn btn-danger" onclick="alert('Redémarrage demandé...')">Redémarrer</button></div>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VUE 5 : COMPTE UTILISATEUR                -->
+        <!-- ========================================== -->
+        <div id="view-account" class="view">
+          <h2 style="margin-top:0;">Gestion du Compte</h2>
+          <div class="mini-card full">
+            <div style="margin-top: 10px; font-size: 14px; color: var(--text-muted); line-height: 1.6;">
+              Niveau d'accès : <strong style="color:white;">Administrateur (R&D)</strong><br>
+              Stockage flash : <strong style="color:white;">LittleFS Actif</strong><br>
+              Firmware : <strong style="color:var(--cyan-light);">v2.4 - Dynamic Device Manager</strong>
+            </div>
+            <button style="width:100%; margin-top: 20px; padding: 12px; background: var(--bg-surface); color: var(--danger); border: 1px solid var(--danger); border-radius: 8px; font-weight:bold; cursor: pointer;" onclick="logout()">Se déconnecter</button>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL D'AJOUT / MODIFICATION DE MATÉRIEL -->
+  <div class="modal-backdrop" id="device-modal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modal-title">Ajouter un équipement</h3>
+        <button class="modal-close-btn" onclick="closeDeviceModal()">&times;</button>
+      </div>
+      <form onsubmit="handleDeviceFormSubmit(event)">
+        <div class="modal-body">
+          <div class="input-group">
+            <label for="device-name">Nom de l'équipement</label>
+            <input type="text" id="device-name" placeholder="Ex: Spot Cuisine, Vanne 3 Voies..." required>
+          </div>
+
+          <div class="input-group">
+            <label for="device-type">Type de contrôle</label>
+            <select id="device-type">
+              <option value="RELAY">Relais Tout-ou-Rien (ON / OFF)</option>
+              <option value="PWM">Variateur de vitesse / luminosité (PWM)</option>
+            </select>
+          </div>
+
+          <div class="input-group">
+            <label for="device-gpio">Broche GPIO ESP32 (Uniquement les broches sûres et libres)</label>
+            <select id="device-gpio" required>
+              <option value="">Chargement des broches...</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeDeviceModal()">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- CONTENEUR DES NOTIFICATIONS TOASTS -->
+  <div id="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
