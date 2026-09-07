@@ -418,6 +418,7 @@ input:checked + .slider:before { transform: translateX(19px); }
   text-transform: uppercase;
   letter-spacing: 1px;
   border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
 }
 .device-table td {
   padding: 16px 18px;
@@ -427,6 +428,15 @@ input:checked + .slider:before { transform: translateX(19px); }
 }
 .device-table tr:last-child td { border-bottom: none; }
 .device-table tr:hover { background: rgba(255, 255, 255, 0.02); }
+
+.device-table th.col-center,
+.device-table td.col-center {
+  text-align: center;
+}
+.device-table th.col-right,
+.device-table td.col-right {
+  text-align: right;
+}
 
 /* Badges */
 .badge {
@@ -464,6 +474,7 @@ input:checked + .slider:before { transform: translateX(19px); }
   display: flex;
   gap: 8px;
   align-items: center;
+  justify-content: flex-end;
 }
 .action-btn {
   background: var(--bg-main);

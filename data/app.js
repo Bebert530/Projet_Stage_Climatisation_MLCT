@@ -403,7 +403,7 @@ function renderDeviceTable(devices) {
   if (!tbody) return;
 
   if (devices.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:30px;">Aucun équipement configuré. Cliquez sur "+ Ajouter un équipement".</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:30px;">Aucun équipement configuré. Cliquez sur "+ Ajouter un équipement".</td></tr>`;
     return;
   }
 
@@ -433,9 +433,9 @@ function renderDeviceTable(devices) {
         break;
     }
 
-    const coreBadge = dev.isCore 
-      ? `<span class="badge badge-core">Système</span>`
-      : `<span class="badge badge-custom">Libre</span>`;
+    const isCoreTag = dev.isCore 
+      ? ` <span class="badge-volt" style="color:var(--orange-alert); border-color:rgba(251, 146, 60, 0.3); font-size:10px; margin-left:6px;" title="Équipement système protégé">Système</span>`
+      : '';
 
     let stateDisplay = '';
     if (dev.mode === 'OUTPUT_PWM') {
@@ -456,13 +456,14 @@ function renderDeviceTable(devices) {
 
     return `
       <tr>
-        <td style="font-weight:700; color:var(--text-main);">${escapeHtml(dev.name)}</td>
+        <td style="font-weight:700; color:var(--text-main); white-space:nowrap;">
+          ${escapeHtml(dev.name)}${isCoreTag}
+        </td>
         <td>${catBadge}</td>
         <td>${signalBadge}</td>
-        <td><span class="badge-gpio">GPIO ${dev.gpio}</span></td>
-        <td>${coreBadge}</td>
-        <td>${stateDisplay}</td>
-        <td>
+        <td class="col-center"><span class="badge-gpio">GPIO ${dev.gpio}</span></td>
+        <td class="col-center">${stateDisplay}</td>
+        <td class="col-right">
           <div class="actions-cell">
             <button class="action-btn test-btn" id="btn-test-${dev.id}" title="Tester" onclick="testDevice(${dev.id}, this)">
               <svg viewBox="0 0 24 24"><path d="M7,2V4H8V18A4,4 0 0,0 12,22A4,4 0 0,0 16,18V4H17V2H7M11,16C10.45,16 10,15.55 10,15C10,14.45 10.45,14 11,14C11.55,14 12,14.45 12,15C12,15.55 11.55,16 11,16M13,12C12.45,12 12,11.55 12,11C12,10.45 12.45,10 13,10C13.55,10 14,10.45 14,11C14,11.55 13.55,12 13,12Z"/></svg>
