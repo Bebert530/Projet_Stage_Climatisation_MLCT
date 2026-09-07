@@ -10,7 +10,7 @@
       "gpio": 4,
       "state": 0,
       "value": 0,
-      "isCore": true
+      "isCore": false
     },
     {
       "id": 2,

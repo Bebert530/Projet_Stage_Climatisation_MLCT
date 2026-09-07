@@ -397,6 +397,67 @@ void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager, Aut
     });
 
     // -------------------------------------------------------------
+    // 10. GET /api/cycles : Base de données des cycles de climatisation
+    // -------------------------------------------------------------
+    server.on("/api/cycles", HTTP_GET, [](AsyncWebServerRequest *request) {
+        if (LittleFS.exists("/cycles.json")) {
+            File file = LittleFS.open("/cycles.json", "r");
+            if (file) {
+                String content = file.readString();
+                file.close();
+                AsyncWebServerResponse *response = request->beginResponse(200, "application/json", content);
+                addCorsHeaders(response);
+                request->send(response);
+                return;
+            }
+        }
+        AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"cycles\":[]}");
+        addCorsHeaders(response);
+        request->send(response);
+    });
+
+    // -------------------------------------------------------------
+    // 11. POST /api/cycles : Sauvegarde de la base de données des cycles
+    // -------------------------------------------------------------
+    server.on("/api/cycles", HTTP_POST,
+        [](AsyncWebServerRequest *request) {
+            String* body = (String*)request->_tempObject;
+            if (!body || body->length() == 0) {
+                AsyncWebServerResponse *response = request->beginResponse(400, "application/json", "{\"success\":false,\"error\":\"Corps JSON vide\"}");
+                addCorsHeaders(response);
+                request->send(response);
+                return;
+            }
+
+            File file = LittleFS.open("/cycles.json", "w");
+            bool ok = false;
+            if (file) {
+                file.print(*body);
+                file.close();
+                ok = true;
+            }
+
+            delete body;
+            request->_tempObject = nullptr;
+
+            AsyncWebServerResponse *response = request->beginResponse(ok ? 200 : 500, "application/json", ok ? "{\"success\":true}" : "{\"success\":false,\"error\":\"Erreur ecriture LittleFS\"}");
+            addCorsHeaders(response);
+            request->send(response);
+        },
+        nullptr,
+        [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+            String* body = (String*)request->_tempObject;
+            if (index == 0) {
+                body = new String();
+                request->_tempObject = body;
+            }
+            if (body) {
+                body->concat((const char*)data, len);
+            }
+        }
+    );
+
+    // -------------------------------------------------------------
     // 10. Fichiers statiques LittleFS
     // -------------------------------------------------------------
     server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html").setCacheControl("max-age=300");

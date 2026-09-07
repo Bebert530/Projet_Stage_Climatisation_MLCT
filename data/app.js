@@ -22,6 +22,13 @@ let devicesList = [];
 let editingDeviceId = null;
 let automationRules = [];
 
+// --- VARIABLES DE L'HISTORIQUE DES CYCLES ---
+let cyclesList = [];
+let currentCycleStartTime = null;
+let currentCycleStartTemp = null;
+let currentCycleTargetTemp = null;
+let currentCycleMode = 'NORMAL';
+
 // --- GESTION DE LA NAVIGATION & SESSION ---
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
@@ -48,6 +55,7 @@ function checkLogin() {
     try { startTelemetry(); } catch (e) { console.warn("Erreur télémétrie:", e); }
     try { loadDeviceManager(); } catch (e) { console.warn("Erreur loadDeviceManager:", e); }
     try { loadAutomations(); } catch (e) { console.warn("Erreur loadAutomations:", e); }
+    try { loadCyclesHistory(); } catch (e) { console.warn("Erreur loadCyclesHistory:", e); }
   } else { 
     const errEl = document.getElementById('login-error');
     if (errEl) errEl.style.display = 'block'; 
@@ -500,13 +508,16 @@ async function loadDeviceManager() {
 
     if (!loadedFromStorage && devicesList.length === 0) {
       devicesList = [
-        {"id": 1, "name": "Pompe boucle froide", "category": "ACTUATOR", "voltage": "12V", "mode": "OUTPUT_RELAY", "type": "RELAY", "gpio": 4, "state": 0, "value": 0, "isCore": true},
+        {"id": 1, "name": "Pompe boucle froide", "category": "ACTUATOR", "voltage": "12V", "mode": "OUTPUT_RELAY", "type": "RELAY", "gpio": 4, "state": 0, "value": 0, "isCore": false},
         {"id": 2, "name": "Lanterneau Fiamma", "category": "ACTUATOR", "voltage": "12V", "mode": "OUTPUT_PWM", "type": "PWM", "gpio": 19, "state": 0, "value": 128, "isCore": false},
         {"id": 3, "name": "Spot Salon", "category": "ACTUATOR", "voltage": "12V", "mode": "OUTPUT_RELAY", "type": "RELAY", "gpio": 23, "state": 0, "value": 0, "isCore": false}
       ];
       try { localStorage.setItem('climate_pro_sim_devices', JSON.stringify(devicesList)); } catch(e){}
     }
   }
+
+  // Tous les équipements sont modifiables et supprimables sans exception
+  devicesList.forEach(d => { d.isCore = false; });
 
   renderDeviceTable(devicesList);
   renderDashboardAuxDevices(devicesList);
@@ -520,7 +531,7 @@ function renderDeviceTable(devices) {
   if (!tbody) return;
 
   if (devices.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:30px;">Aucun équipement configuré. Cliquez sur "+ Ajouter un équipement".</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:30px;">Aucun équipement configuré. Cliquez sur "Ajouter un équipement".</td></tr>`;
     return;
   }
 
@@ -550,31 +561,23 @@ function renderDeviceTable(devices) {
         break;
     }
 
-    const isCoreTag = dev.isCore 
-      ? ` <span class="badge-volt" style="color:var(--orange-alert); border-color:rgba(251, 146, 60, 0.3); font-size:10px; margin-left:6px;" title="Équipement système protégé">Système</span>`
-      : '';
-
     let stateDisplay = '';
     if (dev.mode === 'OUTPUT_PWM') {
-      stateDisplay = `<span style="color:var(--purple-pwm); font-weight:bold;">${Math.round((dev.value / 255) * 100)}%</span>`;
+      stateDisplay = `<span>${Math.round((dev.value / 255) * 100)}%</span>`;
     } else if (dev.mode === 'INPUT_DIGITAL') {
-      stateDisplay = dev.state ? `<span style="color:var(--cyan-light); font-weight:bold;">ON</span>` : `<span style="color:var(--text-muted);">OFF</span>`;
+      stateDisplay = dev.state ? `<span>ON</span>` : `<span>OFF</span>`;
     } else if (dev.mode === 'INPUT_ADC') {
-      stateDisplay = `<span style="color:var(--cyan-light); font-weight:bold;">${((dev.value / 4095) * 3.3).toFixed(2)}V</span>`;
+      stateDisplay = `<span>${((dev.value / 4095) * 3.3).toFixed(2)}V</span>`;
     } else {
-      stateDisplay = dev.state 
-        ? `<span style="color:var(--cyan-light); font-weight:bold;">ON</span>` 
-        : `<span style="color:var(--text-muted);">OFF</span>`;
+      stateDisplay = dev.state ? `<span>ON</span>` : `<span>OFF</span>`;
     }
 
-    const deleteBtn = dev.isCore
-      ? `<button class="action-btn disabled" title="Équipement système protégé"><svg viewBox="0 0 24 24"><path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.89,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"/></svg></button>`
-      : `<button class="action-btn delete-btn" title="Supprimer" onclick="deleteDevice(${dev.id}, '${escapeHtml(dev.name)}')"><svg viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg></button>`;
+    const deleteBtn = `<button class="action-btn delete-btn" title="Supprimer" onclick="deleteDevice(${dev.id}, '${escapeHtml(dev.name)}')"><svg viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg></button>`;
 
     return `
       <tr>
         <td style="font-weight:700; color:var(--text-main); white-space:nowrap;">
-          ${escapeHtml(dev.name)}${isCoreTag}
+          ${escapeHtml(dev.name)}
         </td>
         <td>${catBadge}</td>
         <td>${signalBadge}</td>
@@ -1374,7 +1377,7 @@ function renderAutomationTable() {
   }
 
   if (automationRules.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:30px;">Aucune règle d'automatisation. Cliquez sur "+ Ajouter une règle" pour créer un premier scénario.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:30px;">Aucune règle d'automatisation. Cliquez sur "Ajouter une règle" pour créer un premier scénario.</td></tr>`;
     return;
   }
 
@@ -1740,7 +1743,20 @@ function togglePower() {
     dot.classList.remove('off'); dot.classList.add('on');
     powerStatus.classList.remove('off'); powerStatus.classList.add('on');
     powerStatus.innerText = 'ON';
+
+    // Démarrage du cycle pour l'historique
+    currentCycleStartTime = new Date();
+    currentCycleStartTemp = currentRoomTemp;
+    currentCycleTargetTemp = targetTemp;
+    const activeModeBtn = document.querySelector('.mode-btn.active');
+    currentCycleMode = activeModeBtn ? activeModeBtn.innerText.trim() : 'NORMAL';
   } else {
+    // Fin du cycle et enregistrement dans la base de données
+    if (currentCycleStartTime) {
+      const reached = (targetEnabled && currentRoomTemp <= targetTemp + 0.3);
+      recordCompletedCycle(reached ? "Consigne atteinte" : "Arrêt manuel");
+    }
+
     startTemp = null;
     dot.classList.remove('on'); dot.classList.add('off');
     powerStatus.classList.remove('on'); powerStatus.classList.add('off');
@@ -2017,4 +2033,239 @@ function startTelemetry() {
         try { evaluateAutomations(); } catch (e) {}
       });
   }, 2000);
+}
+
+// =========================================================================
+// GESTIONNAIRE DE L'HISTORIQUE DES CYCLES DE CLIMATISATION
+// =========================================================================
+
+/**
+ * Enregistre un cycle terminé dans la base de données (LittleFS / localStorage)
+ */
+async function recordCompletedCycle(status = "Terminé") {
+  if (!currentCycleStartTime) return;
+  
+  const endTime = new Date();
+  const durationMs = Math.max(1000, endTime.getTime() - currentCycleStartTime.getTime());
+  const durationSec = Math.round(durationMs / 1000);
+  
+  let durStr = "";
+  if (durationSec < 60) {
+    durStr = `${durationSec}s`;
+  } else {
+    const m = Math.floor(durationSec / 60);
+    const h = Math.floor(m / 60);
+    const remM = m % 60;
+    durStr = h > 0 ? `${h}h ${remM < 10 ? '0' : ''}${remM}m` : `${m}m`;
+  }
+  
+  const pad = n => (n < 10 ? '0' : '') + n;
+  const dateStr = `${pad(endTime.getDate())}/${pad(endTime.getMonth() + 1)}/${endTime.getFullYear()}`;
+  const startStr = `${pad(currentCycleStartTime.getHours())}:${pad(currentCycleStartTime.getMinutes())}`;
+  const endStr = `${pad(endTime.getHours())}:${pad(endTime.getMinutes())}`;
+  
+  // Estimation énergétique : puissance selon le mode * temps
+  let modePowerKw = 0.6;
+  if (currentCycleMode.includes('BOOST')) modePowerKw = 0.95;
+  else if (currentCycleMode.includes('ECO')) modePowerKw = 0.35;
+  const energyKwh = parseFloat(((durationSec / 3600) * modePowerKw).toFixed(2));
+  
+  const nextNum = cyclesList.length + 1;
+  const newCycle = {
+    id: `CYC-${pad(nextNum)}`,
+    date: dateStr,
+    startTime: startStr,
+    endTime: endStr,
+    duration: durStr,
+    durationSec: durationSec,
+    mode: currentCycleMode,
+    startTemp: parseFloat((currentCycleStartTemp || currentRoomTemp).toFixed(1)),
+    endTemp: parseFloat(currentRoomTemp.toFixed(1)),
+    targetTemp: parseFloat((currentCycleTargetTemp || targetTemp).toFixed(1)),
+    energy: energyKwh,
+    status: status
+  };
+  
+  cyclesList.unshift(newCycle);
+  currentCycleStartTime = null;
+  
+  // Sauvegarde locale
+  try { localStorage.setItem('climate_pro_cycles', JSON.stringify(cyclesList)); } catch(e){}
+  
+  // Sauvegarde sur l'ESP32 dans LittleFS
+  fetch('/api/cycles', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cycles: cyclesList })
+  }).catch(err => console.warn("Erreur sauvegarde cycle:", err));
+  
+  showToast(`Cycle ${newCycle.id} enregistré (${durStr}, ${energyKwh} kWh)`, 'info');
+  renderCyclesHistory();
+}
+
+/**
+ * Charge l'historique des cycles depuis l'API LittleFS ou le stockage local
+ */
+async function loadCyclesHistory(forceRefresh = false) {
+  try {
+    const res = await fetch('/api/cycles');
+    if (!res.ok) throw new Error('Erreur API');
+    const data = await res.json();
+    if (data && Array.isArray(data.cycles) && data.cycles.length > 0) {
+      cyclesList = data.cycles;
+      try { localStorage.setItem('climate_pro_cycles', JSON.stringify(cyclesList)); } catch(e){}
+    } else {
+      throw new Error('Données cycles vides');
+    }
+  } catch(err) {
+    let loaded = false;
+    try {
+      const stored = localStorage.getItem('climate_pro_cycles');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          cyclesList = parsed;
+          loaded = true;
+        }
+      }
+    } catch(e){}
+    
+    if (!loaded && cyclesList.length === 0) {
+      cyclesList = [
+        { id: "CYC-006", date: "07/09/2026", startTime: "13:00", endTime: "13:40", duration: "40m", durationSec: 2400, mode: "BOOST+", startTemp: 30.2, endTemp: 23.5, targetTemp: 20.5, energy: 0.74, status: "Arrêt manuel" },
+        { id: "CYC-005", date: "07/09/2026", startTime: "10:15", endTime: "11:00", duration: "45m", durationSec: 2700, mode: "ECO+", startTemp: 24.6, endTemp: 22.8, targetTemp: 22.5, energy: 0.29, status: "Consigne atteinte" },
+        { id: "CYC-004", date: "06/09/2026", startTime: "16:00", endTime: "17:30", duration: "1h 30m", durationSec: 5400, mode: "NORMAL", startTemp: 28.1, endTemp: 21.2, targetTemp: 21.0, energy: 0.81, status: "Consigne atteinte" },
+        { id: "CYC-003", date: "06/09/2026", startTime: "11:20", endTime: "12:05", duration: "45m", durationSec: 2700, mode: "ECO", startTemp: 25.8, endTemp: 22.4, targetTemp: 22.0, energy: 0.38, status: "Minuterie terminée" },
+        { id: "CYC-002", date: "05/09/2026", startTime: "14:10", endTime: "15:10", duration: "1h 00m", durationSec: 3600, mode: "BOOST", startTemp: 29.5, endTemp: 22.0, targetTemp: 21.5, energy: 0.92, status: "Consigne atteinte" },
+        { id: "CYC-001", date: "05/09/2026", startTime: "09:30", endTime: "10:45", duration: "1h 15m", durationSec: 4500, mode: "NORMAL", startTemp: 27.2, endTemp: 21.0, targetTemp: 21.0, energy: 0.65, status: "Consigne atteinte" }
+      ];
+      try { localStorage.setItem('climate_pro_cycles', JSON.stringify(cyclesList)); } catch(e){}
+    }
+  }
+  
+  if (forceRefresh) {
+    showToast("Base de données des cycles actualisée", "info");
+  }
+  renderCyclesHistory();
+}
+
+/**
+ * Ouvre la modale de l'historique des cycles
+ */
+function openCyclesHistoryModal() {
+  loadCyclesHistory();
+  const modal = document.getElementById('cycles-modal');
+  if (modal) modal.classList.add('active');
+}
+
+/**
+ * Ferme la modale de l'historique des cycles
+ */
+function closeCyclesHistoryModal() {
+  const modal = document.getElementById('cycles-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+/**
+ * Filtre l'affichage de l'historique par mode
+ */
+function filterCyclesHistory() {
+  const select = document.getElementById('history-mode-filter');
+  const selectedMode = select ? select.value : 'ALL';
+  if (selectedMode === 'ALL') {
+    renderCyclesHistory(cyclesList);
+  } else {
+    const filtered = cyclesList.filter(c => c.mode === selectedMode);
+    renderCyclesHistory(filtered);
+  }
+}
+
+/**
+ * Génère le tableau HTML de l'historique et calcule les synthèses
+ */
+function renderCyclesHistory(cyclesToRender = null) {
+  const list = cyclesToRender !== null ? cyclesToRender : cyclesList;
+  
+  // 1. Calcul des statistiques globales sur la base de données complète
+  const totalCycles = cyclesList.length;
+  let totalSeconds = 0;
+  let totalEnergy = 0;
+  
+  cyclesList.forEach(c => {
+    totalSeconds += (c.durationSec || 0);
+    totalEnergy += (c.energy || 0);
+  });
+  
+  const totalH = Math.floor(totalSeconds / 3600);
+  const totalM = Math.floor((totalSeconds % 3600) / 60);
+  const timeStr = `${totalH}h ${totalM < 10 ? '0' : ''}${totalM}m`;
+  
+  const elTotCycles = document.getElementById('hist-total-cycles');
+  const elTotTime = document.getElementById('hist-total-time');
+  const elTotEnergy = document.getElementById('hist-total-energy');
+  
+  if (elTotCycles) elTotCycles.innerText = totalCycles;
+  if (elTotTime) elTotTime.innerText = timeStr;
+  if (elTotEnergy) elTotEnergy.innerText = totalEnergy.toFixed(1) + ' kWh';
+  
+  // 2. Rendu du tableau des cycles sans couleurs sur le statut
+  const tbody = document.getElementById('history-table-body');
+  if (!tbody) return;
+  
+  if (list.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:30px;">Aucun cycle enregistré pour ce critère.</td></tr>`;
+    return;
+  }
+  
+  tbody.innerHTML = list.map(c => {
+    return `
+      <tr>
+        <td style="font-weight:700; color:var(--text-main);">${escapeHtml(c.id)}</td>
+        <td style="white-space:nowrap; color:var(--text-muted); font-size:12px;">${escapeHtml(c.date)} ${escapeHtml(c.startTime || '')}</td>
+        <td><span class="badge" style="background:rgba(255,255,255,0.06); font-weight:bold;">${escapeHtml(c.mode)}</span></td>
+        <td class="col-center">${c.startTemp !== undefined ? c.startTemp.toFixed(1) + '°C' : '--'}</td>
+        <td class="col-center" style="font-weight:bold;">${c.endTemp !== undefined ? c.endTemp.toFixed(1) + '°C' : '--'}</td>
+        <td class="col-center">${c.targetTemp !== undefined ? c.targetTemp.toFixed(1) + '°C' : '--'}</td>
+        <td class="col-center">${escapeHtml(c.duration || '--')}</td>
+        <td class="col-center">${c.energy !== undefined ? c.energy.toFixed(2) + ' kWh' : '--'}</td>
+        <td class="col-center">${escapeHtml(c.status || 'Terminé')}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+/**
+ * Exporte l'historique complet des cycles au format CSV
+ */
+function exportCyclesCSV() {
+  if (cyclesList.length === 0) {
+    showToast("Aucun cycle à exporter", "warning");
+    return;
+  }
+  
+  const headers = ["ID", "Date", "HeureDebut", "HeureFin", "Mode", "TempDebut_C", "TempFin_C", "Consigne_C", "Duree", "Energie_kWh", "Statut"];
+  const rows = cyclesList.map(c => [
+    c.id,
+    c.date,
+    c.startTime || '',
+    c.endTime || '',
+    c.mode,
+    c.startTemp,
+    c.endTemp,
+    c.targetTemp,
+    c.duration,
+    c.energy,
+    `"${(c.status || '').replace(/"/g, '""')}"`
+  ]);
+  
+  const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement('a');
+  link.setAttribute('href', encodedUri);
+  link.setAttribute('download', `historique_cycles_${new Date().toISOString().slice(0,10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  showToast("Export CSV généré avec succès", "success");
 }

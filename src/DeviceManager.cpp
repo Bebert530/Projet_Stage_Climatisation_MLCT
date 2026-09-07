@@ -74,7 +74,7 @@ void DeviceManager::createDefaultConfig() {
     dev1.state = 0;
     dev1.value = 0;
     dev1.pwmChannel = -1;
-    dev1.isCore = true;
+    dev1.isCore = false;
     _devices.push_back(dev1);
 
     // 2. Lanterneau Fiamma (PWM)
@@ -463,12 +463,6 @@ bool DeviceManager::saveDevice(uint8_t id, const String& name, DeviceCategory ca
 
     if (target) {
         // Mise à jour équipement existant
-        if (target->isCore && !isCore) {
-            xSemaphoreGive(_mutex);
-            errorMsg = "Protection : impossible de retirer le statut système d'un équipement Core.";
-            return false;
-        }
-
         if (target->gpio != gpio || target->mode != mode) {
             releaseHardware(*target);
             target->gpio = gpio;
@@ -517,12 +511,6 @@ bool DeviceManager::deleteDevice(uint8_t id, String& errorMsg) {
     if (it == _devices.end()) {
         xSemaphoreGive(_mutex);
         errorMsg = "Périphérique introuvable (ID: " + String(id) + ").";
-        return false;
-    }
-
-    if (it->isCore) {
-        xSemaphoreGive(_mutex);
-        errorMsg = "Impossible de supprimer un équipement système protégé (Core).";
         return false;
     }
 

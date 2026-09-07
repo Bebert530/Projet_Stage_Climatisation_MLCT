@@ -83,6 +83,18 @@
         <!-- ========================================== -->
         <div id="view-clim" class="view active">
           
+          <!-- EN-TÊTE CLIMATISATION & BOUTON HISTORIQUE -->
+          <div class="clim-header-bar">
+            <div class="clim-header-title">
+              <h2>Climatisation</h2>
+              <p>Régulation thermique et surveillance en temps réel</p>
+            </div>
+            <button class="btn-history" onclick="openCyclesHistoryModal()" title="Historique des cycles">
+              <svg viewBox="0 0 24 24"><path d="M13,3A9,9 0 0,0 4,12H1L4.89,15.89L4.96,16.03L9,12H6A7,7 0 0,1 13,5A7,7 0 0,1 20,12A7,7 0 0,1 13,19C11.07,19 9.32,18.21 8.06,16.94L6.64,18.36C8.27,20 10.5,21 13,21A9,9 0 0,0 22,12A9,9 0 0,0 13,3M12,8V13L16.28,15.54L17,14.33L13.5,12.25V8H12Z"/></svg>
+              Historique
+            </button>
+          </div>
+
           <!-- BARRE DE SÉLECTION DE MODE -->
           <div class="mode-bar">
             <button class="mode-btn" onclick="setMode('eco+', this)">ECO+</button>
@@ -181,15 +193,6 @@
             </div>
           </div>
 
-          <!-- SECTION DYNAMIQUE : ACTIONNEURS & MATÉRIEL SUR LE DASHBOARD -->
-          <div class="aux-section-title">
-            <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M4,6H20V16H4M20,18A2,2 0 0,0 22,16V6C22,4.89 21.1,4 20,4H4C2.89,4 2,4.89 2,6V16A2,2 0 0,0 4,18H0V20H24V18H20Z"/></svg>
-            Équipements & Sorties Matérielles
-          </div>
-          <div class="aux-devices-grid" id="aux-devices-container">
-            <!-- Rempli automatiquement par app.js -->
-          </div>
-
         </div>
 
         <!-- ========================================== -->
@@ -271,7 +274,7 @@
             </div>
             <button class="btn-primary" onclick="openAddDeviceModal()">
               <svg viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
-              + Ajouter un équipement
+              Ajouter un équipement
             </button>
           </div>
 
@@ -307,7 +310,7 @@
             </div>
             <button class="btn-primary" onclick="addAutomationRule()">
               <svg viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
-              + Ajouter une règle
+              Ajouter une règle
             </button>
           </div>
 
@@ -463,6 +466,89 @@
       <div class="modal-footer">
         <button type="button" class="btn-secondary" onclick="backToFormModal()">Revenir</button>
         <button type="button" class="btn-primary btn-success-glow" onclick="finishAndActivateWizard()">Câblage terminé & Activer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALE : HISTORIQUE DES CYCLES DE CLIMATISATION -->
+  <div class="modal-backdrop" id="cycles-modal">
+    <div class="modal-dialog modal-cycles">
+      <div class="modal-header">
+        <div>
+          <h3>Historique des Cycles</h3>
+          <div class="modal-subtitle">Base de données des cycles enregistrés (LittleFS)</div>
+        </div>
+        <button class="modal-close-btn" onclick="closeCyclesHistoryModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- Cartes statistiques résumées -->
+        <div class="history-stats-bar">
+          <div class="history-stat-box">
+            <span class="stat-num" id="hist-total-cycles">0</span>
+            <span class="stat-label">Cycles totaux</span>
+          </div>
+          <div class="history-stat-box">
+            <span class="stat-num" id="hist-total-time">0h 00m</span>
+            <span class="stat-label">Temps cumulé</span>
+          </div>
+          <div class="history-stat-box">
+            <span class="stat-num" id="hist-total-energy">0.0 kWh</span>
+            <span class="stat-label">Énergie estimée</span>
+          </div>
+        </div>
+
+        <!-- Filtre & actions rapides -->
+        <div class="history-toolbar">
+          <div class="history-filter-group">
+            <label for="history-mode-filter">Filtrer par mode :</label>
+            <select id="history-mode-filter" onchange="filterCyclesHistory()">
+              <option value="ALL">Tous les modes</option>
+              <option value="NORMAL">NORMAL</option>
+              <option value="ECO">ECO</option>
+              <option value="ECO+">ECO+</option>
+              <option value="BOOST">BOOST</option>
+              <option value="BOOST+">BOOST+</option>
+              <option value="MANUEL">MANUEL</option>
+            </select>
+          </div>
+          <div class="history-btn-group">
+            <button class="btn-outline-sm" onclick="loadCyclesHistory(true)" title="Actualiser la liste">
+              <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/></svg>
+              Actualiser
+            </button>
+            <button class="btn-outline-sm" onclick="exportCyclesCSV()" title="Exporter en CSV">
+              <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M10,19L12,15H9V10H15V15H12L14,19H10Z"/></svg>
+              Exporter CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- Tableau des cycles -->
+        <div class="table-responsive history-table-container">
+          <table class="device-table history-table">
+            <thead>
+              <tr>
+                <th>Cycle</th>
+                <th>Date & Heure</th>
+                <th>Mode</th>
+                <th class="col-center">Temp. Début</th>
+                <th class="col-center">Temp. Fin</th>
+                <th class="col-center">Consigne</th>
+                <th class="col-center">Durée</th>
+                <th class="col-center">Énergie</th>
+                <th class="col-center">Statut</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body">
+              <!-- Dynamique par app.js -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeCyclesHistoryModal()">Fermer</button>
       </div>
     </div>
   </div>
