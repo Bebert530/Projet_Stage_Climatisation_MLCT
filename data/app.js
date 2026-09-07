@@ -383,14 +383,28 @@ async function loadDeviceManager() {
     if (!res.ok) throw new Error('Erreur réseau');
     const data = await res.json();
     devicesList = data.devices || [];
+    try { localStorage.setItem('climate_pro_sim_devices', JSON.stringify(devicesList)); } catch(e){}
   } catch (err) {
     console.warn("Mode simulation / fallback hors ligne.");
-    if (devicesList.length === 0) {
+    let loadedFromStorage = false;
+    try {
+      const savedSim = localStorage.getItem('climate_pro_sim_devices');
+      if (savedSim) {
+        const parsed = JSON.parse(savedSim);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          devicesList = parsed;
+          loadedFromStorage = true;
+        }
+      }
+    } catch(e) {}
+
+    if (!loadedFromStorage && devicesList.length === 0) {
       devicesList = [
         {"id": 1, "name": "Pompe boucle froide", "category": "ACTUATOR", "voltage": "12V", "mode": "OUTPUT_RELAY", "type": "RELAY", "gpio": 4, "state": 0, "value": 0, "isCore": true},
         {"id": 2, "name": "Lanterneau Fiamma", "category": "ACTUATOR", "voltage": "12V", "mode": "OUTPUT_PWM", "type": "PWM", "gpio": 19, "state": 0, "value": 128, "isCore": false},
         {"id": 3, "name": "Spot Salon", "category": "ACTUATOR", "voltage": "12V", "mode": "OUTPUT_RELAY", "type": "RELAY", "gpio": 23, "state": 0, "value": 0, "isCore": false}
       ];
+      try { localStorage.setItem('climate_pro_sim_devices', JSON.stringify(devicesList)); } catch(e){}
     }
   }
 
@@ -571,6 +585,7 @@ async function toggleAuxDevice(id, isChecked) {
     showToast(`${dev ? dev.name : 'Équipement'} : ${isChecked ? 'Activé' : 'Désactivé'}`, 'success');
   } catch (err) {
     console.warn("set-state simulation");
+    try { localStorage.setItem('climate_pro_sim_devices', JSON.stringify(devicesList)); } catch(e){}
   }
 }
 
@@ -596,6 +611,7 @@ function updateAuxPwm(id, percent) {
       });
     } catch (err) {
       console.warn("set-state PWM simulation");
+      try { localStorage.setItem('climate_pro_sim_devices', JSON.stringify(devicesList)); } catch(e){}
     }
   }, 100);
 }
@@ -929,6 +945,7 @@ async function finishAndActivateWizard() {
       const newId = (devicesList.length > 0 ? Math.max(...devicesList.map(d => d.id)) + 1 : 1);
       devicesList.push({ ...payload, id: newId, state: 0, value: 0 });
     }
+    try { localStorage.setItem('climate_pro_sim_devices', JSON.stringify(devicesList)); } catch(e){}
     showToast(`"${wizardState.name}" activé sur GPIO ${wizardState.gpio} (simulation) !`, "success");
   }
 
@@ -960,6 +977,7 @@ async function deleteDevice(id, name) {
     await loadDeviceManager();
   } catch (err) {
     devicesList = devicesList.filter(d => d.id !== id);
+    try { localStorage.setItem('climate_pro_sim_devices', JSON.stringify(devicesList)); } catch(e){}
     showToast(`"${name}" a été supprimé (simulation).`, "success");
     renderDeviceTable(devicesList);
     renderDashboardAuxDevices(devicesList);
