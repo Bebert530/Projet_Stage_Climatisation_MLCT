@@ -15,13 +15,13 @@
       <h2>CLIMATE PRO</h2>
       <div class="input-group">
         <label>Identifiant</label>
-        <input type="text" id="username" value="admin">
+        <input type="text" id="username" value="admin" onkeydown="if(event.key==='Enter') checkLogin()">
       </div>
       <div class="input-group">
         <label>Mot de passe</label>
-        <input type="password" id="password" value="admin">
+        <input type="password" id="password" value="admin" onkeydown="if(event.key==='Enter') checkLogin()">
       </div>
-      <button class="login-btn" onclick="checkLogin()">SE CONNECTER</button>
+      <button class="login-btn" type="button" onclick="checkLogin()">SE CONNECTER</button>
       <div class="error-msg" id="login-error">Identifiants incorrects.</div>
     </div>
   </div>

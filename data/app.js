@@ -24,25 +24,31 @@ let editingDeviceId = null;
 // --- GESTION DE LA NAVIGATION & SESSION ---
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
-  sidebar.classList.toggle('collapsed');
+  if (sidebar) sidebar.classList.toggle('collapsed');
 }
 
 function checkLogin() {
-  const u = document.getElementById('username').value;
-  const p = document.getElementById('password').value;
-  if(u === 'admin' && p === 'admin') {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app-screen').style.display = 'flex';
+  const userEl = document.getElementById('username');
+  const passEl = document.getElementById('password');
+  const u = userEl ? userEl.value.trim() : '';
+  const p = passEl ? passEl.value.trim() : '';
+  if (u === 'admin' && p === 'admin') {
+    const loginScreen = document.getElementById('login-screen');
+    const appScreen = document.getElementById('app-screen');
+    if (loginScreen) loginScreen.style.display = 'none';
+    if (appScreen) appScreen.style.display = 'flex';
     
-    if(window.innerWidth >= 768) {
-      document.getElementById('sidebar').classList.remove('collapsed');
+    if (window.innerWidth >= 768) {
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar) sidebar.classList.remove('collapsed');
     }
 
-    initCharts(); 
-    startTelemetry();
-    loadDeviceManager(); // Initialiser la liste du matériel
+    try { initCharts(); } catch (e) { console.warn("Erreur charts:", e); }
+    try { startTelemetry(); } catch (e) { console.warn("Erreur télémétrie:", e); }
+    try { loadDeviceManager(); } catch (e) { console.warn("Erreur loadDeviceManager:", e); }
   } else { 
-    document.getElementById('login-error').style.display = 'block'; 
+    const errEl = document.getElementById('login-error');
+    if (errEl) errEl.style.display = 'block'; 
   }
 }
 
@@ -59,7 +65,8 @@ function switchTab(tabId, btn) {
   if (btn) btn.classList.add('active');
   
   if(window.innerWidth < 768) {
-    document.getElementById('sidebar').classList.add('collapsed');
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) sidebar.classList.add('collapsed');
   }
 
   // Si l'utilisateur clique sur l'onglet Matériel, on rafraîchit la liste
@@ -87,7 +94,6 @@ function showToast(message, type = 'info') {
 }
 
 // =========================================================================
-// GESTIONNAIRE DE MATÉRIEL (DEVICE MANAGER) - APPELS REST API
 // GESTIONNAIRE DE MATÉRIEL & DIDACTICIEL GUIDÉ (WIRING WIZARD)
 // =========================================================================
 
@@ -346,10 +352,11 @@ const WIRING_TUTORIALS = {
  * Met à jour le menu déroulant du type de commande selon la catégorie
  */
 function onCategoryChange() {
-  const cat = document.getElementById('device-category').value;
+  const catEl = document.getElementById('device-category');
   const modeSelect = document.getElementById('device-signal-mode');
-  if (!modeSelect) return;
+  if (!catEl || !modeSelect) return;
 
+  const cat = catEl.value;
   if (cat === 'ACTUATOR') {
     modeSelect.innerHTML = `
       <option value="OUTPUT_RELAY">⚡ Tout ou Rien (Relais isolé)</option>
@@ -374,14 +381,9 @@ async function loadDeviceManager() {
     const data = await res.json();
     devicesList = data.devices || [];
   } catch (err) {
-    console.warn("API indisponible (mode hors-ligne ou dev local) : utilisation des données de secours.");
     console.warn("Mode simulation / fallback hors ligne.");
     if (devicesList.length === 0) {
-      // Données mock pour test sans ESP32
       devicesList = [
-        {"id": 1, "name": "Pompe boucle froide", "type": "RELAY", "gpio": 4, "state": 0, "value": 0, "isCore": true},
-        {"id": 2, "name": "Lanterneau Fiamma", "type": "PWM", "gpio": 19, "state": 0, "value": 128, "isCore": false},
-        {"id": 3, "name": "Spot Salon", "type": "RELAY", "gpio": 23, "state": 0, "value": 0, "isCore": false}
         {"id": 1, "name": "Pompe boucle froide", "category": "ACTUATOR", "voltage": "12V", "mode": "OUTPUT_RELAY", "type": "RELAY", "gpio": 4, "state": 0, "value": 0, "isCore": true},
         {"id": 2, "name": "Lanterneau Fiamma", "category": "ACTUATOR", "voltage": "12V", "mode": "OUTPUT_PWM", "type": "PWM", "gpio": 19, "state": 0, "value": 128, "isCore": false},
         {"id": 3, "name": "Spot Salon", "category": "ACTUATOR", "voltage": "12V", "mode": "OUTPUT_RELAY", "type": "RELAY", "gpio": 23, "state": 0, "value": 0, "isCore": false}
@@ -401,16 +403,11 @@ function renderDeviceTable(devices) {
   if (!tbody) return;
 
   if (devices.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:30px;">Aucun équipement configuré. Cliquez sur "+ Ajouter un équipement".</td></tr>`;
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:30px;">Aucun équipement configuré. Cliquez sur "+ Ajouter un équipement".</td></tr>`;
     return;
   }
 
   tbody.innerHTML = devices.map(dev => {
-    const isRelay = dev.type === 'RELAY';
-    const typeBadge = isRelay 
-      ? `<span class="badge badge-relay">⚡ Relais ON/OFF</span>`
-      : `<span class="badge badge-pwm">〰️ Variateur PWM</span>`;
     const isActuator = (dev.category === 'ACTUATOR');
     const catBadge = isActuator
       ? `<span class="badge badge-actuator">Actionneur</span> <span class="badge-volt">${dev.voltage || '12V'}</span>`
@@ -437,14 +434,9 @@ function renderDeviceTable(devices) {
     }
 
     const coreBadge = dev.isCore 
-      ? `<span class="badge badge-core">🔒 Système (Core)</span>`
-      : `<span class="badge badge-custom">⚙️ Personnalisé</span>`;
       ? `<span class="badge badge-core">🔒 Système</span>`
       : `<span class="badge badge-custom">⚙️ Libre</span>`;
 
-    const stateDisplay = isRelay
-      ? (dev.state ? '<span style="color:var(--cyan-light); font-weight:bold;">ON</span>' : '<span style="color:var(--text-muted);">OFF</span>')
-      : `<span style="color:var(--purple-pwm); font-weight:bold;">${Math.round((dev.value / 255) * 100)}%</span>`;
     let stateDisplay = '';
     if (dev.mode === 'OUTPUT_PWM') {
       stateDisplay = `<span style="color:var(--purple-pwm); font-weight:bold;">${Math.round((dev.value / 255) * 100)}%</span>`;
@@ -459,15 +451,12 @@ function renderDeviceTable(devices) {
     }
 
     const deleteBtn = dev.isCore
-      ? `<button class="action-btn disabled" title="Équipement système protégé contre la suppression"><svg viewBox="0 0 24 24"><path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.89,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"/></svg> Core</button>`
-      : `<button class="action-btn delete-btn" onclick="deleteDevice(${dev.id}, '${escapeHtml(dev.name)}')"><svg viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg> Supprimer</button>`;
       ? `<button class="action-btn disabled" title="Équipement système protégé"><svg viewBox="0 0 24 24"><path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.89,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"/></svg></button>`
       : `<button class="action-btn delete-btn" title="Supprimer" onclick="deleteDevice(${dev.id}, '${escapeHtml(dev.name)}')"><svg viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg></button>`;
 
     return `
       <tr>
         <td style="font-weight:700; color:var(--text-main);">${escapeHtml(dev.name)}</td>
-        <td>${typeBadge}</td>
         <td>${catBadge}</td>
         <td>${signalBadge}</td>
         <td><span class="badge-gpio">GPIO ${dev.gpio}</span></td>
@@ -475,19 +464,16 @@ function renderDeviceTable(devices) {
         <td>${stateDisplay}</td>
         <td>
           <div class="actions-cell">
-            <button class="action-btn test-btn" id="btn-test-${dev.id}" onclick="testDevice(${dev.id}, this)">
             <button class="action-btn test-btn" id="btn-test-${dev.id}" title="Tester" onclick="testDevice(${dev.id}, this)">
               <svg viewBox="0 0 24 24"><path d="M7,2V4H8V18A4,4 0 0,0 12,22A4,4 0 0,0 16,18V4H17V2H7M11,16C10.45,16 10,15.55 10,15C10,14.45 10.45,14 11,14C11.55,14 12,14.45 12,15C12,15.55 11.55,16 11,16M13,12C12.45,12 12,11.55 12,11C12,10.45 12.45,10 13,10C13.55,10 14,10.45 14,11C14,11.55 13.55,12 13,12Z"/></svg>
               Tester
             </button>
-            <button class="action-btn" onclick="openEditDeviceModal(${dev.id})">
             <button class="action-btn" title="Didacticiel de câblage" onclick="openWizardForExistingDevice(${dev.id})">
               <svg viewBox="0 0 24 24"><path d="M19,2L14,6.5V17.5L19,13V2M6.5,5C4.55,5 2.45,5.4 1,6.5V21.16C1,21.41 1.25,21.66 1.5,21.66C1.6,21.66 1.65,21.61 1.75,21.61C3.1,20.95 5.05,20.5 6.5,20.5C8.45,20.5 10.55,20.95 12,22C13.35,21.05 15.8,20.5 17.5,20.5C19.15,20.5 20.85,20.8 22.25,21.56C22.35,21.61 22.4,21.66 22.5,21.66C22.75,21.66 23,21.41 23,21.16V6.5C22.4,6.05 21.75,5.75 21,5.5V19C19.9,18.65 18.7,18.5 17.5,18.5C15.8,18.5 13.35,19.05 12,20V6.5C10.55,5.4 8.45,5 6.5,5Z"/></svg>
               Câbler
             </button>
             <button class="action-btn" title="Modifier" onclick="openEditDeviceModal(${dev.id})">
               <svg viewBox="0 0 24 24"><path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/></svg>
-              Modifier
             </button>
             ${deleteBtn}
           </div>
@@ -498,7 +484,6 @@ function renderDeviceTable(devices) {
 }
 
 /**
- * Affiche dynamiquement les périphériques sur la page d'accueil (Dashboard)
  * Affiche dynamiquement les périphériques sur la page principale (Dashboard)
  */
 function renderDashboardAuxDevices(devices) {
@@ -506,15 +491,11 @@ function renderDashboardAuxDevices(devices) {
   if (!container) return;
 
   if (devices.length === 0) {
-    container.innerHTML = `<div style="color:var(--text-muted); font-size:13px;">Aucun actionneur supplémentaire configuré.</div>`;
     container.innerHTML = `<div style="color:var(--text-muted); font-size:13px;">Aucun actionneur ou capteur supplémentaire configuré.</div>`;
     return;
   }
 
   container.innerHTML = devices.map(dev => {
-    const isRelay = dev.type === 'RELAY';
-    
-    if (isRelay) {
     if (dev.mode === 'OUTPUT_PWM') {
       const pct = Math.round((dev.value / 255) * 100);
       return `
@@ -523,12 +504,6 @@ function renderDashboardAuxDevices(devices) {
             <span class="aux-name">${escapeHtml(dev.name)}</span>
             <span class="badge-gpio">GPIO ${dev.gpio}</span>
           </div>
-          <div class="aux-controls" style="justify-content: space-between;">
-            <span style="font-size:12px; color:var(--text-muted);">Relais</span>
-            <label class="toggle-switch">
-              <input type="checkbox" id="aux-toggle-${dev.id}" ${dev.state ? 'checked' : ''} onchange="toggleAuxDevice(${dev.id}, this.checked)">
-              <span class="slider"></span>
-            </label>
           <div class="aux-controls" style="flex-direction:column; align-items:stretch;">
             <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted);">
               <span>Variateur PWM (${dev.voltage || '12V'})</span>
@@ -556,7 +531,6 @@ function renderDashboardAuxDevices(devices) {
         </div>
       `;
     } else {
-      const pct = Math.round((dev.value / 255) * 100);
       // Relais standard
       return `
         <div class="aux-card">
@@ -564,14 +538,6 @@ function renderDashboardAuxDevices(devices) {
             <span class="aux-name">${escapeHtml(dev.name)}</span>
             <span class="badge-gpio">GPIO ${dev.gpio}</span>
           </div>
-          <div class="aux-controls" style="flex-direction:column; align-items:stretch;">
-            <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted);">
-              <span>Variateur PWM</span>
-              <span class="aux-slider-val" id="aux-val-${dev.id}">${pct}%</span>
-            </div>
-            <div class="aux-slider-wrap">
-              <input type="range" min="0" max="100" value="${pct}" oninput="updateAuxPwm(${dev.id}, this.value)">
-            </div>
           <div class="aux-controls" style="justify-content: space-between;">
             <span style="font-size:12px; color:var(--text-muted);">Relais ${dev.voltage || '12V'}</span>
             <label class="toggle-switch">
@@ -586,7 +552,6 @@ function renderDashboardAuxDevices(devices) {
 }
 
 /**
- * Commande directe d'un relais depuis le Dashboard
  * Commande d'un relais depuis le Dashboard
  */
 async function toggleAuxDevice(id, isChecked) {
@@ -601,7 +566,6 @@ async function toggleAuxDevice(id, isChecked) {
     });
     showToast(`${dev ? dev.name : 'Équipement'} : ${isChecked ? 'Activé' : 'Désactivé'}`, 'success');
   } catch (err) {
-    console.warn("Échec requête set-state (mode simulation).");
     console.warn("set-state simulation");
   }
 }
@@ -627,26 +591,20 @@ function updateAuxPwm(id, percent) {
         body: JSON.stringify({ id: id, state: rawPwm > 0 ? 1 : 0, value: rawPwm })
       });
     } catch (err) {
-      console.warn("Échec requête set-state PWM.");
       console.warn("set-state PWM simulation");
     }
   }, 100);
 }
 
 /**
- * Ouvre le modal pour ajouter un équipement
  * Ouvre la modale Étape 1 : Déclaration d'équipement
  */
 async function openAddDeviceModal() {
-  editingDeviceId = null;
-  document.getElementById('modal-title').innerText = "Ajouter un équipement";
   wizardState.id = 0;
   wizardState.isCore = false;
 
   document.getElementById('modal-title').innerText = "1. Déclarer un équipement";
   document.getElementById('device-name').value = "";
-  document.getElementById('device-type').value = "RELAY";
-  document.getElementById('device-type').disabled = false;
   document.getElementById('device-category').value = "ACTUATOR";
   document.getElementById('device-voltage').value = "12V";
   document.getElementById('btn-submit-step1').innerText = "Suivant : Câbler sur la carte ➔";
@@ -658,21 +616,17 @@ async function openAddDeviceModal() {
 }
 
 /**
- * Ouvre le modal pour modifier un équipement existant
  * Ouvre la modale pour modifier un équipement existant
  */
 async function openEditDeviceModal(id) {
   const dev = devicesList.find(d => d.id === id);
   if (!dev) return;
 
-  editingDeviceId = id;
   wizardState.id = dev.id;
   wizardState.isCore = dev.isCore;
 
   document.getElementById('modal-title').innerText = `Modifier : ${dev.name}`;
   document.getElementById('device-name').value = dev.name;
-  document.getElementById('device-type').value = dev.type;
-  document.getElementById('device-type').disabled = true; // Le type physique ne doit pas changer
   document.getElementById('device-category').value = dev.category || 'ACTUATOR';
   document.getElementById('device-voltage').value = dev.voltage || '12V';
   document.getElementById('btn-submit-step1').innerText = "Suivant : Vérifier le câblage ➔";
@@ -689,12 +643,10 @@ function closeDeviceModal() {
 }
 
 /**
- * Récupère les GPIO disponibles et remplit le sélecteur
  * Récupère les GPIO disponibles pour le sélecteur manuel optionnel
  */
 async function populatePinSelect(currentPin = null) {
   const select = document.getElementById('device-gpio');
-  select.innerHTML = '<option value="">Chargement des broches...</option>';
   select.innerHTML = '<option value="auto">⚡ Attribution automatique optimale par l\'ESP32</option>';
 
   let availablePins = [];
@@ -705,40 +657,27 @@ async function populatePinSelect(currentPin = null) {
       availablePins = data.pins || [];
     }
   } catch (e) {
-    // Mode hors-ligne / fallback
     const usedPins = devicesList.map(d => d.gpio);
     const safeList = [4, 5, 13, 14, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33];
     availablePins = safeList.filter(p => !usedPins.includes(p) || p === currentPin);
   }
 
-  // Si on est en mode édition, inclure la broche actuelle dans la liste
   if (currentPin !== null && !availablePins.includes(currentPin)) {
     availablePins.unshift(currentPin);
   }
 
-  if (availablePins.length === 0) {
-    select.innerHTML = '<option value="">Aucune broche GPIO disponible !</option>';
-    return;
-  }
-
-  select.innerHTML = availablePins.map(pin => {
   availablePins.forEach(pin => {
     const isCurrent = (pin === currentPin);
-    return `<option value="${pin}" ${isCurrent ? 'selected' : ''}>GPIO ${pin} ${isCurrent ? '(Actuel)' : '(Disponible)'}</option>`;
-  }).join('');
     select.innerHTML += `<option value="${pin}" ${isCurrent ? 'selected' : ''}>GPIO ${pin} ${isCurrent ? '(Actuel)' : '(Libre)'}</option>`;
   });
 }
 
 /**
- * Enregistrement du formulaire (Création ou Modification)
  * Soumission de l'Étape 1 -> Ouvre le Didacticiel de câblage (Étape 2)
  */
 async function handleDeviceFormSubmit(e) {
   e.preventDefault();
   const name = document.getElementById('device-name').value.trim();
-  const type = document.getElementById('device-type').value;
-  const gpio = parseInt(document.getElementById('device-gpio').value, 10);
   const category = document.getElementById('device-category').value;
   const voltage = document.getElementById('device-voltage').value;
   const mode = document.getElementById('device-signal-mode').value;
@@ -748,9 +687,6 @@ async function handleDeviceFormSubmit(e) {
     showToast("Le nom de l'équipement est requis.", "error");
     return;
   }
-  if (isNaN(gpio)) {
-    showToast("Veuillez sélectionner une broche GPIO valide.", "error");
-    return;
 
   wizardState.name = name;
   wizardState.category = category;
@@ -801,11 +737,6 @@ async function openWizardModal() {
     }
   }
 
-  const isEditing = (editingDeviceId !== null);
-  const endpoint = isEditing ? '/api/devices/update' : '/api/devices/add';
-  const payload = isEditing 
-    ? { id: editingDeviceId, name: name, gpio: gpio }
-    : { name: name, type: type, gpio: gpio, isCore: false };
   pinDisplay.innerText = `GPIO ${wizardState.gpio}`;
 
   // 2. Sélection du didacticiel sur-mesure
@@ -975,42 +906,25 @@ async function finishAndActivateWizard() {
   };
 
   try {
-    const res = await fetch(endpoint, {
     const res = await fetch('/api/devices/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-
     const result = await res.json();
     if (!res.ok || !result.success) {
-      throw new Error(result.error || "Échec de l'enregistrement");
       throw new Error(result.error || "Erreur de sauvegarde");
     }
-
-    showToast(isEditing ? "Périphérique modifié avec succès !" : "Périphérique ajouté avec succès !", "success");
-    closeDeviceModal();
-    await loadDeviceManager();
     showToast(`"${wizardState.name}" câblé et activé avec succès sur GPIO ${wizardState.gpio} !`, "success");
   } catch (err) {
-    // Mode simulation locale
-    if (isEditing) {
-      const d = devicesList.find(x => x.id === editingDeviceId);
-      if (d) { d.name = name; d.gpio = gpio; }
-      showToast("Périphérique mis à jour (simulation).", "success");
     // Mode simulation
     if (wizardState.id > 0) {
       const existing = devicesList.find(d => d.id === wizardState.id);
       if (existing) Object.assign(existing, payload);
     } else {
       const newId = (devicesList.length > 0 ? Math.max(...devicesList.map(d => d.id)) + 1 : 1);
-      devicesList.push({ id: newId, name, type, gpio, state: 0, value: 0, isCore: false });
-      showToast("Périphérique ajouté (simulation).", "success");
       devicesList.push({ ...payload, id: newId, state: 0, value: 0 });
     }
-    closeDeviceModal();
-    renderDeviceTable(devicesList);
-    renderDashboardAuxDevices(devicesList);
     showToast(`"${wizardState.name}" activé sur GPIO ${wizardState.gpio} (simulation) !`, "success");
   }
 
@@ -1041,7 +955,6 @@ async function deleteDevice(id, name) {
     showToast(`"${name}" a été supprimé et son GPIO libéré.`, "success");
     await loadDeviceManager();
   } catch (err) {
-    // Mode simulation
     devicesList = devicesList.filter(d => d.id !== id);
     showToast(`"${name}" a été supprimé (simulation).`, "success");
     renderDeviceTable(devicesList);
@@ -1050,7 +963,6 @@ async function deleteDevice(id, name) {
 }
 
 /**
- * Lance un test matériel temporaire pour vérifier le câblage
  * Lance un test rapide depuis le tableau
  */
 async function testDevice(id, btnElement) {
@@ -1058,24 +970,19 @@ async function testDevice(id, btnElement) {
   btnElement.disabled = true;
 
   try {
-    await fetch('/api/devices/test', {
     const res = await fetch('/api/devices/test', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: id, duration: 1200 })
       body: JSON.stringify({ id: id, duration: 3000 })
     });
-    showToast("Signal de test envoyé à l'équipement (1.2s).", "success");
     const data = await res.json();
     showToast(data.message || "Test matériel effectué avec succès.", "success");
   } catch (err) {
-    showToast("Signal de test simulé (1.2s).", "info");
     showToast("Signal de test simulé (3s).", "info");
   } finally {
     setTimeout(() => {
       btnElement.classList.remove('testing');
       btnElement.disabled = false;
-    }, 1300);
     }, 3100);
   }
 }
@@ -1328,7 +1235,11 @@ function triggerWatchdogTest() {
 }
 
 function initCharts() {
-  if(chartsInitialized) return;
+  if (chartsInitialized) return;
+  if (typeof Chart === 'undefined') {
+    console.warn("Chart.js non disponible (mode hors ligne / AP Wi-Fi sans accès Internet).");
+    return;
+  }
   
   const chartCanvas = document.getElementById('tempChart');
   if (chartCanvas) {
@@ -1420,4 +1331,3 @@ function startTelemetry() {
       });
   }, 2000);
 }
-
