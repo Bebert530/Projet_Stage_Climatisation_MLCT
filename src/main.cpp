@@ -4,6 +4,7 @@
 #include <ESPAsyncWebServer.h>
 
 #include "DeviceManager.h"
+#include "AutomationManager.h"
 #include "WebServerRoutes.h"
 
 // Configuration du point d'accès Wi-Fi autonome de l'ESP32
@@ -13,6 +14,7 @@ const char* AP_PASS = "12345678";
 // Instances globales
 AsyncWebServer server(80);
 DeviceManager devManager;
+AutomationManager autoManager;
 
 void setup() {
     Serial.begin(115200);
@@ -28,7 +30,14 @@ void setup() {
         Serial.println("[MAIN] DeviceManager opérationnel.");
     }
 
-    // 2. Configuration du Wi-Fi en mode Point d'Accès (Access Point)
+    // 2. Initialisation du Moteur d'automatisation (/automations.json)
+    if (!autoManager.begin("/automations.json")) {
+        Serial.println("[MAIN] Avertissement : Échec chargement initial des automatisations.");
+    } else {
+        Serial.println("[MAIN] AutomationManager opérationnel.");
+    }
+
+    // 3. Configuration du Wi-Fi en mode Point d'Accès (Access Point)
     WiFi.mode(WIFI_AP_STA);
     WiFi.softAP(AP_SSID, AP_PASS);
     
@@ -37,18 +46,20 @@ void setup() {
     Serial.printf("[MAIN] Mot de passe Wi-Fi       : %s\n", AP_PASS);
     Serial.printf("[MAIN] Interface Web disponible : http://%s/\n", IP.toString().c_str());
 
-    // 3. Configuration des endpoints API REST et distribution des fichiers LittleFS
-    setupWebServerRoutes(server, devManager);
+    // 4. Configuration des endpoints API REST et distribution des fichiers LittleFS
+    setupWebServerRoutes(server, devManager, autoManager);
 
-    // 4. Lancement du serveur Web asynchrone
+    // 5. Lancement du serveur Web asynchrone
     server.begin();
     Serial.println("[MAIN] Serveur HTTP démarré avec succès.");
     Serial.println("==================================================\n");
 }
 
 void loop() {
-    // Le serveur AsyncWebServer et FreeRTOS gèrent les requêtes de manière asynchrone.
-    // Vous pouvez placer ici la logique de régulation thermique, lecture de sondes DS18B20, etc.
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    // Évaluation et exécution autonome des règles d'automatisation
+    autoManager.update(devManager);
+
+    // Délai FreeRTOS coopératif (100ms)
+    vTaskDelay(pdMS_TO_TICKS(100));
 }
 

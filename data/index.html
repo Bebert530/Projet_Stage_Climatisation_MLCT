@@ -66,6 +66,10 @@
           <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M4,6H20V16H4M20,18A2,2 0 0,0 22,16V6C22,4.89 21.1,4 20,4H4C2.89,4 2,4.89 2,6V16A2,2 0 0,0 4,18H0V20H24V18H20Z"/></svg></span>
           Matériel (GPIO)
         </button>
+        <button class="nav-btn" onclick="switchTab('automation', this)">
+          <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,6V11H7V13H11V18H13V13H17V11H13V6H11Z"/></svg></span>
+          Automatisation
+        </button>
         <button class="nav-btn" onclick="switchTab('account', this)">
           <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/></svg></span>
           Compte
@@ -278,7 +282,7 @@
                   <tr>
                     <th>Nom de l'équipement</th>
                     <th>Catégorie / Tension</th>
-                    <th>Signal</th>
+                    <th>Type</th>
                     <th class="col-center">Broche GPIO</th>
                     <th class="col-center">État Actuel</th>
                     <th class="col-right">Actions</th>
@@ -293,7 +297,45 @@
         </div>
 
         <!-- ========================================== -->
-        <!-- VUE 5 : COMPTE UTILISATEUR                -->
+        <!-- VUE 5 : AUTOMATISATION                    -->
+        <!-- ========================================== -->
+        <div id="view-automation" class="view">
+          <div class="device-manager-header">
+            <div class="device-manager-title">
+              <h2>Règles d'Automatisation</h2>
+              <p>Configurez des scénarios autonomes intelligents pour piloter vos équipements.</p>
+            </div>
+            <button class="btn-primary" onclick="addAutomationRule()">
+              <svg viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
+              + Ajouter une règle
+            </button>
+          </div>
+
+          <div class="table-card">
+            <div class="table-responsive">
+              <table class="device-table automation-table">
+                <thead>
+                  <tr>
+                    <th class="col-center" style="width:50px;">SI</th>
+                    <th>Équipement source</th>
+                    <th>Condition</th>
+                    <th class="col-center" style="width:65px;">ALORS</th>
+                    <th>Équipement cible</th>
+                    <th>Action</th>
+                    <th class="col-center" style="width:70px;">Actif</th>
+                    <th class="col-right" style="width:70px;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="automation-table-body">
+                  <!-- Rempli dynamiquement par app.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VUE 6 : COMPTE UTILISATEUR                -->
         <!-- ========================================== -->
         <div id="view-account" class="view">
           <h2 style="margin-top:0;">Gestion du Compte</h2>
@@ -301,8 +343,7 @@
             <div style="margin-top: 10px; font-size: 14px; color: var(--text-muted); line-height: 1.6;">
               Niveau d'accès : <strong style="color:white;">Administrateur (R&D)</strong><br>
               Stockage flash : <strong style="color:white;">LittleFS Actif</strong><br>
-              Firmware : <strong style="color:var(--cyan-light);">v2.4 - Dynamic Device Manager</strong>
-              Firmware : <strong style="color:var(--cyan-light);">v2.5 - Dynamic Device Manager & Wiring Wizard</strong>
+              Firmware : <strong style="color:var(--cyan-light);">v2.6 - Dynamic Device Manager & Automations</strong>
             </div>
             <button style="width:100%; margin-top: 20px; padding: 12px; background: var(--bg-surface); color: var(--danger); border: 1px solid var(--danger); border-radius: 8px; font-weight:bold; cursor: pointer;" onclick="logout()">Se déconnecter</button>
           </div>
@@ -339,20 +380,21 @@
             </div>
 
             <div class="input-group">
-              <label for="device-voltage">Tension d'alimentation</label> 
-              <select id="device-voltage">
-                <option value="12V">12V (Batterie van / puissance)</option>
-                <option value="5V">5V (Alimentation USB)</option>
-                <option value="3.3V">3.3V (Natif ESP32)</option>
+              <label for="device-signal-mode" id="device-signal-label">Type de commande</label>
+              <select id="device-signal-mode" onchange="onSignalModeChange()">
+                <!-- Rempli dynamiquement selon la catégorie -->
               </select>
             </div>
           </div>
 
-          <div class="input-group">
-            <label for="device-signal-mode" id="device-signal-label">Type de commande</label>
-            <select id="device-signal-mode">
-              <!-- Rempli dynamiquement selon la catégorie -->
+          <div class="input-group" id="device-voltage-group">
+            <label for="device-voltage">Tension d'alimentation</label> 
+            <select id="device-voltage">
+              <option value="12V">12V (Batterie van / puissance)</option>
+              <option value="5V">5V (Alimentation USB / Rail 5V)</option>
+              <option value="3.3V">3.3V (Natif ESP32)</option>
             </select>
+            <div id="device-voltage-hint" style="font-size:11px; color:var(--text-muted); margin-top:4px;"></div>
           </div>
 
           <div class="input-group" id="manual-gpio-group">

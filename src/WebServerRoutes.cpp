@@ -8,7 +8,7 @@ static void addCorsHeaders(AsyncWebServerResponse *response) {
     response->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 }
 
-void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager) {
+void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager, AutomationManager& autoManager) {
     // -------------------------------------------------------------
     // GESTION GLOBALE CORS (Options pre-flight)
     // -------------------------------------------------------------
@@ -325,7 +325,51 @@ void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager) {
     );
 
     // -------------------------------------------------------------
-    // 8. Télémétrie Climate Pro : GET /data
+    // 8. GET /api/automations : Retourne les règles d'automatisation
+    // -------------------------------------------------------------
+    server.on("/api/automations", HTTP_GET, [&autoManager](AsyncWebServerRequest *request) {
+        String json = autoManager.getRulesJson();
+        AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+        addCorsHeaders(response);
+        request->send(response);
+    });
+
+    // -------------------------------------------------------------
+    // 9. POST /api/automations : Sauvegarde les règles dans LittleFS
+    // -------------------------------------------------------------
+    server.on("/api/automations", HTTP_POST,
+        [&autoManager](AsyncWebServerRequest *request) {
+            String* body = (String*)request->_tempObject;
+            if (!body || body->length() == 0) {
+                AsyncWebServerResponse *response = request->beginResponse(400, "application/json", "{\"success\":false,\"error\":\"Corps JSON vide\"}");
+                addCorsHeaders(response);
+                request->send(response);
+                return;
+            }
+
+            bool ok = autoManager.saveRules(*body);
+            delete body;
+            request->_tempObject = nullptr;
+
+            AsyncWebServerResponse *response = request->beginResponse(ok ? 200 : 500, "application/json", ok ? "{\"success\":true}" : "{\"success\":false,\"error\":\"Échec de sauvegarde\"}");
+            addCorsHeaders(response);
+            request->send(response);
+        },
+        nullptr,
+        [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+            String* body = (String*)request->_tempObject;
+            if (index == 0) {
+                body = new String();
+                request->_tempObject = body;
+            }
+            if (body) {
+                body->concat((const char*)data, len);
+            }
+        }
+    );
+
+    // -------------------------------------------------------------
+    // 10. Télémétrie Climate Pro : GET /data
     // -------------------------------------------------------------
     server.on("/data", HTTP_GET, [](AsyncWebServerRequest *request) {
         String telemetry = "{"
