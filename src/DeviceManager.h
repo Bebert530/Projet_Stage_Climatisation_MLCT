@@ -11,7 +11,7 @@
  */
 enum DeviceCategory {
     CAT_ACTUATOR = 0, // Actionneur (Relais, Variateur PWM/MOSFET, etc.)
-    CAT_SENSOR   = 1  // Capteur (Flotteur, DS18B20, Pression analogique, etc.)
+    CAT_SENSOR   = 1  // Capteur (Flotteur, Capteur 1-Wire, Pression analogique, etc.)
 };
 
 /**
@@ -23,7 +23,7 @@ enum SignalMode {
     MODE_OUTPUT_PWM     = 1, // Progressif PWM / MOSFET
     MODE_INPUT_DIGITAL  = 2, // Contact sec / Flotteur (INPUT_PULLUP)
     MODE_INPUT_ADC      = 3, // Analogique 0-3.3V (ADC1)
-    MODE_INPUT_ONEWIRE  = 4  // Bus numérique 1-Wire (ex: DS18B20)
+    MODE_INPUT_ONEWIRE  = 4  // Bus numérique 1-Wire
 };
 
 /**

@@ -14,15 +14,15 @@
     <div class="login-box">
       <h2>CLIMATE PRO</h2>
       <div class="input-group">
-        <label>Identifiant</label>
+        <label data-i18n="login_username">Identifiant</label>
         <input type="text" id="username" value="admin" onkeydown="if(event.key==='Enter') checkLogin()">
       </div>
       <div class="input-group">
-        <label>Mot de passe</label>
+        <label data-i18n="login_password">Mot de passe</label>
         <input type="password" id="password" value="admin" onkeydown="if(event.key==='Enter') checkLogin()">
       </div>
-      <button class="login-btn" type="button" onclick="checkLogin()">SE CONNECTER</button>
-      <div class="error-msg" id="login-error">Identifiants incorrects.</div>
+      <button class="login-btn" type="button" onclick="checkLogin()" data-i18n="login_submit">SE CONNECTER</button>
+      <div class="error-msg" id="login-error" data-i18n="login_error">Identifiants incorrects.</div>
     </div>
   </div>
 
@@ -38,12 +38,12 @@
       </div>
       <div class="header-status">
         <div class="header-status-indicator"></div>
-        <span>ESP32 Connecté</span>
+        <span data-i18n="header_connected">ESP32 Connecté</span>
       </div>
     </header>
 
     <div class="alert-banner" id="watchdog-banner">
-      ALERTE : Perte de communication capteurs. Coupure de sécurité dans <span id="watchdog-timer">30</span>s...
+      <span data-i18n="watchdog_alert_prefix">ALERTE : Perte de communication capteurs. Coupure de sécurité dans</span> <span id="watchdog-timer">30</span><span data-i18n="watchdog_alert_suffix">s...</span>
     </div>
 
     <div class="app-body">
@@ -52,27 +52,27 @@
       <nav class="sidebar collapsed" id="sidebar">
         <button class="nav-btn active" onclick="switchTab('clim', this)">
           <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4Z"/></svg></span>
-          Climatisation
-        </button>
-        <button class="nav-btn" onclick="switchTab('stats', this)">
-          <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M22,21H2V3H4V19H6V10H10V19H12V6H16V19H18V14H22V21Z"/></svg></span>
-          Statistiques R&D
-        </button>
-        <button class="nav-btn" onclick="switchTab('settings', this)">
-          <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/></svg></span>
-          Paramètres
+          <span data-i18n="nav_clim">Climatisation</span>
         </button>
         <button class="nav-btn" onclick="switchTab('devices', this)">
           <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M4,6H20V16H4M20,18A2,2 0 0,0 22,16V6C22,4.89 21.1,4 20,4H4C2.89,4 2,4.89 2,6V16A2,2 0 0,0 4,18H0V20H24V18H20Z"/></svg></span>
-          Matériel (GPIO)
+          <span data-i18n="nav_devices">Matériel</span>
         </button>
         <button class="nav-btn" onclick="switchTab('automation', this)">
           <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,6V11H7V13H11V18H13V13H17V11H13V6H11Z"/></svg></span>
-          Automatisation
+          <span data-i18n="nav_automation">Automatisation</span>
+        </button>
+        <button class="nav-btn" onclick="switchTab('stats', this)">
+          <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M22,21H2V3H4V19H6V10H10V19H12V6H16V19H18V14H22V21Z"/></svg></span>
+          <span data-i18n="nav_stats">Statistiques</span>
+        </button>
+        <button class="nav-btn" onclick="switchTab('settings', this)">
+          <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/></svg></span>
+          <span data-i18n="nav_settings">Paramètres</span>
         </button>
         <button class="nav-btn" onclick="switchTab('account', this)">
           <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/></svg></span>
-          Compte
+          <span data-i18n="nav_account">Compte</span>
         </button>
       </nav>
 
@@ -83,18 +83,6 @@
         <!-- ========================================== -->
         <div id="view-clim" class="view active">
           
-          <!-- EN-TÊTE CLIMATISATION & BOUTON HISTORIQUE -->
-          <div class="clim-header-bar">
-            <div class="clim-header-title">
-              <h2>Climatisation</h2>
-              <p>Régulation thermique et surveillance en temps réel</p>
-            </div>
-            <button class="btn-history" onclick="openCyclesHistoryModal()" title="Historique des cycles">
-              <svg viewBox="0 0 24 24"><path d="M13,3A9,9 0 0,0 4,12H1L4.89,15.89L4.96,16.03L9,12H6A7,7 0 0,1 13,5A7,7 0 0,1 20,12A7,7 0 0,1 13,19C11.07,19 9.32,18.21 8.06,16.94L6.64,18.36C8.27,20 10.5,21 13,21A9,9 0 0,0 22,12A9,9 0 0,0 13,3M12,8V13L16.28,15.54L17,14.33L13.5,12.25V8H12Z"/></svg>
-              Historique
-            </button>
-          </div>
-
           <!-- BARRE DE SÉLECTION DE MODE -->
           <div class="mode-bar">
             <button class="mode-btn" onclick="setMode('eco+', this)">ECO+</button>
@@ -102,12 +90,12 @@
             <button class="mode-btn active" id="btn-default-mode" onclick="setMode('normal', this)">NORMAL</button>
             <button class="mode-btn" onclick="setMode('boost', this)">BOOST</button>
             <button class="mode-btn" onclick="setMode('boost+', this)">BOOST+</button>
-            <button class="mode-btn manual" id="btn-manual" onclick="setManualMode()">MANUEL</button>
+            <button class="mode-btn manual" id="btn-manual" onclick="setManualMode()" data-i18n="mode_manual">MANUEL</button>
           </div>
 
           <!-- SLIDER PWM VENTILATION -->
           <div id="manual-slider-container" class="locked">
-            <div style="font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;">Ventilation</div>
+            <div style="font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;" data-i18n="label_ventilation">Ventilation</div>
             <input type="range" id="fan-slider" min="0" max="100" value="60" oninput="updateFanSpeed()" disabled>
             <span id="fan-val" style="font-weight: bold; width: 45px; text-align: right; color: var(--text-muted);">60%</span>
             <button class="btn-auto" onclick="returnToAuto()">AUTO</button>
@@ -126,7 +114,7 @@
                   </div>
                 </div>
               </div>
-              <div class="dial-time-est off" id="dial-time-est">Temps estimé avant disponibilité : 1h30</div>
+              <div class="dial-time-est off" id="dial-time-est" data-i18n="ring_est_ready_default">Temps estimé avant disponibilité : 1h30</div>
             </div>
 
             <!-- CARTES DE CONTRÔLE -->
@@ -136,17 +124,17 @@
               <div class="ui-card">
                 <div class="card-header">
                   <svg viewBox="0 0 24 24"><path d="M15,13V5A3,3 0 0,0 9,5V13A5,5 0 1,0 15,13M12,4A1,1 0 0,1 13,5V8H11V5A1,1 0 0,1 12,4Z"/></svg>
-                  TEMPÉRATURE AMBIANTE
+                  <span data-i18n="card_amb_title">TEMPÉRATURE AMBIANTE</span>
                 </div>
                 <div class="room-temp-val" id="v_t_amb">23.4°</div>
-                <div class="tile-sub">Capteur intérieur habitacle</div>
+                <div class="tile-sub" data-i18n="card_amb_sub">Capteur intérieur habitacle</div>
               </div>
 
               <!-- THERMOSTAT CIBLE -->
               <div class="ui-card">
                 <div class="card-header">
                   <svg viewBox="0 0 24 24"><path d="M12,2A10,10 0 1,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,7V13H17V11H13V7H11Z"/></svg>
-                  TEMPÉRATURE CIBLE
+                  <span data-i18n="card_target_title">TEMPÉRATURE CIBLE</span>
                 </div>
                 <div class="card-main-row">
                   <div class="target-controls disabled" id="target-controls">
@@ -159,14 +147,14 @@
                     <span class="slider"></span>
                   </label>
                 </div>
-                <div class="tile-sub" id="target-sub">Thermostat inactif</div>
+                <div class="tile-sub" id="target-sub" data-i18n="card_target_sub_inactive">Thermostat inactif</div>
               </div>
 
               <!-- MINUTERIE -->
               <div class="ui-card">
                 <div class="card-header">
                   <svg viewBox="0 0 24 24"><path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/></svg>
-                  MINUTERIE
+                  <span data-i18n="card_timer_title">MINUTERIE</span>
                 </div>
                 <div class="card-main-row">
                   <div class="tile-val" id="timer-display">00h 00m</div>
@@ -180,7 +168,7 @@
                     <button class="preset-btn" onclick="setPreset('30m', this)">30m</button>
                     <button class="preset-btn" onclick="setPreset('1h', this)">1h</button>
                     <button class="preset-btn" onclick="setPreset('2h', this)">2h</button>
-                    <button class="preset-btn" onclick="setPreset('perso', this)">Perso</button>
+                    <button class="preset-btn" onclick="setPreset('perso', this)" data-i18n="preset_custom">Perso</button>
                   </div>
                   <div class="timer-custom-inputs" id="timer-inputs">
                     <input type="number" id="t-hours" min="0" max="24" value="0"> h 
@@ -193,27 +181,34 @@
             </div>
           </div>
 
+          <!-- BOUTON HISTORIQUE (EN BAS À GAUCHE) -->
+          <div class="clim-bottom-bar">
+            <button class="btn-history-icon" onclick="openCyclesHistoryModal()" title="Historique des cycles" aria-label="Historique des cycles" data-i18n-title="btn_history_title">
+              <svg viewBox="0 0 24 24"><path d="M13,3A9,9 0 0,0 4,12H1L4.89,15.89L4.96,16.03L9,12H6A7,7 0 0,1 13,5A7,7 0 0,1 20,12A7,7 0 0,1 13,19C11.07,19 9.32,18.21 8.06,16.94L6.64,18.36C8.27,20 10.5,21 13,21A9,9 0 0,0 22,12A9,9 0 0,0 13,3M12,8V13L16.28,15.54L17,14.33L13.5,12.25V8H12Z"/></svg>
+            </button>
+          </div>
+
         </div>
 
         <!-- ========================================== -->
-        <!-- VUE 2 : STATISTIQUES R&D                   -->
+        <!-- VUE 2 : STATISTIQUES                       -->
         <!-- ========================================== -->
         <div id="view-stats" class="view">
-          <h2 style="margin-top:0;">Tableau de Bord R&D</h2>
+          <h2 style="margin-top:0;" data-i18n="stats_title">Tableau de Bord</h2>
           <div class="stats-grid">
-            <div class="mini-card"><div class="mini-label">Maintien de consigne</div><div class="mini-val" style="color: var(--success);">88%</div></div>
-            <div class="mini-card"><div class="mini-label">Énergie totale consommée</div><div class="mini-val" id="v_energy" style="color: #a78bfa;">12.4 kWh</div></div>
-            <div class="mini-card"><div class="mini-label">Durée de fonctionnement</div><div class="mini-val">142h 30m</div></div>
-            <div class="mini-card"><div class="mini-label">Température boucle d'eau</div><div class="mini-val" id="t_water">11.8°</div></div>
+            <div class="mini-card"><div class="mini-label" data-i18n="stats_setpoint_hold">Maintien de consigne</div><div class="mini-val" style="color: var(--success);">88%</div></div>
+            <div class="mini-card"><div class="mini-label" data-i18n="stats_total_energy">Énergie totale consommée</div><div class="mini-val" id="v_energy" style="color: #a78bfa;">12.4 kWh</div></div>
+            <div class="mini-card"><div class="mini-label" data-i18n="stats_runtime">Durée de fonctionnement</div><div class="mini-val">142h 30m</div></div>
+            <div class="mini-card"><div class="mini-label" data-i18n="stats_water_temp">Température boucle d'eau</div><div class="mini-val" id="t_water">11.8°</div></div>
             
             <div class="mini-card full">
-              <div class="mini-label">Courbes thermiques & Consigne</div>
+              <div class="mini-label" data-i18n="stats_chart_curves">Courbes thermiques & Consigne</div>
               <div class="chart-container"><canvas id="tempChart"></canvas></div>
             </div>
 
             <div class="mini-card full" style="display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-evenly; gap: 20px;">
               <div style="flex: 1; min-width: 200px; text-align: center;">
-                <div class="mini-label" style="margin-bottom: 15px;">Répartition des modes</div>
+                <div class="mini-label" style="margin-bottom: 15px;" data-i18n="stats_chart_modes">Répartition des modes</div>
                 <div class="doughnut-container"><canvas id="modeChart"></canvas></div>
               </div>
               <div style="flex: 1; min-width: 200px; font-size: 14px; color: var(--text-muted); line-height: 2;">
@@ -231,12 +226,12 @@
         <!-- VUE 3 : PARAMÈTRES SYSTÈME                 -->
         <!-- ========================================== -->
         <div id="view-settings" class="view">
-          <h2 style="margin-top:0;">Paramètres Système</h2>
+          <h2 style="margin-top:0;" data-i18n="settings_title">Paramètres Système</h2>
           <div class="stats-grid">
             <div class="mini-card full" style="display:flex; justify-content: space-between; align-items:center; flex-direction:row; flex-wrap: wrap; gap: 15px;">
               <div>
-                <div style="font-weight:bold;">Refroidissement d'eau (Chiller)</div>
-                <div style="font-size:12px; color:var(--text-muted)" id="chiller-sub">Auto-refroidissement à basse température. Économie batterie van.</div>
+                <div style="font-weight:bold;" data-i18n="settings_chiller_title">Refroidissement d'eau (Chiller)</div>
+                <div style="font-size:12px; color:var(--text-muted)" id="chiller-sub" data-i18n="settings_chiller_sub">Auto-refroidissement à basse température. Économie batterie van.</div>
               </div>
               <label class="toggle-switch">
                 <input type="checkbox" id="chiller-toggle" checked onchange="toggleChiller()">
@@ -245,8 +240,8 @@
             </div>
             <div class="mini-card full" style="display:flex; justify-content: space-between; align-items:center; flex-direction:row; flex-wrap: wrap; gap: 15px;">
               <div>
-                <div style="font-weight:bold;">Hystérésis de régulation</div>
-                <div style="font-size:12px; color:var(--text-muted)">Plage de déclenchement avant réactivation</div>
+                <div style="font-weight:bold;" data-i18n="settings_hyst_title">Hystérésis de régulation</div>
+                <div style="font-size:12px; color:var(--text-muted)" data-i18n="settings_hyst_sub">Plage de déclenchement avant réactivation</div>
               </div>
               <div style="display: flex; align-items: center; gap: 10px;">
                 <button class="temp-adjust-btn" style="width:30px; height:30px; font-size:16px;" onclick="changeHyst(-0.1)">-</button>
@@ -254,12 +249,12 @@
                 <button class="temp-adjust-btn" style="width:30px; height:30px; font-size:16px;" onclick="changeHyst(0.1)">+</button>
               </div>
             </div>
-            <div class="settings-row"><span style="font-size: 14px;">Compresseur (Chiller)</span><span id="compressor-state" style="color: var(--cyan-light); font-weight: bold; font-size: 14px;">Cible : -16.0°C</span></div>
-            <div class="settings-row"><span style="font-size: 14px;">Réseau Wi-Fi (Point d'accès)</span><span style="color: var(--text-muted); font-size: 14px;">Prototype_Clim</span></div>
-            <div class="settings-row"><span style="font-size: 14px;">Adresse IP</span><span style="color: var(--text-muted); font-size: 14px;">192.168.4.1</span></div>
-            <div class="settings-row"><span style="font-size: 14px;">Sondes DS18B20</span><span style="color: var(--success); font-weight: bold; font-size: 14px;">OK (5/5 connectées)</span></div>
-            <div class="settings-row"><span style="font-size: 14px;">Test Watchdog Sécurité</span><button class="settings-btn btn-outline" onclick="triggerWatchdogTest()">Simuler Perte</button></div>
-            <div class="settings-row"><span style="font-size: 14px;">Redémarrage ESP32</span><button class="settings-btn btn-danger" onclick="alert('Redémarrage demandé...')">Redémarrer</button></div>
+            <div class="settings-row"><span style="font-size: 14px;" data-i18n="settings_compressor">Compresseur (Chiller)</span><span id="compressor-state" style="color: var(--cyan-light); font-weight: bold; font-size: 14px;">Cible : -16.0°C</span></div>
+            <div class="settings-row"><span style="font-size: 14px;" data-i18n="settings_wifi">Réseau Wi-Fi (Point d'accès)</span><span style="color: var(--text-muted); font-size: 14px;">Prototype_Clim</span></div>
+            <div class="settings-row"><span style="font-size: 14px;" data-i18n="settings_ip">Adresse IP</span><span style="color: var(--text-muted); font-size: 14px;">192.168.4.1</span></div>
+            <div class="settings-row"><span style="font-size: 14px;" data-i18n="settings_probes">Sondes DS18B20</span><span style="color: var(--success); font-weight: bold; font-size: 14px;" id="probes-status" data-i18n="settings_probes_ok">OK (5/5 connectées)</span></div>
+            <div class="settings-row"><span style="font-size: 14px;" data-i18n="settings_watchdog_test">Test Watchdog Sécurité</span><button class="settings-btn btn-outline" onclick="triggerWatchdogTest()" data-i18n="settings_btn_simulate">Simuler Perte</button></div>
+            <div class="settings-row"><span style="font-size: 14px;" data-i18n="settings_reboot">Redémarrage ESP32</span><button class="settings-btn btn-danger" onclick="triggerRebootConfirm()" data-i18n="settings_btn_reboot">Redémarrer</button></div>
           </div>
         </div>
 
@@ -269,12 +264,12 @@
         <div id="view-devices" class="view">
           <div class="device-manager-header">
             <div class="device-manager-title">
-              <h2>Gestionnaire de Matériel</h2>
-              <p>Configurez et pilotez dynamiquement les broches GPIO de l'ESP32 sans recompiler.</p>
+              <h2 data-i18n="devices_title">Gestionnaire de Matériel</h2>
+              <p data-i18n="devices_desc">Configurez et pilotez dynamiquement les broches GPIO de l'ESP32 sans recompiler.</p>
             </div>
             <button class="btn-primary" onclick="openAddDeviceModal()">
               <svg viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
-              Ajouter un équipement
+              <span data-i18n="devices_btn_add">Ajouter un équipement</span>
             </button>
           </div>
 
@@ -283,12 +278,12 @@
               <table class="device-table">
                 <thead>
                   <tr>
-                    <th>Nom de l'équipement</th>
-                    <th>Catégorie / Tension</th>
-                    <th>Type</th>
-                    <th class="col-center">Broche GPIO</th>
-                    <th class="col-center">État Actuel</th>
-                    <th class="col-right">Actions</th>
+                    <th data-i18n="th_device_name">Nom de l'équipement</th>
+                    <th data-i18n="th_device_cat">Catégorie / Tension</th>
+                    <th data-i18n="th_device_type">Type</th>
+                    <th class="col-center" data-i18n="th_device_gpio">Broche GPIO</th>
+                    <th class="col-center" data-i18n="th_device_state">État Actuel</th>
+                    <th class="col-right" data-i18n="th_device_actions">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="device-table-body">
@@ -305,12 +300,12 @@
         <div id="view-automation" class="view">
           <div class="device-manager-header">
             <div class="device-manager-title">
-              <h2>Règles d'Automatisation</h2>
-              <p>Configurez des scénarios autonomes intelligents pour piloter vos équipements.</p>
+              <h2 data-i18n="auto_title">Règles d'Automatisation</h2>
+              <p data-i18n="auto_desc">Configurez des scénarios autonomes intelligents pour piloter vos équipements.</p>
             </div>
             <button class="btn-primary" onclick="addAutomationRule()">
               <svg viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
-              Ajouter une règle
+              <span data-i18n="auto_btn_add">Ajouter une règle</span>
             </button>
           </div>
 
@@ -319,14 +314,14 @@
               <table class="device-table automation-table">
                 <thead>
                   <tr>
-                    <th class="col-center" style="width:50px;">SI</th>
-                    <th>Équipement source</th>
-                    <th>Condition</th>
-                    <th class="col-center" style="width:65px;">ALORS</th>
-                    <th>Équipement cible</th>
-                    <th>Action</th>
-                    <th class="col-center" style="width:70px;">Actif</th>
-                    <th class="col-right" style="width:70px;">Actions</th>
+                    <th class="col-center" style="width:50px;" data-i18n="th_auto_if">SI</th>
+                    <th data-i18n="th_auto_source">Équipement source</th>
+                    <th data-i18n="th_auto_condition">Condition</th>
+                    <th class="col-center" style="width:65px;" data-i18n="th_auto_then">ALORS</th>
+                    <th data-i18n="th_auto_target">Équipement cible</th>
+                    <th data-i18n="th_auto_action">Action</th>
+                    <th class="col-center" style="width:70px;" data-i18n="th_auto_active">Actif</th>
+                    <th class="col-right" style="width:70px;" data-i18n="th_auto_actions">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="automation-table-body">
@@ -341,14 +336,50 @@
         <!-- VUE 6 : COMPTE UTILISATEUR                -->
         <!-- ========================================== -->
         <div id="view-account" class="view">
-          <h2 style="margin-top:0;">Gestion du Compte</h2>
+          <h2 style="margin-top:0;" data-i18n="account_title">Gestion du Compte</h2>
+
+          <!-- SÉLECTION DE LA LANGUE -->
+          <div class="lang-selector-card">
+            <div class="lang-selector-title" data-i18n="account_lang_title">Langue de l'application</div>
+            <div class="lang-selector-subtitle" data-i18n="account_lang_sub">Sélectionnez la langue d'affichage de l'interface</div>
+            <div class="lang-btn-grid">
+              <button type="button" class="lang-btn" id="lang-btn-fr" onclick="setLanguage('fr')">
+                <span class="flag-icon">
+                  <svg viewBox="0 0 3 2"><rect width="1" height="2" x="0" fill="#002395"/><rect width="1" height="2" x="1" fill="#ffffff"/><rect width="1" height="2" x="2" fill="#ed2939"/></svg>
+                </span>
+                <span class="lang-label">
+                  <span class="lang-name">Français</span>
+                  <span class="lang-code">FR</span>
+                </span>
+              </button>
+              <button type="button" class="lang-btn" id="lang-btn-en" onclick="setLanguage('en')">
+                <span class="flag-icon">
+                  <svg viewBox="0 0 60 36"><rect width="60" height="36" fill="#012169"/><path d="M0 0L60 36M60 0L0 36" stroke="#ffffff" stroke-width="7"/><path d="M0 0L60 36M60 0L0 36" stroke="#c8102e" stroke-width="4"/><path d="M30 0v36M0 18h60" stroke="#ffffff" stroke-width="12"/><path d="M30 0v36M0 18h60" stroke="#c8102e" stroke-width="7"/></svg>
+                </span>
+                <span class="lang-label">
+                  <span class="lang-name">English</span>
+                  <span class="lang-code">EN</span>
+                </span>
+              </button>
+              <button type="button" class="lang-btn" id="lang-btn-es" onclick="setLanguage('es')">
+                <span class="flag-icon">
+                  <svg viewBox="0 0 3 2"><rect width="3" height="2" fill="#aa151b"/><rect width="3" height="1" y="0.5" fill="#f1bf00"/></svg>
+                </span>
+                <span class="lang-label">
+                  <span class="lang-name">Español</span>
+                  <span class="lang-code">ES</span>
+                </span>
+              </button>
+            </div>
+          </div>
+
           <div class="mini-card full">
             <div style="margin-top: 10px; font-size: 14px; color: var(--text-muted); line-height: 1.6;">
-              Niveau d'accès : <strong style="color:white;">Administrateur (R&D)</strong><br>
-              Stockage flash : <strong style="color:white;">LittleFS Actif</strong><br>
-              Firmware : <strong style="color:var(--cyan-light);">v2.6 - Dynamic Device Manager & Automations</strong>
+              <span data-i18n="account_access_level">Niveau d'accès</span> : <strong style="color:white;" data-i18n="account_role">Administrateur (R&D)</strong><br>
+              <span data-i18n="account_flash_storage">Stockage flash</span> : <strong style="color:white;" data-i18n="account_storage_status">LittleFS Actif</strong><br>
+              <span data-i18n="account_firmware">Firmware</span> : <strong style="color:var(--cyan-light);">v2.6 - Dynamic Device Manager & Automations</strong>
             </div>
-            <button style="width:100%; margin-top: 20px; padding: 12px; background: var(--bg-surface); color: var(--danger); border: 1px solid var(--danger); border-radius: 8px; font-weight:bold; cursor: pointer;" onclick="logout()">Se déconnecter</button>
+            <button style="width:100%; margin-top: 20px; padding: 12px; background: var(--bg-surface); color: var(--danger); border: 1px solid var(--danger); border-radius: 8px; font-weight:bold; cursor: pointer;" onclick="logout()" data-i18n="account_logout">Se déconnecter</button>
           </div>
         </div>
 
@@ -361,29 +392,29 @@
     <div class="modal-dialog">
       <div class="modal-header">
         <div>
-          <h3 id="modal-title">1. Déclarer un équipement</h3>
-          <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">Étape 1/2 : Caractéristiques du matériel</div>
+          <h3 id="modal-title" data-i18n="modal_dev_title">1. Déclarer un équipement</h3>
+          <div id="modal-step-info" style="font-size:12px; color:var(--text-muted); margin-top:3px;" data-i18n="modal_dev_step">Étape 1/2 : Caractéristiques du matériel</div>
         </div>
         <button class="modal-close-btn" onclick="closeDeviceModal()">&times;</button>
       </div>
       <form onsubmit="handleDeviceFormSubmit(event)">
         <div class="modal-body">
           <div class="input-group">
-            <label for="device-name">Nom de l'équipement</label>
-            <input type="text" id="device-name" placeholder="Ex: Pompe bac froid, Spot LED cuisine, Flotteur eau..." required>
+            <label for="device-name" data-i18n="label_dev_name">Nom de l'équipement</label>
+            <input type="text" id="device-name" placeholder="Ex: Pompe bac froid, Spot LED cuisine, Flotteur eau..." data-i18n-placeholder="placeholder_dev_name" required>
           </div>
 
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
             <div class="input-group">
-              <label for="device-category">Catégorie</label>
+              <label for="device-category" data-i18n="label_dev_cat">Catégorie</label>
               <select id="device-category" onchange="onCategoryChange()">
-                <option value="ACTUATOR">Actionneur (Puissance / Moteur)</option>
-                <option value="SENSOR">Capteur (Mesure / Détection)</option>
+                <option value="ACTUATOR" data-i18n="opt_cat_actuator">Actionneur (Puissance / Moteur)</option>
+                <option value="SENSOR" data-i18n="opt_cat_sensor">Capteur (Mesure / Détection)</option>
               </select>
             </div>
 
             <div class="input-group">
-              <label for="device-signal-mode" id="device-signal-label">Type de commande</label>
+              <label for="device-signal-mode" id="device-signal-label" data-i18n="label_dev_mode_cmd">Type de commande</label>
               <select id="device-signal-mode" onchange="onSignalModeChange()">
                 <!-- Rempli dynamiquement selon la catégorie -->
               </select>
@@ -391,7 +422,7 @@
           </div>
 
           <div class="input-group" id="device-voltage-group">
-            <label for="device-voltage">Tension d'alimentation</label> 
+            <label for="device-voltage" data-i18n="label_dev_voltage">Tension d'alimentation</label> 
             <select id="device-voltage">
               <option value="12V">12V (Batterie van / puissance)</option>
               <option value="5V">5V (Alimentation USB / Rail 5V)</option>
@@ -401,15 +432,15 @@
           </div>
 
           <div class="input-group" id="manual-gpio-group">
-            <label for="device-gpio">Broche GPIO (Attribution automatique recommandée)</label>
+            <label for="device-gpio" data-i18n="label_dev_gpio">Broche GPIO (Attribution automatique recommandée)</label>
             <select id="device-gpio">
-              <option value="auto">Attribution automatique optimale par l'ESP32</option>
+              <option value="auto" data-i18n="opt_gpio_auto">Attribution automatique optimale par l'ESP32</option>
             </select>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn-secondary" onclick="closeDeviceModal()">Annuler</button>
-          <button type="submit" class="btn-primary" id="btn-submit-step1">Suivant : Câbler sur la carte</button>
+          <button type="button" class="btn-secondary" onclick="closeDeviceModal()" data-i18n="btn_cancel">Annuler</button>
+          <button type="submit" class="btn-primary" id="btn-submit-step1" data-i18n="btn_next_wire">Suivant : Câbler sur la carte</button>
         </div>
       </form>
     </div>
@@ -420,8 +451,8 @@
     <div class="modal-dialog modal-wizard">
       <div class="modal-header">
         <div>
-          <h3 id="wizard-title">Didacticiel de Câblage Assisté</h3>
-          <div id="wizard-subtitle" class="modal-subtitle">Guide pas-à-pas pour votre installation</div>
+          <h3 id="wizard-title" data-i18n="wizard_title">Didacticiel de Câblage Assisté</h3>
+          <div id="wizard-subtitle" class="modal-subtitle" data-i18n="wizard_subtitle">Guide pas-à-pas pour votre installation</div>
         </div>
         <button class="modal-close-btn" onclick="closeWizardModal()">&times;</button>
       </div>
@@ -430,10 +461,10 @@
         <!-- En-tête avec broche physique réservée -->
         <div class="wizard-pin-banner">
           <div class="pin-badge-box">
-            <span class="pin-label">Broche assignée :</span>
+            <span class="pin-label" data-i18n="wizard_assigned_pin">Broche assignée :</span>
             <span class="pin-highlight" id="wizard-assigned-gpio">GPIO --</span>
           </div>
-          <div class="pin-info-text" id="wizard-pin-reason">Sélectionnée et réservée par l'ESP32</div>
+          <div class="pin-info-text" id="wizard-pin-reason" data-i18n="wizard_pin_reserved">Sélectionnée et réservée par l'ESP32</div>
         </div>
 
         <!-- Alerte sécurité dédiée -->
@@ -448,15 +479,15 @@
         <!-- Module de test physique interactif -->
         <div class="wizard-test-box">
           <div class="wizard-test-header">
-            <div style="font-weight:700; font-size:14px;">Test du branchement physique</div>
-            <div style="font-size:12px; color:var(--text-muted);">Vérifiez le fonctionnement électrique avant de refermer le boîtier</div>
+            <div style="font-weight:700; font-size:14px;" data-i18n="wizard_test_title">Test du branchement physique</div>
+            <div style="font-size:12px; color:var(--text-muted);" data-i18n="wizard_test_sub">Vérifiez le fonctionnement électrique avant de refermer le boîtier</div>
           </div>
           <div class="wizard-test-action-row">
             <button type="button" class="btn-primary test-pulse-btn" id="wizard-btn-test" onclick="runWizardTest()">
               <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor;"><path d="M7,2V4H8V18A4,4 0 0,0 12,22A4,4 0 0,0 16,18V4H17V2H7M11,16C10.45,16 10,15.55 10,15C10,14.45 10.45,14 11,14C11.55,14 12,14.45 12,15C12,15.55 11.55,16 11,16M13,12C12.45,12 12,11.55 12,11C12,10.45 12.45,10 13,10C13.55,10 14,10.45 14,11C14,11.55 13.55,12 13,12Z"/></svg>
-              <span id="wizard-test-btn-text">Tester le branchement</span>
+              <span id="wizard-test-btn-text" data-i18n="wizard_btn_test_actuator">Tester le branchement</span>
             </button>
-            <div class="wizard-test-status" id="wizard-test-status">
+            <div class="wizard-test-status" id="wizard-test-status" data-i18n="wizard_test_waiting">
               En attente du test...
             </div>
           </div>
@@ -464,8 +495,8 @@
 
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn-secondary" onclick="backToFormModal()">Revenir</button>
-        <button type="button" class="btn-primary btn-success-glow" onclick="finishAndActivateWizard()">Câblage terminé & Activer</button>
+        <button type="button" class="btn-secondary" onclick="backToFormModal()" data-i18n="wizard_btn_back">Revenir</button>
+        <button type="button" class="btn-primary btn-success-glow" onclick="finishAndActivateWizard()" data-i18n="wizard_btn_finish">Câblage terminé & Activer</button>
       </div>
     </div>
   </div>
@@ -475,8 +506,8 @@
     <div class="modal-dialog modal-cycles">
       <div class="modal-header">
         <div>
-          <h3>Historique des Cycles</h3>
-          <div class="modal-subtitle">Base de données des cycles enregistrés (LittleFS)</div>
+          <h3 data-i18n="hist_title">Historique des Cycles</h3>
+          <div class="modal-subtitle" data-i18n="hist_subtitle">Base de données des cycles enregistrés (LittleFS)</div>
         </div>
         <button class="modal-close-btn" onclick="closeCyclesHistoryModal()">&times;</button>
       </div>
@@ -486,40 +517,40 @@
         <div class="history-stats-bar">
           <div class="history-stat-box">
             <span class="stat-num" id="hist-total-cycles">0</span>
-            <span class="stat-label">Cycles totaux</span>
+            <span class="stat-label" data-i18n="hist_total_cycles">Cycles totaux</span>
           </div>
           <div class="history-stat-box">
             <span class="stat-num" id="hist-total-time">0h 00m</span>
-            <span class="stat-label">Temps cumulé</span>
+            <span class="stat-label" data-i18n="hist_total_time">Temps cumulé</span>
           </div>
           <div class="history-stat-box">
             <span class="stat-num" id="hist-total-energy">0.0 kWh</span>
-            <span class="stat-label">Énergie estimée</span>
+            <span class="stat-label" data-i18n="hist_total_energy">Énergie estimée</span>
           </div>
         </div>
 
         <!-- Filtre & actions rapides -->
         <div class="history-toolbar">
           <div class="history-filter-group">
-            <label for="history-mode-filter">Filtrer par mode :</label>
+            <label for="history-mode-filter" data-i18n="hist_filter_label">Filtrer par mode :</label>
             <select id="history-mode-filter" onchange="filterCyclesHistory()">
-              <option value="ALL">Tous les modes</option>
+              <option value="ALL" data-i18n="hist_filter_all">Tous les modes</option>
               <option value="NORMAL">NORMAL</option>
               <option value="ECO">ECO</option>
               <option value="ECO+">ECO+</option>
               <option value="BOOST">BOOST</option>
               <option value="BOOST+">BOOST+</option>
-              <option value="MANUEL">MANUEL</option>
+              <option value="MANUEL" data-i18n="mode_manual">MANUEL</option>
             </select>
           </div>
           <div class="history-btn-group">
             <button class="btn-outline-sm" onclick="loadCyclesHistory(true)" title="Actualiser la liste">
               <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/></svg>
-              Actualiser
+              <span data-i18n="hist_btn_refresh">Actualiser</span>
             </button>
             <button class="btn-outline-sm" onclick="exportCyclesCSV()" title="Exporter en CSV">
               <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M10,19L12,15H9V10H15V15H12L14,19H10Z"/></svg>
-              Exporter CSV
+              <span data-i18n="hist_btn_csv">Exporter CSV</span>
             </button>
           </div>
         </div>
@@ -529,15 +560,15 @@
           <table class="device-table history-table">
             <thead>
               <tr>
-                <th>Cycle</th>
-                <th>Date & Heure</th>
-                <th>Mode</th>
-                <th class="col-center">Temp. Début</th>
-                <th class="col-center">Temp. Fin</th>
-                <th class="col-center">Consigne</th>
-                <th class="col-center">Durée</th>
-                <th class="col-center">Énergie</th>
-                <th class="col-center">Statut</th>
+                <th data-i18n="th_hist_cycle">Cycle</th>
+                <th data-i18n="th_hist_datetime">Date & Heure</th>
+                <th data-i18n="th_hist_mode">Mode</th>
+                <th class="col-center" data-i18n="th_hist_tstart">Temp. Début</th>
+                <th class="col-center" data-i18n="th_hist_tend">Temp. Fin</th>
+                <th class="col-center" data-i18n="th_hist_target">Consigne</th>
+                <th class="col-center" data-i18n="th_hist_duration">Durée</th>
+                <th class="col-center" data-i18n="th_hist_energy">Énergie</th>
+                <th class="col-center" data-i18n="th_hist_status">Statut</th>
               </tr>
             </thead>
             <tbody id="history-table-body">
@@ -548,7 +579,7 @@
 
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn-secondary" onclick="closeCyclesHistoryModal()">Fermer</button>
+        <button type="button" class="btn-secondary" onclick="closeCyclesHistoryModal()" data-i18n="hist_btn_close">Fermer</button>
       </div>
     </div>
   </div>
