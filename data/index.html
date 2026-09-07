@@ -312,12 +312,10 @@
     </div>
   </div>
 
-  <!-- MODAL D'AJOUT / MODIFICATION DE MATÉRIEL -->
   <!-- MODALE ÉTAPE 1 : DÉCLARATION D'ÉQUIPEMENT -->
   <div class="modal-backdrop" id="device-modal">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3 id="modal-title">Ajouter un équipement</h3>
         <div>
           <h3 id="modal-title">1. Déclarer un équipement</h3>
           <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">Étape 1/2 : Caractéristiques du matériel</div>
@@ -328,7 +326,6 @@
         <div class="modal-body">
           <div class="input-group">
             <label for="device-name">Nom de l'équipement</label>
-            <input type="text" id="device-name" placeholder="Ex: Spot Cuisine, Vanne 3 Voies..." required>
             <input type="text" id="device-name" placeholder="Ex: Pompe bac froid, Spot LED cuisine, Flotteur eau..." required>
           </div>
 
@@ -352,20 +349,12 @@
           </div>
 
           <div class="input-group">
-            <label for="device-type">Type de contrôle</label>
-            <select id="device-type">
-              <option value="RELAY">Relais Tout-ou-Rien (ON / OFF)</option>
-              <option value="PWM">Variateur de vitesse / luminosité (PWM)</option>
             <label for="device-signal-mode">Type de commande / signal</label>
             <select id="device-signal-mode">
               <!-- Rempli dynamiquement selon la catégorie -->
             </select>
           </div>
 
-          <div class="input-group">
-            <label for="device-gpio">Broche GPIO ESP32 (Uniquement les broches sûres et libres)</label>
-            <select id="device-gpio" required>
-              <option value="">Chargement des broches...</option>
           <div class="input-group" id="manual-gpio-group">
             <label for="device-gpio">Broche GPIO (Attribution automatique recommandée)</label>
             <select id="device-gpio">
