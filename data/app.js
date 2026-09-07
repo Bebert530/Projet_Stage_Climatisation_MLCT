@@ -359,14 +359,14 @@ function onCategoryChange() {
   const cat = catEl.value;
   if (cat === 'ACTUATOR') {
     modeSelect.innerHTML = `
-      <option value="OUTPUT_RELAY">⚡ Tout ou Rien (Relais isolé)</option>
-      <option value="OUTPUT_PWM">〰️ Progressif (Variateur PWM / MOSFET)</option>
+      <option value="OUTPUT_RELAY">Tout ou Rien (Relais isolé)</option>
+      <option value="OUTPUT_PWM">Progressif (Variateur PWM / MOSFET)</option>
     `;
   } else {
     modeSelect.innerHTML = `
-      <option value="INPUT_DIGITAL">🔘 Tout ou Rien (Contact sec / Flotteur)</option>
-      <option value="INPUT_ADC">📊 Analogique 0-3.3V (Sonde pression / jauge)</option>
-      <option value="INPUT_ONEWIRE">🌡️ Bus numérique 1-Wire (DS18B20)</option>
+      <option value="INPUT_DIGITAL">Tout ou Rien (Contact sec / Flotteur)</option>
+      <option value="INPUT_ADC">Analogique 0-3.3V (Sonde pression / jauge)</option>
+      <option value="INPUT_ONEWIRE">Bus numérique 1-Wire (DS18B20)</option>
     `;
   }
 }
@@ -416,26 +416,26 @@ function renderDeviceTable(devices) {
     let signalBadge = '';
     switch(dev.mode) {
       case 'OUTPUT_PWM':
-        signalBadge = `<span class="badge badge-pwm">〰️ PWM</span>`;
+        signalBadge = `<span class="badge badge-pwm">PWM</span>`;
         break;
       case 'INPUT_DIGITAL':
-        signalBadge = `<span class="badge badge-digital">🔘 Contact Sec</span>`;
+        signalBadge = `<span class="badge badge-digital">Contact Sec</span>`;
         break;
       case 'INPUT_ADC':
-        signalBadge = `<span class="badge badge-adc">📊 ADC (0-3.3V)</span>`;
+        signalBadge = `<span class="badge badge-adc">ADC (0-3.3V)</span>`;
         break;
       case 'INPUT_ONEWIRE':
-        signalBadge = `<span class="badge badge-onewire">🌡️ 1-Wire</span>`;
+        signalBadge = `<span class="badge badge-onewire">1-Wire</span>`;
         break;
       case 'OUTPUT_RELAY':
       default:
-        signalBadge = `<span class="badge badge-relay">⚡ Relais</span>`;
+        signalBadge = `<span class="badge badge-relay">Relais</span>`;
         break;
     }
 
     const coreBadge = dev.isCore 
-      ? `<span class="badge badge-core">🔒 Système</span>`
-      : `<span class="badge badge-custom">⚙️ Libre</span>`;
+      ? `<span class="badge badge-core">Système</span>`
+      : `<span class="badge badge-custom">Libre</span>`;
 
     let stateDisplay = '';
     if (dev.mode === 'OUTPUT_PWM') {
@@ -607,7 +607,7 @@ async function openAddDeviceModal() {
   document.getElementById('device-name').value = "";
   document.getElementById('device-category').value = "ACTUATOR";
   document.getElementById('device-voltage').value = "12V";
-  document.getElementById('btn-submit-step1').innerText = "Suivant : Câbler sur la carte ➔";
+  document.getElementById('btn-submit-step1').innerText = "Suivant : Câbler sur la carte";
   
   onCategoryChange();
   await populatePinSelect();
@@ -629,7 +629,7 @@ async function openEditDeviceModal(id) {
   document.getElementById('device-name').value = dev.name;
   document.getElementById('device-category').value = dev.category || 'ACTUATOR';
   document.getElementById('device-voltage').value = dev.voltage || '12V';
-  document.getElementById('btn-submit-step1').innerText = "Suivant : Vérifier le câblage ➔";
+  document.getElementById('btn-submit-step1').innerText = "Suivant : Vérifier le câblage";
 
   onCategoryChange();
   document.getElementById('device-signal-mode').value = dev.mode || 'OUTPUT_RELAY';
@@ -647,7 +647,7 @@ function closeDeviceModal() {
  */
 async function populatePinSelect(currentPin = null) {
   const select = document.getElementById('device-gpio');
-  select.innerHTML = '<option value="auto">⚡ Attribution automatique optimale par l\'ESP32</option>';
+  select.innerHTML = '<option value="auto">Attribution automatique optimale par l\'ESP32</option>';
 
   let availablePins = [];
   try {
@@ -772,9 +772,9 @@ async function openWizardModal() {
   // 6. Adaptation du libellé du bouton de test
   const testBtnText = document.getElementById('wizard-test-btn-text');
   if (wizardState.category === 'ACTUATOR') {
-    testBtnText.innerText = "⚡ Tester le branchement (3s)";
+    testBtnText.innerText = "Tester le branchement (3s)";
   } else {
-    testBtnText.innerText = "🔍 Tester la lecture du capteur";
+    testBtnText.innerText = "Tester la lecture du capteur";
   }
 
   modal.classList.add('active');
@@ -822,13 +822,13 @@ async function runWizardTest() {
 
   if (wizardState.category === 'ACTUATOR') {
     let countdown = 3;
-    btnText.innerText = `⏳ Test en cours (${countdown}s)...`;
+    btnText.innerText = `Test en cours (${countdown}s)...`;
     statusBox.innerText = `Impulsion électrique active sur GPIO ${wizardState.gpio} (${countdown}s)...`;
 
     const timer = setInterval(() => {
       countdown--;
       if (countdown > 0) {
-        btnText.innerText = `⏳ Test en cours (${countdown}s)...`;
+        btnText.innerText = `Test en cours (${countdown}s)...`;
         statusBox.innerText = `Impulsion électrique active sur GPIO ${wizardState.gpio} (${countdown}s)...`;
       } else {
         clearInterval(timer);
@@ -849,22 +849,22 @@ async function runWizardTest() {
       const data = await res.json();
       setTimeout(() => {
         statusBox.className = "wizard-test-status success";
-        statusBox.innerHTML = `✓ ${data.message || 'Signal validé ! Relais/PWM activé pendant 3s.'}`;
+        statusBox.innerHTML = `${data.message || 'Signal validé : Relais/PWM activé pendant 3s.'}`;
         btn.disabled = false;
-        btnText.innerText = "⚡ Re-tester le branchement (3s)";
+        btnText.innerText = "Re-tester le branchement (3s)";
       }, 3000);
     } catch (e) {
       setTimeout(() => {
         statusBox.className = "wizard-test-status success";
-        statusBox.innerHTML = `✓ Test simulé réussi : GPIO ${wizardState.gpio} activé pendant 3s.`;
+        statusBox.innerHTML = `Test simulé réussi : GPIO ${wizardState.gpio} activé pendant 3s.`;
         btn.disabled = false;
-        btnText.innerText = "⚡ Re-tester le branchement (3s)";
+        btnText.innerText = "Re-tester le branchement (3s)";
       }, 3000);
     }
 
   } else {
     // Test capteur : lecture instantanée
-    btnText.innerText = "🔍 Lecture du signal...";
+    btnText.innerText = "Lecture du signal...";
     statusBox.innerText = `Lecture de la broche GPIO ${wizardState.gpio}...`;
 
     try {
@@ -880,13 +880,13 @@ async function runWizardTest() {
       });
       const data = await res.json();
       statusBox.className = "wizard-test-status success";
-      statusBox.innerHTML = `✓ ${data.message || 'Signal capteur capté avec succès !'}`;
+      statusBox.innerHTML = `${data.message || 'Signal capteur capté avec succès !'}`;
     } catch (e) {
       statusBox.className = "wizard-test-status success";
-      statusBox.innerHTML = `✓ Lecture simulée : GPIO ${wizardState.gpio} détecté (Niveau logique OK).`;
+      statusBox.innerHTML = `Lecture simulée : GPIO ${wizardState.gpio} détecté (Niveau logique OK).`;
     } finally {
       btn.disabled = false;
-      btnText.innerText = "🔍 Tester la lecture du capteur";
+      btnText.innerText = "Tester la lecture du capteur";
     }
   }
 }

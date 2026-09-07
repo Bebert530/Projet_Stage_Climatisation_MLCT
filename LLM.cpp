@@ -174,13 +174,13 @@
   <!-- APPLICATION -->
   <div id="app-screen">
     <div class="alert-banner" id="watchdog-banner">
-      ⚠️ ALERTE: Perte de capteur. Coupure de sécurité dans <span id="watchdog-timer">30</span>s...
+       ALERTE: Perte de capteur. Coupure de sécurité dans <span id="watchdog-timer">30</span>s...
     </div>
 
     <nav class="sidebar">
-      <button class="nav-btn active" onclick="switchTab('clim', this)"><span class="nav-icon">❄️</span> Climatisation</button>
-      <button class="nav-btn" onclick="switchTab('settings', this)"><span class="nav-icon">⚙️</span> Paramètres</button>
-      <button class="nav-btn" onclick="switchTab('account', this)"><span class="nav-icon">👤</span> Compte</button>
+      <button class="nav-btn active" onclick="switchTab('clim', this)"><span class="nav-icon"></span> Climatisation</button>
+      <button class="nav-btn" onclick="switchTab('settings', this)"><span class="nav-icon"></span> Paramètres</button>
+      <button class="nav-btn" onclick="switchTab('account', this)"><span class="nav-icon"></span> Compte</button>
     </nav>
 
     <main class="main-content">
@@ -518,7 +518,7 @@
         document.getElementById('watchdog-timer').innerText = watchdogCount;
         if(watchdogCount <= 0) {
           clearInterval(watchdogInterval);
-          document.getElementById('watchdog-banner').innerHTML = '🚨 COUPURE SÉCURITÉ ACTIVÉE.';
+          document.getElementById('watchdog-banner').innerHTML = ' COUPURE SÉCURITÉ ACTIVÉE.';
           if(systemOn) {
             const fakeEvent = { target: { tagName: 'DIV' } };
             togglePower(fakeEvent);
