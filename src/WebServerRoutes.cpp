@@ -136,128 +136,7 @@ void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager) {
     );
 
     // -------------------------------------------------------------
-    // 5. POST /api/devices/add (Rétrocompatibilité)
-    // -------------------------------------------------------------
-    server.on("/api/devices/add", HTTP_POST, 
-        [&devManager](AsyncWebServerRequest *request) {
-            String* body = (String*)request->_tempObject;
-            if (!body || body->length() == 0) {
-                AsyncWebServerResponse *response = request->beginResponse(400, "application/json", "{\"success\":false,\"error\":\"Corps JSON vide\"}");
-                addCorsHeaders(response);
-                request->send(response);
-                return;
-            }
-
-#if defined(ARDUINOJSON_VERSION_MAJOR) && (ARDUINOJSON_VERSION_MAJOR >= 7)
-            JsonDocument doc;
-#else
-            DynamicJsonDocument doc(1024);
-#endif
-            DeserializationError error = deserializeJson(doc, *body);
-            delete body;
-            request->_tempObject = nullptr;
-
-            if (error) {
-                AsyncWebServerResponse *response = request->beginResponse(400, "application/json", "{\"success\":false,\"error\":\"JSON invalide\"}");
-                addCorsHeaders(response);
-                request->send(response);
-                return;
-            }
-
-            String name = doc["name"] | "";
-            String typeStr = doc["type"] | "RELAY";
-            uint8_t gpio = doc["gpio"] | 255;
-            bool isCore = doc["isCore"] | false;
-
-            DeviceType type = DeviceManager::stringToType(typeStr);
-            String errorMsg;
-
-            bool ok = devManager.addDevice(name, type, gpio, isCore, errorMsg);
-            if (ok) {
-                AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"success\":true,\"message\":\"Périphérique ajouté avec succès\"}");
-                addCorsHeaders(response);
-                request->send(response);
-            } else {
-                String resp = "{\"success\":false,\"error\":\"" + errorMsg + "\"}";
-                AsyncWebServerResponse *response = request->beginResponse(400, "application/json", resp);
-                addCorsHeaders(response);
-                request->send(response);
-            }
-        },
-        NULL,
-        [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-            String* body = (String*)request->_tempObject;
-            if (index == 0) {
-                body = new String();
-                request->_tempObject = body;
-            }
-            if (body) {
-                body->concat((const char*)data, len);
-            }
-        }
-    );
-
-    // -------------------------------------------------------------
-    // 6. POST /api/devices/update (Rétrocompatibilité)
-    // -------------------------------------------------------------
-    server.on("/api/devices/update", HTTP_POST,
-        [&devManager](AsyncWebServerRequest *request) {
-            String* body = (String*)request->_tempObject;
-            if (!body || body->length() == 0) {
-                AsyncWebServerResponse *response = request->beginResponse(400, "application/json", "{\"success\":false,\"error\":\"Corps JSON vide\"}");
-                addCorsHeaders(response);
-                request->send(response);
-                return;
-            }
-
-#if defined(ARDUINOJSON_VERSION_MAJOR) && (ARDUINOJSON_VERSION_MAJOR >= 7)
-            JsonDocument doc;
-#else
-            DynamicJsonDocument doc(1024);
-#endif
-            DeserializationError error = deserializeJson(doc, *body);
-            delete body;
-            request->_tempObject = nullptr;
-
-            if (error) {
-                AsyncWebServerResponse *response = request->beginResponse(400, "application/json", "{\"success\":false,\"error\":\"JSON invalide\"}");
-                addCorsHeaders(response);
-                request->send(response);
-                return;
-            }
-
-            uint8_t id = doc["id"] | 0;
-            String name = doc["name"] | "";
-            uint8_t gpio = doc["gpio"] | 255;
-            String errorMsg;
-
-            bool ok = devManager.updateDevice(id, name, gpio, errorMsg);
-            if (ok) {
-                AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"success\":true,\"message\":\"Périphérique mis à jour\"}");
-                addCorsHeaders(response);
-                request->send(response);
-            } else {
-                String resp = "{\"success\":false,\"error\":\"" + errorMsg + "\"}";
-                AsyncWebServerResponse *response = request->beginResponse(400, "application/json", resp);
-                addCorsHeaders(response);
-                request->send(response);
-            }
-        },
-        NULL,
-        [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-            String* body = (String*)request->_tempObject;
-            if (index == 0) {
-                body = new String();
-                request->_tempObject = body;
-            }
-            if (body) {
-                body->concat((const char*)data, len);
-            }
-        }
-    );
-
-    // -------------------------------------------------------------
-    // 7. POST /api/devices/delete : Suppression d'un équipement
+    // 5. POST /api/devices/delete : Suppression d'un équipement
     // -------------------------------------------------------------
     server.on("/api/devices/delete", HTTP_POST,
         [&devManager](AsyncWebServerRequest *request) {
@@ -315,7 +194,7 @@ void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager) {
     );
 
     // -------------------------------------------------------------
-    // 8. POST /api/devices/test : Test matériel temporaire (Actionneur 3s ou Capteur)
+    // 6. POST /api/devices/test : Test matériel temporaire (Actionneur 3s ou Capteur)
     // -------------------------------------------------------------
     server.on("/api/devices/test", HTTP_POST,
         [&devManager](AsyncWebServerRequest *request) {
@@ -389,7 +268,7 @@ void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager) {
     );
 
     // -------------------------------------------------------------
-    // 9. POST /api/devices/set-state : Commande en direct depuis l'UI
+    // 7. POST /api/devices/set-state : Commande en direct depuis l'UI
     // -------------------------------------------------------------
     server.on("/api/devices/set-state", HTTP_POST,
         [&devManager](AsyncWebServerRequest *request) {
@@ -446,7 +325,7 @@ void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager) {
     );
 
     // -------------------------------------------------------------
-    // 10. Télémétrie Climate Pro : GET /data
+    // 8. Télémétrie Climate Pro : GET /data
     // -------------------------------------------------------------
     server.on("/data", HTTP_GET, [](AsyncWebServerRequest *request) {
         String telemetry = "{"
@@ -465,7 +344,7 @@ void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager) {
     });
 
     // -------------------------------------------------------------
-    // 11. Actions rapides (GET /action)
+    // 9. Actions rapides (GET /action)
     // -------------------------------------------------------------
     server.on("/action", HTTP_GET, [](AsyncWebServerRequest *request) {
         AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"status\":\"ok\"}");
@@ -474,7 +353,7 @@ void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager) {
     });
 
     // -------------------------------------------------------------
-    // 12. Fichiers statiques LittleFS
+    // 10. Fichiers statiques LittleFS
     // -------------------------------------------------------------
     server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html").setCacheControl("max-age=300");
 

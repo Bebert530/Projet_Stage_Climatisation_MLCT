@@ -507,28 +507,6 @@ bool DeviceManager::saveDevice(uint8_t id, const String& name, DeviceCategory ca
     return true;
 }
 
-bool DeviceManager::addDevice(const String& name, DeviceType type, uint8_t gpio, bool isCore, String& errorMsg) {
-    SignalMode mode = (type == DEVICE_PWM) ? MODE_OUTPUT_PWM : MODE_OUTPUT_RELAY;
-    return saveDevice(0, name, CAT_ACTUATOR, "12V", mode, gpio, isCore, errorMsg);
-}
-
-bool DeviceManager::updateDevice(uint8_t id, const String& newName, uint8_t newGpio, String& errorMsg) {
-    xSemaphoreTake(_mutex, portMAX_DELAY);
-    Device* dev = getDeviceById(id);
-    if (!dev) {
-        xSemaphoreGive(_mutex);
-        errorMsg = "Périphérique introuvable.";
-        return false;
-    }
-    DeviceCategory cat = dev->category;
-    String volt = dev->voltage;
-    SignalMode m = dev->mode;
-    bool core = dev->isCore;
-    xSemaphoreGive(_mutex);
-
-    return saveDevice(id, newName, cat, volt, m, newGpio, core, errorMsg);
-}
-
 bool DeviceManager::deleteDevice(uint8_t id, String& errorMsg) {
     xSemaphoreTake(_mutex, portMAX_DELAY);
 

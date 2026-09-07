@@ -98,16 +98,6 @@ public:
                     SignalMode mode, uint8_t gpio, bool isCore, String& errorMsg);
 
     /**
-     * @brief Rétro-compatibilité addDevice
-     */
-    bool addDevice(const String& name, DeviceType type, uint8_t gpio, bool isCore, String& errorMsg);
-
-    /**
-     * @brief Rétro-compatibilité updateDevice
-     */
-    bool updateDevice(uint8_t id, const String& newName, uint8_t newGpio, String& errorMsg);
-
-    /**
      * @brief Supprime un périphérique et libère proprement son GPIO
      */
     bool deleteDevice(uint8_t id, String& errorMsg);
