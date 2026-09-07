@@ -3,6 +3,9 @@
     {
       "id": 1,
       "name": "Pompe boucle froide",
+      "category": "ACTUATOR",
+      "voltage": "12V",
+      "mode": "OUTPUT_RELAY",
       "type": "RELAY",
       "gpio": 4,
       "state": 0,
@@ -12,6 +15,9 @@
     {
       "id": 2,
       "name": "Lanterneau Fiamma",
+      "category": "ACTUATOR",
+      "voltage": "12V",
+      "mode": "OUTPUT_PWM",
       "type": "PWM",
       "gpio": 19,
       "state": 0,
@@ -21,6 +27,9 @@
     {
       "id": 3,
       "name": "Spot Salon",
+      "category": "ACTUATOR",
+      "voltage": "12V",
+      "mode": "OUTPUT_RELAY",
       "type": "RELAY",
       "gpio": 23,
       "state": 0,
@@ -29,4 +38,3 @@
     }
   ]
 }
-

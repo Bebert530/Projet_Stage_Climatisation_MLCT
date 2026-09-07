@@ -6,27 +6,62 @@
 #include <vector>
 
 /**
+ * @enum DeviceCategory
+ * @brief Catégorie d'équipement : Actionneur ou Capteur
+ */
+enum DeviceCategory {
+    CAT_ACTUATOR = 0, // Actionneur (Relais, Variateur PWM/MOSFET, etc.)
+    CAT_SENSOR   = 1  // Capteur (Flotteur, DS18B20, Pression analogique, etc.)
+};
+
+/**
+ * @enum SignalMode
+ * @brief Type précis de commande ou signal électrique
+ */
+enum SignalMode {
+    MODE_OUTPUT_RELAY   = 0, // Relais Tout-ou-Rien (HIGH/LOW)
+    MODE_OUTPUT_PWM     = 1, // Progressif PWM / MOSFET
+    MODE_INPUT_DIGITAL  = 2, // Contact sec / Flotteur (INPUT_PULLUP)
+    MODE_INPUT_ADC      = 3, // Analogique 0-3.3V (ADC1)
+    MODE_INPUT_ONEWIRE  = 4  // Bus numérique 1-Wire (ex: DS18B20)
+};
+
+/**
  * @enum DeviceType
- * @brief Types d'équipements pris en charge par le gestionnaire de matériel
+ * @brief Types pour rétrocompatibilité RELAY / PWM
  */
 enum DeviceType {
-    DEVICE_RELAY = 0, // Relais tout-ou-rien (HIGH / LOW)
-    DEVICE_PWM   = 1  // Variateur de vitesse ou intensité (LEDC PWM)
+    DEVICE_RELAY = 0,
+    DEVICE_PWM   = 1
 };
 
 /**
  * @struct Device
- * @brief Représentation d'un périphérique dynamique
+ * @brief Représentation complète d'un périphérique
  */
 struct Device {
-    uint8_t id;         // Identifiant unique
-    String name;        // Nom lisible (ex: "Pompe boucle froide")
-    DeviceType type;    // Type (RELAY ou PWM)
-    uint8_t gpio;       // Broche GPIO ESP32 assignée
-    uint8_t state;      // État logique binaire (0 = OFF, 1 = ON)
-    uint8_t value;      // Valeur analogique / PWM (0 - 255)
-    int8_t pwmChannel;  // Canal LEDC alloué (0-15 pour PWM, -1 pour RELAY)
-    bool isCore;        // Équipement système protégé contre la suppression
+    uint8_t id;             // Identifiant unique
+    String name;            // Nom lisible (ex: "Pompe boucle froide")
+    DeviceCategory category;// CAT_ACTUATOR ou CAT_SENSOR
+    String voltage;         // "12V", "5V", "3.3V"
+    SignalMode mode;        // Mode précis de signal
+    DeviceType type;        // Pour rétro-compatibilité dashboard
+    uint8_t gpio;           // Broche GPIO ESP32 assignée
+    uint8_t state;          // État logique binaire (0 ou 1)
+    uint8_t value;          // Valeur PWM ou ADC (0 - 255 / raw)
+    int8_t pwmChannel;      // Canal LEDC alloué (0-15 pour PWM, -1 sinon)
+    bool isCore;            // Équipement système protégé contre suppression
+};
+
+/**
+ * @struct DeviceTestResult
+ * @brief Résultat du test de branchement (Actionneur ou Capteur)
+ */
+struct DeviceTestResult {
+    bool success;
+    String message;
+    int rawValue;
+    float voltageValue;
 };
 
 /**
@@ -38,143 +73,98 @@ public:
     DeviceManager();
     ~DeviceManager();
 
-    /**
-     * @brief Initialise le système de fichiers LittleFS, charge /config.json et configure le hardware
-     * @param configPath Chemin vers le fichier JSON dans LittleFS (défaut: "/config.json")
-     * @return true si succès, false en cas d'erreur
-     */
     bool begin(const char* configPath = "/config.json");
-
-    /**
-     * @brief Charge et parse la configuration JSON depuis la mémoire flash
-     */
     bool loadConfig();
-
-    /**
-     * @brief Sauvegarde l'état actuel des périphériques dans /config.json
-     */
     bool saveConfig();
 
-    /**
-     * @brief Renvoie la liste complète des périphériques enregistrés
-     */
     std::vector<Device> getDevices();
-
-    /**
-     * @brief Recherche un périphérique par son identifiant
-     * @return Pointeur vers Device ou nullptr si introuvable
-     */
     Device* getDeviceById(uint8_t id);
 
-    /**
-     * @brief Renvoie la liste des GPIO ESP32 sûrs et non attribués
-     */
     std::vector<uint8_t> getAvailablePins();
-
-    /**
-     * @brief Vérifie si un numéro de GPIO est sûr (hors liste noire et hors input-only)
-     */
     bool isPinSafe(uint8_t pin) const;
-
-    /**
-     * @brief Vérifie si un GPIO est déjà utilisé par un périphérique existant
-     * @param pin Numéro du GPIO
-     * @param excludeDeviceId ID éventuel à exclure du contrôle (ex: lors d'une mise à jour)
-     */
     bool isPinUsed(uint8_t pin, uint8_t excludeDeviceId = 0);
 
     /**
-     * @brief Ajoute dynamiquement un périphérique, initialise son GPIO et met à jour config.json
-     * @param name Nom de l'équipement
-     * @param type DEVICE_RELAY ou DEVICE_PWM
-     * @param gpio Broche GPIO désirée
-     * @param isCore Protection système (défaut false)
-     * @param errorMsg Message d'erreur détaillé en cas d'échec
-     * @return true si l'ajout est réussi
+     * @brief Suggère intelligemment la meilleure broche GPIO libre selon le mode de signal
+     * @param mode MODE_OUTPUT_RELAY, MODE_OUTPUT_PWM, MODE_INPUT_DIGITAL, MODE_INPUT_ADC, MODE_INPUT_ONEWIRE
+     * @return Numéro GPIO suggéré, ou -1 si aucune broche adéquate n'est disponible
+     */
+    int8_t suggestPin(SignalMode mode);
+
+    /**
+     * @brief Sauvegarde ou met à jour un équipement complet (nom, catégorie, tension, mode, gpio)
+     */
+    bool saveDevice(uint8_t id, const String& name, DeviceCategory category, const String& voltage, 
+                    SignalMode mode, uint8_t gpio, bool isCore, String& errorMsg);
+
+    /**
+     * @brief Rétro-compatibilité addDevice
      */
     bool addDevice(const String& name, DeviceType type, uint8_t gpio, bool isCore, String& errorMsg);
 
     /**
-     * @brief Modifie un équipement existant (changement de nom ou migration de GPIO)
-     * @param id Identifiant de l'équipement
-     * @param newName Nouveau nom
-     * @param newGpio Nouveau GPIO
-     * @param errorMsg Message d'erreur en cas d'échec
+     * @brief Rétro-compatibilité updateDevice
      */
     bool updateDevice(uint8_t id, const String& newName, uint8_t newGpio, String& errorMsg);
 
     /**
      * @brief Supprime un périphérique et libère proprement son GPIO
-     * @note Échoue si isCore == true
      */
     bool deleteDevice(uint8_t id, String& errorMsg);
 
     /**
-     * @brief Modifie l'état matériel d'un équipement (ON/OFF ou PWM)
-     * @param id Identifiant de l'équipement
-     * @param state État binaire (0 ou 1)
-     * @param value Valeur PWM (0 à 255, optionnel)
+     * @brief Modifie l'état d'un équipement
      */
     bool setDeviceState(uint8_t id, uint8_t state, uint8_t value = 0);
 
     /**
-     * @brief Effectue un test matériel temporaire (pulse ou toggle) pour tester le câblage
-     * @param id Identifiant du périphérique à tester
-     * @param durationMs Durée du pulse de test en millisecondes
+     * @brief Teste le câblage d'un périphérique existant (3s pulse pour actionneur, lecture directe pour capteur)
      */
-    bool testDevice(uint8_t id, uint16_t durationMs = 1200);
+    DeviceTestResult testDevice(uint8_t id, uint16_t durationMs = 3000);
 
     /**
-     * @brief Sérialise la liste des périphériques au format JSON (pour l'API REST)
+     * @brief Teste directement une broche GPIO avant enregistrement (dans le Wizard de câblage)
      */
+    DeviceTestResult testPinDirect(uint8_t gpio, SignalMode mode, uint16_t durationMs = 3000);
+
     String getDevicesJson();
-
-    /**
-     * @brief Sérialise la liste des pins disponibles au format JSON
-     */
     String getAvailablePinsJson();
 
-    /**
-     * @brief Convertit une chaîne de caractères en DeviceType
-     */
     static DeviceType stringToType(const String& str);
-
-    /**
-     * @brief Convertit un DeviceType en chaîne lisible
-     */
     static String typeToString(DeviceType type);
+
+    static DeviceCategory stringToCategory(const String& str);
+    static String categoryToString(DeviceCategory cat);
+
+    static SignalMode stringToSignalMode(const String& str);
+    static String signalModeToString(SignalMode mode);
 
 private:
     String _configPath;
     std::vector<Device> _devices;
     SemaphoreHandle_t _mutex;
 
-    // Masque des canaux PWM LEDC alloués (16 canaux: 0 à 15)
     bool _pwmChannelsInUse[16];
 
-    // Liste blanche des broches sûres en sortie sur l'ESP32
-    static const std::vector<uint8_t> SAFE_PINS;
+    // Broches de sortie sûres
+    static const std::vector<uint8_t> SAFE_OUTPUT_PINS;
 
-    // Liste noire des broches système/flash/boot (0, 2, 6, 7, 8, 9, 10, 11, 12, 15)
+    // Broches ADC1 sûres utilisables avec Wi-Fi actif (32, 33, 34, 35, 36, 39)
+    static const std::vector<uint8_t> SAFE_ADC1_PINS;
+
+    // Broches d'entrée avec résistance Pull-up interne
+    static const std::vector<uint8_t> SAFE_PULLUP_PINS;
+
+    // Liste noire des broches boot/strapping/flash
     static const std::vector<uint8_t> BLACKLIST_PINS;
 
-    // Initialisation du GPIO au niveau matériel (pinMode ou ledcAttach)
     void setupHardware(Device& dev);
-
-    // Libération sûre d'un GPIO (détachement PWM, remise en état neutre INPUT)
     void releaseHardware(Device& dev);
-
-    // Application de la consigne matérielle
     void applyHardwareState(const Device& dev);
 
-    // Gestionnaire de canaux PWM
     int8_t allocatePwmChannel();
     void freePwmChannel(int8_t channel);
 
-    // Génère un nouvel ID unique
     uint8_t generateUniqueId();
-
-    // Crée la configuration par défaut si le fichier n'existe pas
     void createDefaultConfig();
 };
-

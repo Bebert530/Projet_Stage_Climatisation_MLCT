@@ -3,12 +3,21 @@
 
 // Broches système/boot à ne JAMAIS allouer
 const std::vector<uint8_t> DeviceManager::BLACKLIST_PINS = {
-    0, 2, 6, 7, 8, 9, 10, 11, 12, 15, // Strapping & SPI Flash
-    34, 35, 36, 39                    // Input-only (GPI)
+    0, 2, 6, 7, 8, 9, 10, 11, 12, 15 // Strapping & SPI Flash
 };
 
-// Broches de sortie recommandées et sûres sur ESP32 standard
-const std::vector<uint8_t> DeviceManager::SAFE_PINS = {
+// Broches de sortie recommandées et sûres sur ESP32
+const std::vector<uint8_t> DeviceManager::SAFE_OUTPUT_PINS = {
+    4, 5, 13, 14, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33
+};
+
+// Broches ADC1 utilisables sans conflit avec le Wi-Fi
+const std::vector<uint8_t> DeviceManager::SAFE_ADC1_PINS = {
+    32, 33, 34, 35, 36, 39
+};
+
+// Broches d'entrée avec pull-up interne disponible
+const std::vector<uint8_t> DeviceManager::SAFE_PULLUP_PINS = {
     4, 5, 13, 14, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33
 };
 
@@ -36,13 +45,12 @@ bool DeviceManager::begin(const char* configPath) {
         return false;
     }
 
-    // Charger la configuration ou créer le fichier initial
     if (!LittleFS.exists(_configPath.c_str())) {
         Serial.printf("[DeviceManager] Configuration absente (%s). Création des périphériques par défaut...\n", _configPath.c_str());
         createDefaultConfig();
     } else {
         if (!loadConfig()) {
-            Serial.println("[DeviceManager] Avertissement : échec de lecture du fichier config, réinitialisation...");
+            Serial.println("[DeviceManager] Avertissement : échec de lecture, réinitialisation...");
             createDefaultConfig();
         }
     }
@@ -58,6 +66,9 @@ void DeviceManager::createDefaultConfig() {
     Device dev1;
     dev1.id = 1;
     dev1.name = "Pompe boucle froide";
+    dev1.category = CAT_ACTUATOR;
+    dev1.voltage = "12V";
+    dev1.mode = MODE_OUTPUT_RELAY;
     dev1.type = DEVICE_RELAY;
     dev1.gpio = 4;
     dev1.state = 0;
@@ -70,6 +81,9 @@ void DeviceManager::createDefaultConfig() {
     Device dev2;
     dev2.id = 2;
     dev2.name = "Lanterneau Fiamma";
+    dev2.category = CAT_ACTUATOR;
+    dev2.voltage = "12V";
+    dev2.mode = MODE_OUTPUT_PWM;
     dev2.type = DEVICE_PWM;
     dev2.gpio = 19;
     dev2.state = 0;
@@ -82,6 +96,9 @@ void DeviceManager::createDefaultConfig() {
     Device dev3;
     dev3.id = 3;
     dev3.name = "Spot Salon";
+    dev3.category = CAT_ACTUATOR;
+    dev3.voltage = "12V";
+    dev3.mode = MODE_OUTPUT_RELAY;
     dev3.type = DEVICE_RELAY;
     dev3.gpio = 23;
     dev3.state = 0;
@@ -92,7 +109,6 @@ void DeviceManager::createDefaultConfig() {
 
     xSemaphoreGive(_mutex);
 
-    // Initialiser les sorties matérielles
     for (auto& dev : _devices) {
         setupHardware(dev);
     }
@@ -120,12 +136,11 @@ bool DeviceManager::loadConfig() {
     file.close();
 
     if (error) {
-        Serial.printf("[DeviceManager] Erreur désérialisation JSON : %s\n", error.c_str());
+        Serial.printf("[DeviceManager] Erreur JSON : %s\n", error.c_str());
         xSemaphoreGive(_mutex);
         return false;
     }
 
-    // Réinitialisation des périphériques en cours
     for (auto& dev : _devices) {
         releaseHardware(dev);
     }
@@ -143,21 +158,30 @@ bool DeviceManager::loadConfig() {
         String typeStr = obj["type"] | "RELAY";
         dev.type = stringToType(typeStr);
 
+        String catStr = obj["category"] | (dev.type == DEVICE_PWM || dev.type == DEVICE_RELAY ? "ACTUATOR" : "SENSOR");
+        dev.category = stringToCategory(catStr);
+
+        dev.voltage = obj["voltage"] | "12V";
+
+        if (obj.containsKey("mode")) {
+            dev.mode = stringToSignalMode(obj["mode"].as<String>());
+        } else {
+            dev.mode = (dev.type == DEVICE_PWM) ? MODE_OUTPUT_PWM : MODE_OUTPUT_RELAY;
+        }
+
         dev.gpio = obj["gpio"] | 255;
         dev.state = obj["state"] | 0;
         dev.value = obj["value"] | 0;
         dev.isCore = obj["isCore"] | false;
 
-        if (dev.type == DEVICE_PWM) {
+        if (dev.mode == MODE_OUTPUT_PWM) {
             dev.pwmChannel = allocatePwmChannel();
         } else {
             dev.pwmChannel = -1;
         }
 
-        // Vérification de sécurité de la broche
         if (!isPinSafe(dev.gpio)) {
-            Serial.printf("[DeviceManager] ATTENTION : Le GPIO %d assigné à '%s' est interdit. Périphérique désactivé.\n", 
-                          dev.gpio, dev.name.c_str());
+            Serial.printf("[DeviceManager] GPIO %d interdit pour '%s'. Périphérique désactivé.\n", dev.gpio, dev.name.c_str());
             continue;
         }
 
@@ -166,12 +190,11 @@ bool DeviceManager::loadConfig() {
 
     xSemaphoreGive(_mutex);
 
-    // Initialisation matérielle
     for (auto& dev : _devices) {
         setupHardware(dev);
     }
 
-    Serial.printf("[DeviceManager] %d périphériques chargés avec succès depuis %s.\n", _devices.size(), _configPath.c_str());
+    Serial.printf("[DeviceManager] %d périphériques chargés depuis %s.\n", _devices.size(), _configPath.c_str());
     return true;
 }
 
@@ -190,6 +213,9 @@ bool DeviceManager::saveConfig() {
         JsonObject obj = array.add<JsonObject>();
         obj["id"] = dev.id;
         obj["name"] = dev.name;
+        obj["category"] = categoryToString(dev.category);
+        obj["voltage"] = dev.voltage;
+        obj["mode"] = signalModeToString(dev.mode);
         obj["type"] = typeToString(dev.type);
         obj["gpio"] = dev.gpio;
         obj["state"] = dev.state;
@@ -234,11 +260,14 @@ Device* DeviceManager::getDeviceById(uint8_t id) {
 }
 
 bool DeviceManager::isPinSafe(uint8_t pin) const {
-    // Vérifier si le pin est dans la liste blanche des broches de sortie recommandées
-    for (uint8_t safe : SAFE_PINS) {
-        if (safe == pin) {
-            return true;
-        }
+    for (uint8_t b : BLACKLIST_PINS) {
+        if (b == pin) return false;
+    }
+    for (uint8_t s : SAFE_OUTPUT_PINS) {
+        if (s == pin) return true;
+    }
+    for (uint8_t a : SAFE_ADC1_PINS) {
+        if (a == pin) return true;
     }
     return false;
 }
@@ -256,7 +285,7 @@ std::vector<uint8_t> DeviceManager::getAvailablePins() {
     xSemaphoreTake(_mutex, portMAX_DELAY);
     std::vector<uint8_t> available;
 
-    for (uint8_t safePin : SAFE_PINS) {
+    for (uint8_t safePin : SAFE_OUTPUT_PINS) {
         bool used = false;
         for (const auto& dev : _devices) {
             if (dev.gpio == safePin) {
@@ -273,6 +302,34 @@ std::vector<uint8_t> DeviceManager::getAvailablePins() {
     return available;
 }
 
+int8_t DeviceManager::suggestPin(SignalMode mode) {
+    xSemaphoreTake(_mutex, portMAX_DELAY);
+
+    const std::vector<uint8_t>* pool = &SAFE_OUTPUT_PINS;
+    if (mode == MODE_INPUT_ADC) {
+        pool = &SAFE_ADC1_PINS;
+    } else if (mode == MODE_INPUT_DIGITAL || mode == MODE_INPUT_ONEWIRE) {
+        pool = &SAFE_PULLUP_PINS;
+    }
+
+    for (uint8_t pin : *pool) {
+        bool used = false;
+        for (const auto& dev : _devices) {
+            if (dev.gpio == pin) {
+                used = true;
+                break;
+            }
+        }
+        if (!used) {
+            xSemaphoreGive(_mutex);
+            return pin;
+        }
+    }
+
+    xSemaphoreGive(_mutex);
+    return -1;
+}
+
 int8_t DeviceManager::allocatePwmChannel() {
     for (int i = 0; i < 16; i++) {
         if (!_pwmChannelsInUse[i]) {
@@ -280,7 +337,7 @@ int8_t DeviceManager::allocatePwmChannel() {
             return i;
         }
     }
-    return -1; // Plus de canaux disponibles
+    return -1;
 }
 
 void DeviceManager::freePwmChannel(int8_t channel) {
@@ -308,39 +365,38 @@ uint8_t DeviceManager::generateUniqueId() {
 void DeviceManager::setupHardware(Device& dev) {
     if (!isPinSafe(dev.gpio)) return;
 
-    if (dev.type == DEVICE_RELAY) {
+    if (dev.mode == MODE_OUTPUT_RELAY) {
         pinMode(dev.gpio, OUTPUT);
         digitalWrite(dev.gpio, dev.state ? HIGH : LOW);
-        Serial.printf("[Hardware] Relais '%s' initialisé sur GPIO %d (état: %d)\n", dev.name.c_str(), dev.gpio, dev.state);
-    } else if (dev.type == DEVICE_PWM) {
+        Serial.printf("[Hardware] Relais '%s' sur GPIO %d (état: %d)\n", dev.name.c_str(), dev.gpio, dev.state);
+    } else if (dev.mode == MODE_OUTPUT_PWM) {
         if (dev.pwmChannel < 0) {
             dev.pwmChannel = allocatePwmChannel();
         }
-
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
-        // Core Arduino ESP32 v3.x API
         ledcAttach(dev.gpio, 5000, 8);
         ledcWrite(dev.gpio, dev.value);
 #else
-        // Core Arduino ESP32 v2.x API
         if (dev.pwmChannel >= 0) {
             ledcSetup(dev.pwmChannel, 5000, 8);
             ledcAttachPin(dev.gpio, dev.pwmChannel);
             ledcWrite(dev.pwmChannel, dev.value);
         }
 #endif
-        Serial.printf("[Hardware] PWM '%s' initialisé sur GPIO %d (canal: %d, val: %d)\n", 
-                      dev.name.c_str(), dev.gpio, dev.pwmChannel, dev.value);
+        Serial.printf("[Hardware] PWM '%s' sur GPIO %d (canal: %d, val: %d)\n", dev.name.c_str(), dev.gpio, dev.pwmChannel, dev.value);
+    } else if (dev.mode == MODE_INPUT_DIGITAL || dev.mode == MODE_INPUT_ONEWIRE) {
+        pinMode(dev.gpio, INPUT_PULLUP);
+        Serial.printf("[Hardware] Capteur Digital '%s' sur GPIO %d (INPUT_PULLUP)\n", dev.name.c_str(), dev.gpio);
+    } else if (dev.mode == MODE_INPUT_ADC) {
+        pinMode(dev.gpio, INPUT);
+        Serial.printf("[Hardware] Capteur ADC '%s' sur GPIO %d (INPUT)\n", dev.name.c_str(), dev.gpio);
     }
 }
 
 void DeviceManager::releaseHardware(Device& dev) {
     if (!isPinSafe(dev.gpio)) return;
 
-    if (dev.type == DEVICE_RELAY) {
-        digitalWrite(dev.gpio, LOW);
-        pinMode(dev.gpio, INPUT); // Haute impédance, pin relâchée proprement
-    } else if (dev.type == DEVICE_PWM) {
+    if (dev.mode == MODE_OUTPUT_PWM) {
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
         ledcDetach(dev.gpio);
 #else
@@ -348,19 +404,22 @@ void DeviceManager::releaseHardware(Device& dev) {
             ledcDetachPin(dev.gpio);
         }
 #endif
-        pinMode(dev.gpio, INPUT);
         freePwmChannel(dev.pwmChannel);
         dev.pwmChannel = -1;
+    } else if (dev.mode == MODE_OUTPUT_RELAY) {
+        digitalWrite(dev.gpio, LOW);
     }
-    Serial.printf("[Hardware] Broche GPIO %d libérée pour '%s'\n", dev.gpio, dev.name.c_str());
+
+    pinMode(dev.gpio, INPUT);
+    Serial.printf("[Hardware] GPIO %d libéré pour '%s'\n", dev.gpio, dev.name.c_str());
 }
 
 void DeviceManager::applyHardwareState(const Device& dev) {
     if (!isPinSafe(dev.gpio)) return;
 
-    if (dev.type == DEVICE_RELAY) {
+    if (dev.mode == MODE_OUTPUT_RELAY) {
         digitalWrite(dev.gpio, dev.state ? HIGH : LOW);
-    } else if (dev.type == DEVICE_PWM) {
+    } else if (dev.mode == MODE_OUTPUT_PWM) {
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
         ledcWrite(dev.gpio, dev.value);
 #else
@@ -371,102 +430,103 @@ void DeviceManager::applyHardwareState(const Device& dev) {
     }
 }
 
-bool DeviceManager::addDevice(const String& name, DeviceType type, uint8_t gpio, bool isCore, String& errorMsg) {
+bool DeviceManager::saveDevice(uint8_t id, const String& name, DeviceCategory category, const String& voltage, 
+                               SignalMode mode, uint8_t gpio, bool isCore, String& errorMsg) {
     if (name.length() == 0) {
-        errorMsg = "Le nom du périphérique ne peut pas être vide.";
+        errorMsg = "Le nom de l'équipement est obligatoire.";
         return false;
     }
 
     if (!isPinSafe(gpio)) {
-        errorMsg = "Le GPIO " + String(gpio) + " est interdit ou non sécurisé.";
+        errorMsg = "Le GPIO " + String(gpio) + " est interdit ou réservé.";
         return false;
     }
 
     xSemaphoreTake(_mutex, portMAX_DELAY);
 
-    if (isPinUsed(gpio)) {
+    // Vérifier si un autre appareil utilise ce pin
+    if (isPinUsed(gpio, id)) {
         xSemaphoreGive(_mutex);
-        errorMsg = "Le GPIO " + String(gpio) + " est déjà assigné à un autre équipement.";
+        errorMsg = "Le GPIO " + String(gpio) + " est déjà assigné.";
         return false;
     }
 
+    Device* target = nullptr;
+    if (id > 0) {
+        for (auto& d : _devices) {
+            if (d.id == id) {
+                target = &d;
+                break;
+            }
+        }
+    }
+
+    if (target) {
+        // Mise à jour équipement existant
+        if (target->isCore && !isCore) {
+            xSemaphoreGive(_mutex);
+            errorMsg = "Protection : impossible de retirer le statut système d'un équipement Core.";
+            return false;
+        }
+
+        if (target->gpio != gpio || target->mode != mode) {
+            releaseHardware(*target);
+            target->gpio = gpio;
+            target->mode = mode;
+            target->type = (mode == MODE_OUTPUT_PWM) ? DEVICE_PWM : DEVICE_RELAY;
+            setupHardware(*target);
+        }
+
+        target->name = name;
+        target->category = category;
+        target->voltage = voltage;
+        xSemaphoreGive(_mutex);
+        saveConfig();
+        return true;
+    }
+
+    // Nouvel équipement
     Device newDev;
     newDev.id = generateUniqueId();
     newDev.name = name;
-    newDev.type = type;
+    newDev.category = category;
+    newDev.voltage = voltage;
+    newDev.mode = mode;
+    newDev.type = (mode == MODE_OUTPUT_PWM) ? DEVICE_PWM : DEVICE_RELAY;
     newDev.gpio = gpio;
     newDev.state = 0;
     newDev.value = 0;
     newDev.isCore = isCore;
-
-    if (type == DEVICE_PWM) {
-        newDev.pwmChannel = allocatePwmChannel();
-        if (newDev.pwmChannel < 0) {
-            xSemaphoreGive(_mutex);
-            errorMsg = "Nombre maximal de canaux PWM atteint (16).";
-            return false;
-        }
-    } else {
-        newDev.pwmChannel = -1;
-    }
+    newDev.pwmChannel = -1;
 
     _devices.push_back(newDev);
     xSemaphoreGive(_mutex);
 
-    // Initialiser immédiatement le hardware
     setupHardware(newDev);
-
-    // Sauvegarder dans flash
     saveConfig();
     return true;
 }
 
+bool DeviceManager::addDevice(const String& name, DeviceType type, uint8_t gpio, bool isCore, String& errorMsg) {
+    SignalMode mode = (type == DEVICE_PWM) ? MODE_OUTPUT_PWM : MODE_OUTPUT_RELAY;
+    return saveDevice(0, name, CAT_ACTUATOR, "12V", mode, gpio, isCore, errorMsg);
+}
+
 bool DeviceManager::updateDevice(uint8_t id, const String& newName, uint8_t newGpio, String& errorMsg) {
-    if (newName.length() == 0) {
-        errorMsg = "Le nom ne peut pas être vide.";
-        return false;
-    }
-
-    if (!isPinSafe(newGpio)) {
-        errorMsg = "Le GPIO " + String(newGpio) + " est interdit ou non sécurisé.";
-        return false;
-    }
-
     xSemaphoreTake(_mutex, portMAX_DELAY);
-
-    Device* target = nullptr;
-    for (auto& dev : _devices) {
-        if (dev.id == id) {
-            target = &dev;
-            break;
-        }
-    }
-
-    if (!target) {
+    Device* dev = getDeviceById(id);
+    if (!dev) {
         xSemaphoreGive(_mutex);
-        errorMsg = "Périphérique introuvable (ID: " + String(id) + ").";
+        errorMsg = "Périphérique introuvable.";
         return false;
     }
-
-    // Si le GPIO change, vérifier qu'il est libre
-    if (target->gpio != newGpio && isPinUsed(newGpio, id)) {
-        xSemaphoreGive(_mutex);
-        errorMsg = "Le nouveau GPIO " + String(newGpio) + " est déjà utilisé.";
-        return false;
-    }
-
-    // Gestion du changement de GPIO
-    if (target->gpio != newGpio) {
-        releaseHardware(*target);
-        target->gpio = newGpio;
-        setupHardware(*target);
-    }
-
-    target->name = newName;
+    DeviceCategory cat = dev->category;
+    String volt = dev->voltage;
+    SignalMode m = dev->mode;
+    bool core = dev->isCore;
     xSemaphoreGive(_mutex);
 
-    saveConfig();
-    return true;
+    return saveDevice(id, newName, cat, volt, m, newGpio, core, errorMsg);
 }
 
 bool DeviceManager::deleteDevice(uint8_t id, String& errorMsg) {
@@ -488,9 +548,7 @@ bool DeviceManager::deleteDevice(uint8_t id, String& errorMsg) {
         return false;
     }
 
-    // Libérer la broche physique
     releaseHardware(*it);
-
     _devices.erase(it);
     xSemaphoreGive(_mutex);
 
@@ -515,53 +573,115 @@ bool DeviceManager::setDeviceState(uint8_t id, uint8_t state, uint8_t value) {
     return true;
 }
 
-bool DeviceManager::testDevice(uint8_t id, uint16_t durationMs) {
-    uint8_t gpio = 255;
-    DeviceType type = DEVICE_RELAY;
-    uint8_t prevState = 0;
-    uint8_t prevValue = 0;
-    int8_t pwmChannel = -1;
-    String name;
+DeviceTestResult DeviceManager::testPinDirect(uint8_t gpio, SignalMode mode, uint16_t durationMs) {
+    DeviceTestResult result;
+    result.success = false;
+    result.rawValue = 0;
+    result.voltageValue = 0.0f;
 
-    xSemaphoreTake(_mutex, portMAX_DELAY);
-    Device* dev = getDeviceById(id);
-    if (!dev) {
-        xSemaphoreGive(_mutex);
-        return false;
+    if (!isPinSafe(gpio)) {
+        result.message = "Erreur : Le GPIO " + String(gpio) + " est interdit.";
+        return result;
     }
-    gpio = dev->gpio;
-    type = dev->type;
-    prevState = dev->state;
-    prevValue = dev->value;
-    pwmChannel = dev->pwmChannel;
-    name = dev->name;
-    xSemaphoreGive(_mutex);
 
-    Serial.printf("[DeviceManager] Lancement du test pour '%s' (GPIO %d, durée: %d ms)...\n", 
-                  name.c_str(), gpio, durationMs);
+    Serial.printf("[Test] Test direct sur GPIO %d, mode %d, durée %d ms\n", gpio, mode, durationMs);
 
-    if (type == DEVICE_RELAY) {
-        // Active le relais temporairement
+    if (mode == MODE_OUTPUT_RELAY) {
+        pinMode(gpio, OUTPUT);
         digitalWrite(gpio, HIGH);
         delay(durationMs);
-        digitalWrite(gpio, prevState ? HIGH : LOW);
-    } else if (type == DEVICE_PWM) {
-        // Envoie un train PWM de test (ex: 75% puis retour consigne)
+        digitalWrite(gpio, LOW);
+        result.success = true;
+        result.rawValue = 1;
+        result.voltageValue = 3.3f;
+        result.message = "Impulsion 3s validée : Relais activé puis coupé.";
+    } else if (mode == MODE_OUTPUT_PWM) {
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
-        ledcWrite(gpio, 200);
+        ledcAttach(gpio, 5000, 8);
+        ledcWrite(gpio, 128); // 50%
         delay(durationMs);
+        ledcWrite(gpio, 0);
+        ledcDetach(gpio);
+#else
+        ledcSetup(15, 5000, 8);
+        ledcAttachPin(gpio, 15);
+        ledcWrite(15, 128);
+        delay(durationMs);
+        ledcWrite(15, 0);
+        ledcDetachPin(gpio);
+#endif
+        pinMode(gpio, INPUT);
+        result.success = true;
+        result.rawValue = 128;
+        result.voltageValue = 1.65f;
+        result.message = "Signal PWM 50% envoyé pendant 3s avec succès.";
+    } else if (mode == MODE_INPUT_DIGITAL || mode == MODE_INPUT_ONEWIRE) {
+        pinMode(gpio, INPUT_PULLUP);
+        delay(10);
+        int val = digitalRead(gpio);
+        result.success = true;
+        result.rawValue = val;
+        result.voltageValue = (val == LOW) ? 0.0f : 3.3f;
+        if (val == LOW) {
+            result.message = "Contact FERMÉ (0V détecté / relié à GND)";
+        } else {
+            result.message = "Contact OUVERT (3.3V détecté / Tirage haut Pull-up)";
+        }
+    } else if (mode == MODE_INPUT_ADC) {
+        pinMode(gpio, INPUT);
+        delay(10);
+        int raw = analogRead(gpio);
+        float volts = (raw / 4095.0f) * 3.3f;
+        result.success = true;
+        result.rawValue = raw;
+        result.voltageValue = volts;
+        result.message = "Mesure analogique : " + String(volts, 2) + " V (ADC brut : " + String(raw) + " / 4095)";
+    }
+
+    return result;
+}
+
+DeviceTestResult DeviceManager::testDevice(uint8_t id, uint16_t durationMs) {
+    uint8_t gpio = 255;
+    SignalMode mode = MODE_OUTPUT_RELAY;
+    uint8_t prevState = 0;
+    uint8_t prevValue = 0;
+
+    {
+        xSemaphoreTake(_mutex, portMAX_DELAY);
+        Device* dev = getDeviceById(id);
+        if (!dev) {
+            xSemaphoreGive(_mutex);
+            DeviceTestResult res;
+            res.success = false;
+            res.message = "Équipement introuvable.";
+            return res;
+        }
+        gpio = dev->gpio;
+        mode = dev->mode;
+        prevState = dev->state;
+        prevValue = dev->value;
+        xSemaphoreGive(_mutex);
+    }
+
+    DeviceTestResult res = testPinDirect(gpio, mode, durationMs);
+
+    // Restaurer l'état précédent pour les actionneurs
+    if (mode == MODE_OUTPUT_RELAY) {
+        digitalWrite(gpio, prevState ? HIGH : LOW);
+    } else if (mode == MODE_OUTPUT_PWM) {
+#if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
+        ledcAttach(gpio, 5000, 8);
         ledcWrite(gpio, prevValue);
 #else
-        if (pwmChannel >= 0) {
-            ledcWrite(pwmChannel, 200);
-            delay(durationMs);
-            ledcWrite(pwmChannel, prevValue);
+        Device* dev = getDeviceById(id);
+        if (dev && dev->pwmChannel >= 0) {
+            ledcWrite(dev->pwmChannel, prevValue);
         }
 #endif
     }
 
-    Serial.printf("[DeviceManager] Test terminé pour '%s'.\n", name.c_str());
-    return true;
+    return res;
 }
 
 String DeviceManager::getDevicesJson() {
@@ -579,6 +699,9 @@ String DeviceManager::getDevicesJson() {
         JsonObject obj = array.add<JsonObject>();
         obj["id"] = dev.id;
         obj["name"] = dev.name;
+        obj["category"] = categoryToString(dev.category);
+        obj["voltage"] = dev.voltage;
+        obj["mode"] = signalModeToString(dev.mode);
         obj["type"] = typeToString(dev.type);
         obj["gpio"] = dev.gpio;
         obj["state"] = dev.state;
@@ -612,18 +735,40 @@ String DeviceManager::getAvailablePinsJson() {
 }
 
 DeviceType DeviceManager::stringToType(const String& str) {
-    if (str.equalsIgnoreCase("PWM")) {
-        return DEVICE_PWM;
-    }
+    if (str.equalsIgnoreCase("PWM")) return DEVICE_PWM;
     return DEVICE_RELAY;
 }
 
 String DeviceManager::typeToString(DeviceType type) {
-    switch (type) {
-        case DEVICE_PWM:
-            return "PWM";
-        case DEVICE_RELAY:
-        default:
-            return "RELAY";
+    return (type == DEVICE_PWM) ? "PWM" : "RELAY";
+}
+
+DeviceCategory DeviceManager::stringToCategory(const String& str) {
+    if (str.equalsIgnoreCase("SENSOR") || str.equalsIgnoreCase("Capteur")) {
+        return CAT_SENSOR;
+    }
+    return CAT_ACTUATOR;
+}
+
+String DeviceManager::categoryToString(DeviceCategory cat) {
+    return (cat == CAT_SENSOR) ? "SENSOR" : "ACTUATOR";
+}
+
+SignalMode DeviceManager::stringToSignalMode(const String& str) {
+    if (str.equalsIgnoreCase("OUTPUT_PWM") || str.equalsIgnoreCase("PWM")) return MODE_OUTPUT_PWM;
+    if (str.equalsIgnoreCase("INPUT_DIGITAL") || str.equalsIgnoreCase("DIGITAL")) return MODE_INPUT_DIGITAL;
+    if (str.equalsIgnoreCase("INPUT_ADC") || str.equalsIgnoreCase("ADC") || str.equalsIgnoreCase("ANALOG")) return MODE_INPUT_ADC;
+    if (str.equalsIgnoreCase("INPUT_ONEWIRE") || str.equalsIgnoreCase("ONEWIRE")) return MODE_INPUT_ONEWIRE;
+    return MODE_OUTPUT_RELAY;
+}
+
+String DeviceManager::signalModeToString(SignalMode mode) {
+    switch (mode) {
+        case MODE_OUTPUT_PWM:    return "OUTPUT_PWM";
+        case MODE_INPUT_DIGITAL: return "INPUT_DIGITAL";
+        case MODE_INPUT_ADC:     return "INPUT_ADC";
+        case MODE_INPUT_ONEWIRE: return "INPUT_ONEWIRE";
+        case MODE_OUTPUT_RELAY:
+        default:                 return "OUTPUT_RELAY";
     }
 }

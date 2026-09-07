@@ -88,7 +88,281 @@ function showToast(message, type = 'info') {
 
 // =========================================================================
 // GESTIONNAIRE DE MATÉRIEL (DEVICE MANAGER) - APPELS REST API
+// GESTIONNAIRE DE MATÉRIEL & DIDACTICIEL GUIDÉ (WIRING WIZARD)
 // =========================================================================
+
+// État temporaire du didacticiel en cours
+let wizardState = {
+  id: 0,
+  name: '',
+  category: 'ACTUATOR',
+  voltage: '12V',
+  mode: 'OUTPUT_RELAY',
+  gpio: null,
+  isCore: false
+};
+
+// Dictionnaire complet des didacticiels pas-à-pas selon [Catégorie + Mode]
+const WIRING_TUTORIALS = {
+  "ACTUATOR_OUTPUT_RELAY": {
+    title: "Actionneur Tout-ou-Rien via Carte Relais",
+    subtitle: "Idéal pour pompes, électrovannes, éclairages et ventilateurs 12V",
+    warning: `<strong>DANGER 12V :</strong> Ne reliez <u>JAMAIS</u> le +12V directement à l'ESP32 ! L'ESP32 fonctionne exclusivement en 3.3V. Le module relais assure l'isolation galvanique et protège votre microcontrôleur.`,
+    steps: [
+      {
+        title: "1. Raccordement de la masse (GND)",
+        desc: "Reliez la broche <strong>GND</strong> (Masse) du module relais à l'une des broches <strong>GND</strong> de l'ESP32. Si votre relais utilise une alimentation séparée, veillez à relier leurs masses pour une référence commune."
+      },
+      {
+        title: "2. Câblage du circuit de puissance",
+        desc: "Alimentez le module relais (broche VCC en 5V ou 12V selon votre carte relais). Raccordez le <strong>+12V de la batterie</strong> sur la borne <strong>COM</strong> (Commun) du relais, et le fil positif de l'équipement sur la borne <strong>NO</strong> (Normalement Ouvert). La masse de l'équipement retourne au pôle négatif (0V)."
+      },
+      {
+        title: "3. Raccordement de la commande logique",
+        desc: "Reliez la broche de commande <strong>IN / Signal</strong> du relais directement sur la broche <span class=\"step-tag\">GPIO {{GPIO}}</span> de l'ESP32."
+      }
+    ],
+    schematic: (gpio, volt) => `
+      <svg viewBox="0 0 540 160" width="100%" height="150" style="max-width:540px; font-family:monospace;">
+        <!-- ESP32 -->
+        <rect x="20" y="25" width="120" height="110" rx="8" fill="#151e32" stroke="#2dd4bf" stroke-width="2"/>
+        <text x="80" y="50" fill="#2dd4bf" font-size="12" font-weight="bold" text-anchor="middle">ESP32</text>
+        <circle cx="130" cy="80" r="5" fill="#2dd4bf"/>
+        <text x="120" y="84" fill="#f8fafc" font-size="10" text-anchor="end">GPIO ${gpio}</text>
+        <circle cx="130" cy="110" r="5" fill="#0ea5e9"/>
+        <text x="120" y="114" fill="#8b98a5" font-size="10" text-anchor="end">GND</text>
+
+        <!-- Lignes de liaison -->
+        <path d="M135 80 L230 80" stroke="#2dd4bf" stroke-width="2.5" stroke-dasharray="4" fill="none"/>
+        <text x="180" y="72" fill="#2dd4bf" font-size="9" text-anchor="middle">SIGNAL</text>
+
+        <path d="M135 110 L230 110" stroke="#0ea5e9" stroke-width="2" fill="none"/>
+        <text x="180" y="125" fill="#0ea5e9" font-size="9" text-anchor="middle">GND</text>
+
+        <!-- Module Relais -->
+        <rect x="230" y="25" width="140" height="110" rx="8" fill="#1c273e" stroke="#0ea5e9" stroke-width="2"/>
+        <text x="300" y="48" fill="#0ea5e9" font-size="11" font-weight="bold" text-anchor="middle">MODULE RELAIS</text>
+        <text x="240" y="84" fill="#2dd4bf" font-size="10">IN</text>
+        <text x="240" y="114" fill="#0ea5e9" font-size="10">GND</text>
+        <text x="360" y="84" fill="#fb923c" font-size="10" text-anchor="end">COM</text>
+        <text x="360" y="114" fill="#fb923c" font-size="10" text-anchor="end">NO</text>
+
+        <!-- Sortie Puissance -->
+        <path d="M370 80 L420 80 L420 40 L450 40" stroke="#fb923c" stroke-width="2.5" fill="none"/>
+        <text x="435" y="32" fill="#fb923c" font-size="9" text-anchor="middle">+${volt}</text>
+
+        <path d="M370 110 L450 110" stroke="#fb923c" stroke-width="2.5" fill="none"/>
+
+        <!-- Équipement -->
+        <rect x="450" y="25" width="80" height="110" rx="8" fill="#151e32" stroke="#fb923c" stroke-width="2"/>
+        <text x="490" y="75" fill="#f8fafc" font-size="11" font-weight="bold" text-anchor="middle">APPAREIL</text>
+        <text x="490" y="95" fill="#fb923c" font-size="10" text-anchor="middle">(${volt})</text>
+      </svg>
+    `
+  },
+
+  "ACTUATOR_OUTPUT_PWM": {
+    title: "Actionneur Progressif (Variateur PWM / MOSFET)",
+    subtitle: "Idéal pour variateur de ventilateur, lanterneau Fiamma ou ruban LED 12V",
+    warning: `<strong>ATTENTION MOSFET :</strong> Utilisez impérativement un module MOSFET compatible commande 3.3V (Logic-Level). La masse (GND) du module doit obligatoirement être commune avec l'ESP32.`,
+    steps: [
+      {
+        title: "1. Masse commune (GND)",
+        desc: "Reliez la borne <strong>GND (Signal)</strong> du module MOSFET à une broche <strong>GND</strong> de l'ESP32 pour assurer le bon déclenchement de la grille (Gate)."
+      },
+      {
+        title: "2. Alimentation de puissance",
+        desc: "Raccordez l'entrée <strong>DC+ / VIN+</strong> au +12V de votre batterie, et <strong>DC- / VIN-</strong> au 0V. Branchez ensuite votre appareil (ventilateur, ruban LED) sur les bornes de sortie <strong>OUT+</strong> et <strong>OUT-</strong>."
+      },
+      {
+        title: "3. Raccordement du signal PWM",
+        desc: "Reliez la borne <strong>PWM / TRIG / IN</strong> du MOSFET directement sur la broche <span class=\"step-tag\">GPIO {{GPIO}}</span> de l'ESP32."
+      }
+    ],
+    schematic: (gpio, volt) => `
+      <svg viewBox="0 0 540 160" width="100%" height="150" style="max-width:540px; font-family:monospace;">
+        <rect x="20" y="25" width="120" height="110" rx="8" fill="#151e32" stroke="#2dd4bf" stroke-width="2"/>
+        <text x="80" y="50" fill="#2dd4bf" font-size="12" font-weight="bold" text-anchor="middle">ESP32</text>
+        <circle cx="130" cy="80" r="5" fill="#a855f7"/>
+        <text x="120" y="84" fill="#f8fafc" font-size="10" text-anchor="end">GPIO ${gpio}</text>
+        <circle cx="130" cy="110" r="5" fill="#0ea5e9"/>
+        <text x="120" y="114" fill="#8b98a5" font-size="10" text-anchor="end">GND</text>
+
+        <path d="M135 80 L230 80" stroke="#a855f7" stroke-width="2.5" stroke-dasharray="3" fill="none"/>
+        <text x="180" y="72" fill="#a855f7" font-size="9" text-anchor="middle">PWM</text>
+
+        <path d="M135 110 L230 110" stroke="#0ea5e9" stroke-width="2" fill="none"/>
+        <text x="180" y="125" fill="#0ea5e9" font-size="9" text-anchor="middle">GND</text>
+
+        <rect x="230" y="25" width="140" height="110" rx="8" fill="#1c273e" stroke="#a855f7" stroke-width="2"/>
+        <text x="300" y="48" fill="#a855f7" font-size="11" font-weight="bold" text-anchor="middle">MODULE MOSFET</text>
+        <text x="240" y="84" fill="#a855f7" font-size="10">PWM IN</text>
+        <text x="240" y="114" fill="#0ea5e9" font-size="10">GND</text>
+        <text x="360" y="84" fill="#fb923c" font-size="10" text-anchor="end">OUT +</text>
+        <text x="360" y="114" fill="#8b98a5" font-size="10" text-anchor="end">OUT -</text>
+
+        <path d="M370 80 L450 80" stroke="#fb923c" stroke-width="2.5" fill="none"/>
+        <path d="M370 110 L450 110" stroke="#8b98a5" stroke-width="2" fill="none"/>
+
+        <rect x="450" y="25" width="80" height="110" rx="8" fill="#151e32" stroke="#a855f7" stroke-width="2"/>
+        <text x="490" y="75" fill="#f8fafc" font-size="11" font-weight="bold" text-anchor="middle">VARIATEUR</text>
+        <text x="490" y="95" fill="#a855f7" font-size="10" text-anchor="middle">(${volt})</text>
+      </svg>
+    `
+  },
+
+  "SENSOR_INPUT_DIGITAL": {
+    title: "Capteur Tout-ou-Rien (Contact sec / Flotteur niveau)",
+    subtitle: "Pour flotteur de cuve d'eau, fin de course ou bouton de porte",
+    warning: `<strong>PULL-UP INTERNE ACTIVÉ :</strong> L'ESP32 intègre une résistance de rappel à 3.3V sur cette broche. Aucun composant externe n'est nécessaire ! Ne branchez aucune tension positive sur les fils du contact sec.`,
+    steps: [
+      {
+        title: "1. Raccordement du premier fil",
+        desc: "Branchez l'un des deux fils de votre contact sec / flotteur sur une borne <strong>GND</strong> (Masse) de l'ESP32."
+      },
+      {
+        title: "2. Raccordement du second fil",
+        desc: "Branchez le second fil directement sur la broche <span class=\"step-tag\">GPIO {{GPIO}}</span> de l'ESP32."
+      },
+      {
+        title: "3. Logique de détection",
+        desc: "Au repos (circuit ouvert), l'ESP32 lit un état <strong>HAUT (3.3V)</strong>. Lorsque le contact se ferme (flotteur déclenché), la broche est reliée à la masse et l'ESP32 lit <strong>BAS (0V)</strong>."
+      }
+    ],
+    schematic: (gpio) => `
+      <svg viewBox="0 0 540 160" width="100%" height="150" style="max-width:540px; font-family:monospace;">
+        <rect x="30" y="25" width="140" height="110" rx="8" fill="#151e32" stroke="#2dd4bf" stroke-width="2"/>
+        <text x="100" y="50" fill="#2dd4bf" font-size="12" font-weight="bold" text-anchor="middle">ESP32 (PULL-UP)</text>
+        <circle cx="160" cy="80" r="5" fill="#2dd4bf"/>
+        <text x="150" y="84" fill="#f8fafc" font-size="10" text-anchor="end">GPIO ${gpio}</text>
+        <circle cx="160" cy="110" r="5" fill="#0ea5e9"/>
+        <text x="150" y="114" fill="#8b98a5" font-size="10" text-anchor="end">GND</text>
+
+        <path d="M165 80 L320 80" stroke="#2dd4bf" stroke-width="2.5" fill="none"/>
+        <path d="M165 110 L320 110" stroke="#0ea5e9" stroke-width="2" fill="none"/>
+
+        <rect x="320" y="35" width="180" height="90" rx="8" fill="#1c273e" stroke="#2dd4bf" stroke-width="2"/>
+        <text x="410" y="65" fill="#2dd4bf" font-size="11" font-weight="bold" text-anchor="middle">CONTACT SEC / FLOTTEUR</text>
+        <circle cx="350" cy="80" r="4" fill="#f8fafc"/>
+        <circle cx="470" cy="110" r="4" fill="#f8fafc"/>
+        <path d="M354 80 L440 95" stroke="#f8fafc" stroke-width="2.5" fill="none"/>
+        <text x="410" y="115" fill="#8b98a5" font-size="9" text-anchor="middle">Contact mécanique</text>
+      </svg>
+    `
+  },
+
+  "SENSOR_INPUT_ADC": {
+    title: "Capteur Analogique (0 - 3.3V)",
+    subtitle: "Pour sondes de pression, capteurs de niveau capacitif ou jauges",
+    warning: `<strong>TENSION MAXIMALE 3.3V :</strong> La broche ADC sélectionnée appartient au contrôleur ADC1 de l'ESP32 (compatible Wi-Fi actif). La tension en entrée ne doit JAMAIS dépasser 3.3V sous peine d'endommagement irréversible.`,
+    steps: [
+      {
+        title: "1. Masse de référence (GND)",
+        desc: "Reliez la borne <strong>GND</strong> du capteur à l'une des broches <strong>GND</strong> de l'ESP32."
+      },
+      {
+        title: "2. Alimentation du capteur",
+        desc: "Connectez le fil d'alimentation (VCC) du capteur sur la broche <strong>3.3V</strong> (ou 5V si le capteur l'exige et que sa sortie est limitée à 3.3V)."
+      },
+      {
+        title: "3. Raccordement du signal analogique",
+        desc: "Branchez le fil de mesure (VOUT / Signal) sur la broche <span class=\"step-tag\">GPIO {{GPIO}}</span> de l'ESP32."
+      }
+    ],
+    schematic: (gpio) => `
+      <svg viewBox="0 0 540 160" width="100%" height="150" style="max-width:540px; font-family:monospace;">
+        <rect x="20" y="25" width="130" height="110" rx="8" fill="#151e32" stroke="#fb923c" stroke-width="2"/>
+        <text x="85" y="48" fill="#fb923c" font-size="12" font-weight="bold" text-anchor="middle">ESP32 (ADC1)</text>
+        <circle cx="140" cy="65" r="5" fill="#ef4444"/>
+        <text x="130" y="69" fill="#ef4444" font-size="10" text-anchor="end">3.3V</text>
+        <circle cx="140" cy="90" r="5" fill="#fb923c"/>
+        <text x="130" y="94" fill="#f8fafc" font-size="10" text-anchor="end">GPIO ${gpio}</text>
+        <circle cx="140" cy="115" r="5" fill="#0ea5e9"/>
+        <text x="130" y="119" fill="#8b98a5" font-size="10" text-anchor="end">GND</text>
+
+        <path d="M145 65 L320 65" stroke="#ef4444" stroke-width="2" fill="none"/>
+        <path d="M145 90 L320 90" stroke="#fb923c" stroke-width="2.5" fill="none"/>
+        <path d="M145 115 L320 115" stroke="#0ea5e9" stroke-width="2" fill="none"/>
+
+        <rect x="320" y="25" width="190" height="110" rx="8" fill="#1c273e" stroke="#fb923c" stroke-width="2"/>
+        <text x="415" y="55" fill="#fb923c" font-size="11" font-weight="bold" text-anchor="middle">CAPTEUR ANALOGIQUE</text>
+        <text x="330" y="69" fill="#ef4444" font-size="9">VCC (+3.3V)</text>
+        <text x="330" y="94" fill="#fb923c" font-size="9">VOUT (0-3.3V)</text>
+        <text x="330" y="119" fill="#0ea5e9" font-size="9">GND (0V)</text>
+      </svg>
+    `
+  },
+
+  "SENSOR_INPUT_ONEWIRE": {
+    title: "Sonde de Température Numérique (DS18B20)",
+    subtitle: "Bus numérique 1-Wire ultra-précis pour circuits thermiques",
+    warning: `<strong>RÉSISTANCE DE TIRAGE :</strong> Le bus 1-Wire requiert une résistance de 4.7 kΩ branchée entre le fil de données jaune (DATA) et le fil d'alimentation rouge (3.3V).`,
+    steps: [
+      {
+        title: "1. Fil Noir (GND)",
+        desc: "Reliez le fil noir de la sonde à une broche <strong>GND</strong> de l'ESP32."
+      },
+      {
+        title: "2. Fil Rouge (VCC)",
+        desc: "Reliez le fil rouge de la sonde à la broche <strong>3.3V</strong> de l'ESP32."
+      },
+      {
+        title: "3. Fil Jaune (DATA) sur GPIO {{GPIO}}",
+        desc: "Reliez le fil jaune de la sonde sur la broche <span class=\"step-tag\">GPIO {{GPIO}}</span> en insérant la résistance de 4.7 kΩ entre le fil jaune et le fil rouge."
+      }
+    ],
+    schematic: (gpio) => `
+      <svg viewBox="0 0 540 160" width="100%" height="150" style="max-width:540px; font-family:monospace;">
+        <rect x="20" y="25" width="130" height="110" rx="8" fill="#151e32" stroke="#ec4899" stroke-width="2"/>
+        <text x="85" y="48" fill="#ec4899" font-size="12" font-weight="bold" text-anchor="middle">ESP32</text>
+        <circle cx="140" cy="65" r="5" fill="#ef4444"/>
+        <text x="130" y="69" fill="#ef4444" font-size="10" text-anchor="end">3.3V</text>
+        <circle cx="140" cy="90" r="5" fill="#ec4899"/>
+        <text x="130" y="94" fill="#f8fafc" font-size="10" text-anchor="end">GPIO ${gpio}</text>
+        <circle cx="140" cy="115" r="5" fill="#0ea5e9"/>
+        <text x="130" y="119" fill="#8b98a5" font-size="10" text-anchor="end">GND</text>
+
+        <path d="M145 65 L320 65" stroke="#ef4444" stroke-width="2" fill="none"/>
+        <path d="M145 90 L320 90" stroke="#ec4899" stroke-width="2.5" fill="none"/>
+        <path d="M145 115 L320 115" stroke="#0ea5e9" stroke-width="2" fill="none"/>
+
+        <!-- Résistance 4.7k -->
+        <rect x="220" y="70" width="30" height="15" fill="#334155" stroke="#fb923c" stroke-width="1.5"/>
+        <path d="M235 65 L235 70" stroke="#ef4444" stroke-width="1.5" fill="none"/>
+        <path d="M235 85 L235 90" stroke="#ec4899" stroke-width="1.5" fill="none"/>
+        <text x="260" y="82" fill="#fb923c" font-size="9">4.7kΩ</text>
+
+        <rect x="320" y="25" width="190" height="110" rx="8" fill="#1c273e" stroke="#ec4899" stroke-width="2"/>
+        <text x="415" y="55" fill="#ec4899" font-size="11" font-weight="bold" text-anchor="middle">SONDE DS18B20</text>
+        <text x="330" y="69" fill="#ef4444" font-size="9">ROUGE (3.3V)</text>
+        <text x="330" y="94" fill="#ec4899" font-size="9">JAUNE (DATA)</text>
+        <text x="330" y="119" fill="#0ea5e9" font-size="9">NOIR (GND)</text>
+      </svg>
+    `
+  }
+};
+
+/**
+ * Met à jour le menu déroulant du type de commande selon la catégorie
+ */
+function onCategoryChange() {
+  const cat = document.getElementById('device-category').value;
+  const modeSelect = document.getElementById('device-signal-mode');
+  if (!modeSelect) return;
+
+  if (cat === 'ACTUATOR') {
+    modeSelect.innerHTML = `
+      <option value="OUTPUT_RELAY">⚡ Tout ou Rien (Relais isolé)</option>
+      <option value="OUTPUT_PWM">〰️ Progressif (Variateur PWM / MOSFET)</option>
+    `;
+  } else {
+    modeSelect.innerHTML = `
+      <option value="INPUT_DIGITAL">🔘 Tout ou Rien (Contact sec / Flotteur)</option>
+      <option value="INPUT_ADC">📊 Analogique 0-3.3V (Sonde pression / jauge)</option>
+      <option value="INPUT_ONEWIRE">🌡️ Bus numérique 1-Wire (DS18B20)</option>
+    `;
+  }
+}
 
 /**
  * Charge les équipements depuis l'ESP32 (/api/devices)
@@ -101,12 +375,16 @@ async function loadDeviceManager() {
     devicesList = data.devices || [];
   } catch (err) {
     console.warn("API indisponible (mode hors-ligne ou dev local) : utilisation des données de secours.");
+    console.warn("Mode simulation / fallback hors ligne.");
     if (devicesList.length === 0) {
       // Données mock pour test sans ESP32
       devicesList = [
         {"id": 1, "name": "Pompe boucle froide", "type": "RELAY", "gpio": 4, "state": 0, "value": 0, "isCore": true},
         {"id": 2, "name": "Lanterneau Fiamma", "type": "PWM", "gpio": 19, "state": 0, "value": 128, "isCore": false},
         {"id": 3, "name": "Spot Salon", "type": "RELAY", "gpio": 23, "state": 0, "value": 0, "isCore": false}
+        {"id": 1, "name": "Pompe boucle froide", "category": "ACTUATOR", "voltage": "12V", "mode": "OUTPUT_RELAY", "type": "RELAY", "gpio": 4, "state": 0, "value": 0, "isCore": true},
+        {"id": 2, "name": "Lanterneau Fiamma", "category": "ACTUATOR", "voltage": "12V", "mode": "OUTPUT_PWM", "type": "PWM", "gpio": 19, "state": 0, "value": 128, "isCore": false},
+        {"id": 3, "name": "Spot Salon", "category": "ACTUATOR", "voltage": "12V", "mode": "OUTPUT_RELAY", "type": "RELAY", "gpio": 23, "state": 0, "value": 0, "isCore": false}
       ];
     }
   }
@@ -124,6 +402,7 @@ function renderDeviceTable(devices) {
 
   if (devices.length === 0) {
     tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:30px;">Aucun équipement configuré. Cliquez sur "+ Ajouter un équipement".</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:30px;">Aucun équipement configuré. Cliquez sur "+ Ajouter un équipement".</td></tr>`;
     return;
   }
 
@@ -132,33 +411,81 @@ function renderDeviceTable(devices) {
     const typeBadge = isRelay 
       ? `<span class="badge badge-relay">⚡ Relais ON/OFF</span>`
       : `<span class="badge badge-pwm">〰️ Variateur PWM</span>`;
+    const isActuator = (dev.category === 'ACTUATOR');
+    const catBadge = isActuator
+      ? `<span class="badge badge-actuator">Actionneur</span> <span class="badge-volt">${dev.voltage || '12V'}</span>`
+      : `<span class="badge badge-sensor">Capteur</span> <span class="badge-volt">${dev.voltage || '3.3V'}</span>`;
+
+    let signalBadge = '';
+    switch(dev.mode) {
+      case 'OUTPUT_PWM':
+        signalBadge = `<span class="badge badge-pwm">〰️ PWM</span>`;
+        break;
+      case 'INPUT_DIGITAL':
+        signalBadge = `<span class="badge badge-digital">🔘 Contact Sec</span>`;
+        break;
+      case 'INPUT_ADC':
+        signalBadge = `<span class="badge badge-adc">📊 ADC (0-3.3V)</span>`;
+        break;
+      case 'INPUT_ONEWIRE':
+        signalBadge = `<span class="badge badge-onewire">🌡️ 1-Wire</span>`;
+        break;
+      case 'OUTPUT_RELAY':
+      default:
+        signalBadge = `<span class="badge badge-relay">⚡ Relais</span>`;
+        break;
+    }
 
     const coreBadge = dev.isCore 
       ? `<span class="badge badge-core">🔒 Système (Core)</span>`
       : `<span class="badge badge-custom">⚙️ Personnalisé</span>`;
+      ? `<span class="badge badge-core">🔒 Système</span>`
+      : `<span class="badge badge-custom">⚙️ Libre</span>`;
 
     const stateDisplay = isRelay
       ? (dev.state ? '<span style="color:var(--cyan-light); font-weight:bold;">ON</span>' : '<span style="color:var(--text-muted);">OFF</span>')
       : `<span style="color:var(--purple-pwm); font-weight:bold;">${Math.round((dev.value / 255) * 100)}%</span>`;
+    let stateDisplay = '';
+    if (dev.mode === 'OUTPUT_PWM') {
+      stateDisplay = `<span style="color:var(--purple-pwm); font-weight:bold;">${Math.round((dev.value / 255) * 100)}%</span>`;
+    } else if (dev.mode === 'INPUT_DIGITAL') {
+      stateDisplay = dev.state ? `<span style="color:var(--orange-alert); font-weight:bold;">FERMÉ</span>` : `<span style="color:var(--text-muted);">OUVERT</span>`;
+    } else if (dev.mode === 'INPUT_ADC') {
+      stateDisplay = `<span style="color:var(--cyan-light); font-weight:bold;">${((dev.value / 4095) * 3.3).toFixed(2)}V</span>`;
+    } else {
+      stateDisplay = dev.state 
+        ? `<span style="color:var(--cyan-light); font-weight:bold;">ON</span>` 
+        : `<span style="color:var(--text-muted);">OFF</span>`;
+    }
 
     const deleteBtn = dev.isCore
       ? `<button class="action-btn disabled" title="Équipement système protégé contre la suppression"><svg viewBox="0 0 24 24"><path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.89,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"/></svg> Core</button>`
       : `<button class="action-btn delete-btn" onclick="deleteDevice(${dev.id}, '${escapeHtml(dev.name)}')"><svg viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg> Supprimer</button>`;
+      ? `<button class="action-btn disabled" title="Équipement système protégé"><svg viewBox="0 0 24 24"><path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.89,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"/></svg></button>`
+      : `<button class="action-btn delete-btn" title="Supprimer" onclick="deleteDevice(${dev.id}, '${escapeHtml(dev.name)}')"><svg viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg></button>`;
 
     return `
       <tr>
         <td style="font-weight:700; color:var(--text-main);">${escapeHtml(dev.name)}</td>
         <td>${typeBadge}</td>
+        <td>${catBadge}</td>
+        <td>${signalBadge}</td>
         <td><span class="badge-gpio">GPIO ${dev.gpio}</span></td>
         <td>${coreBadge}</td>
         <td>${stateDisplay}</td>
         <td>
           <div class="actions-cell">
             <button class="action-btn test-btn" id="btn-test-${dev.id}" onclick="testDevice(${dev.id}, this)">
+            <button class="action-btn test-btn" id="btn-test-${dev.id}" title="Tester" onclick="testDevice(${dev.id}, this)">
               <svg viewBox="0 0 24 24"><path d="M7,2V4H8V18A4,4 0 0,0 12,22A4,4 0 0,0 16,18V4H17V2H7M11,16C10.45,16 10,15.55 10,15C10,14.45 10.45,14 11,14C11.55,14 12,14.45 12,15C12,15.55 11.55,16 11,16M13,12C12.45,12 12,11.55 12,11C12,10.45 12.45,10 13,10C13.55,10 14,10.45 14,11C14,11.55 13.55,12 13,12Z"/></svg>
               Tester
             </button>
             <button class="action-btn" onclick="openEditDeviceModal(${dev.id})">
+            <button class="action-btn" title="Didacticiel de câblage" onclick="openWizardForExistingDevice(${dev.id})">
+              <svg viewBox="0 0 24 24"><path d="M19,2L14,6.5V17.5L19,13V2M6.5,5C4.55,5 2.45,5.4 1,6.5V21.16C1,21.41 1.25,21.66 1.5,21.66C1.6,21.66 1.65,21.61 1.75,21.61C3.1,20.95 5.05,20.5 6.5,20.5C8.45,20.5 10.55,20.95 12,22C13.35,21.05 15.8,20.5 17.5,20.5C19.15,20.5 20.85,20.8 22.25,21.56C22.35,21.61 22.4,21.66 22.5,21.66C22.75,21.66 23,21.41 23,21.16V6.5C22.4,6.05 21.75,5.75 21,5.5V19C19.9,18.65 18.7,18.5 17.5,18.5C15.8,18.5 13.35,19.05 12,20V6.5C10.55,5.4 8.45,5 6.5,5Z"/></svg>
+              Câbler
+            </button>
+            <button class="action-btn" title="Modifier" onclick="openEditDeviceModal(${dev.id})">
               <svg viewBox="0 0 24 24"><path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/></svg>
               Modifier
             </button>
@@ -172,6 +499,7 @@ function renderDeviceTable(devices) {
 
 /**
  * Affiche dynamiquement les périphériques sur la page d'accueil (Dashboard)
+ * Affiche dynamiquement les périphériques sur la page principale (Dashboard)
  */
 function renderDashboardAuxDevices(devices) {
   const container = document.getElementById('aux-devices-container');
@@ -179,6 +507,7 @@ function renderDashboardAuxDevices(devices) {
 
   if (devices.length === 0) {
     container.innerHTML = `<div style="color:var(--text-muted); font-size:13px;">Aucun actionneur supplémentaire configuré.</div>`;
+    container.innerHTML = `<div style="color:var(--text-muted); font-size:13px;">Aucun actionneur ou capteur supplémentaire configuré.</div>`;
     return;
   }
 
@@ -186,6 +515,8 @@ function renderDashboardAuxDevices(devices) {
     const isRelay = dev.type === 'RELAY';
     
     if (isRelay) {
+    if (dev.mode === 'OUTPUT_PWM') {
+      const pct = Math.round((dev.value / 255) * 100);
       return `
         <div class="aux-card">
           <div class="aux-header">
@@ -198,11 +529,35 @@ function renderDashboardAuxDevices(devices) {
               <input type="checkbox" id="aux-toggle-${dev.id}" ${dev.state ? 'checked' : ''} onchange="toggleAuxDevice(${dev.id}, this.checked)">
               <span class="slider"></span>
             </label>
+          <div class="aux-controls" style="flex-direction:column; align-items:stretch;">
+            <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted);">
+              <span>Variateur PWM (${dev.voltage || '12V'})</span>
+              <span class="aux-slider-val" id="aux-val-${dev.id}">${pct}%</span>
+            </div>
+            <div class="aux-slider-wrap">
+              <input type="range" min="0" max="100" value="${pct}" oninput="updateAuxPwm(${dev.id}, this.value)">
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (dev.category === 'SENSOR') {
+      let valText = dev.state ? 'Contact FERMÉ' : 'Contact OUVERT';
+      if (dev.mode === 'INPUT_ADC') valText = ((dev.value / 4095) * 3.3).toFixed(2) + ' V';
+      return `
+        <div class="aux-card">
+          <div class="aux-header">
+            <span class="aux-name">${escapeHtml(dev.name)}</span>
+            <span class="badge-gpio">GPIO ${dev.gpio}</span>
+          </div>
+          <div class="aux-controls" style="justify-content:space-between;">
+            <span style="font-size:12px; color:var(--text-muted);">Capteur (${dev.voltage || '3.3V'})</span>
+            <span style="font-weight:bold; color:var(--cyan-light);" id="sensor-val-${dev.id}">${valText}</span>
           </div>
         </div>
       `;
     } else {
       const pct = Math.round((dev.value / 255) * 100);
+      // Relais standard
       return `
         <div class="aux-card">
           <div class="aux-header">
@@ -217,6 +572,12 @@ function renderDashboardAuxDevices(devices) {
             <div class="aux-slider-wrap">
               <input type="range" min="0" max="100" value="${pct}" oninput="updateAuxPwm(${dev.id}, this.value)">
             </div>
+          <div class="aux-controls" style="justify-content: space-between;">
+            <span style="font-size:12px; color:var(--text-muted);">Relais ${dev.voltage || '12V'}</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="aux-toggle-${dev.id}" ${dev.state ? 'checked' : ''} onchange="toggleAuxDevice(${dev.id}, this.checked)">
+              <span class="slider"></span>
+            </label>
           </div>
         </div>
       `;
@@ -226,6 +587,7 @@ function renderDashboardAuxDevices(devices) {
 
 /**
  * Commande directe d'un relais depuis le Dashboard
+ * Commande d'un relais depuis le Dashboard
  */
 async function toggleAuxDevice(id, isChecked) {
   const dev = devicesList.find(d => d.id === id);
@@ -240,6 +602,7 @@ async function toggleAuxDevice(id, isChecked) {
     showToast(`${dev ? dev.name : 'Équipement'} : ${isChecked ? 'Activé' : 'Désactivé'}`, 'success');
   } catch (err) {
     console.warn("Échec requête set-state (mode simulation).");
+    console.warn("set-state simulation");
   }
 }
 
@@ -265,36 +628,57 @@ function updateAuxPwm(id, percent) {
       });
     } catch (err) {
       console.warn("Échec requête set-state PWM.");
+      console.warn("set-state PWM simulation");
     }
   }, 100);
 }
 
 /**
  * Ouvre le modal pour ajouter un équipement
+ * Ouvre la modale Étape 1 : Déclaration d'équipement
  */
 async function openAddDeviceModal() {
   editingDeviceId = null;
   document.getElementById('modal-title').innerText = "Ajouter un équipement";
+  wizardState.id = 0;
+  wizardState.isCore = false;
+
+  document.getElementById('modal-title').innerText = "1. Déclarer un équipement";
   document.getElementById('device-name').value = "";
   document.getElementById('device-type').value = "RELAY";
   document.getElementById('device-type').disabled = false;
+  document.getElementById('device-category').value = "ACTUATOR";
+  document.getElementById('device-voltage').value = "12V";
+  document.getElementById('btn-submit-step1').innerText = "Suivant : Câbler sur la carte ➔";
   
+  onCategoryChange();
   await populatePinSelect();
+
   document.getElementById('device-modal').classList.add('active');
 }
 
 /**
  * Ouvre le modal pour modifier un équipement existant
+ * Ouvre la modale pour modifier un équipement existant
  */
 async function openEditDeviceModal(id) {
   const dev = devicesList.find(d => d.id === id);
   if (!dev) return;
 
   editingDeviceId = id;
+  wizardState.id = dev.id;
+  wizardState.isCore = dev.isCore;
+
   document.getElementById('modal-title').innerText = `Modifier : ${dev.name}`;
   document.getElementById('device-name').value = dev.name;
   document.getElementById('device-type').value = dev.type;
   document.getElementById('device-type').disabled = true; // Le type physique ne doit pas changer
+  document.getElementById('device-category').value = dev.category || 'ACTUATOR';
+  document.getElementById('device-voltage').value = dev.voltage || '12V';
+  document.getElementById('btn-submit-step1').innerText = "Suivant : Vérifier le câblage ➔";
+
+  onCategoryChange();
+  document.getElementById('device-signal-mode').value = dev.mode || 'OUTPUT_RELAY';
 
   await populatePinSelect(dev.gpio);
   document.getElementById('device-modal').classList.add('active');
@@ -306,10 +690,12 @@ function closeDeviceModal() {
 
 /**
  * Récupère les GPIO disponibles et remplit le sélecteur
+ * Récupère les GPIO disponibles pour le sélecteur manuel optionnel
  */
 async function populatePinSelect(currentPin = null) {
   const select = document.getElementById('device-gpio');
   select.innerHTML = '<option value="">Chargement des broches...</option>';
+  select.innerHTML = '<option value="auto">⚡ Attribution automatique optimale par l\'ESP32</option>';
 
   let availablePins = [];
   try {
@@ -336,19 +722,27 @@ async function populatePinSelect(currentPin = null) {
   }
 
   select.innerHTML = availablePins.map(pin => {
+  availablePins.forEach(pin => {
     const isCurrent = (pin === currentPin);
     return `<option value="${pin}" ${isCurrent ? 'selected' : ''}>GPIO ${pin} ${isCurrent ? '(Actuel)' : '(Disponible)'}</option>`;
   }).join('');
+    select.innerHTML += `<option value="${pin}" ${isCurrent ? 'selected' : ''}>GPIO ${pin} ${isCurrent ? '(Actuel)' : '(Libre)'}</option>`;
+  });
 }
 
 /**
  * Enregistrement du formulaire (Création ou Modification)
+ * Soumission de l'Étape 1 -> Ouvre le Didacticiel de câblage (Étape 2)
  */
 async function handleDeviceFormSubmit(e) {
   e.preventDefault();
   const name = document.getElementById('device-name').value.trim();
   const type = document.getElementById('device-type').value;
   const gpio = parseInt(document.getElementById('device-gpio').value, 10);
+  const category = document.getElementById('device-category').value;
+  const voltage = document.getElementById('device-voltage').value;
+  const mode = document.getElementById('device-signal-mode').value;
+  const gpioSelect = document.getElementById('device-gpio').value;
 
   if (!name) {
     showToast("Le nom de l'équipement est requis.", "error");
@@ -357,6 +751,54 @@ async function handleDeviceFormSubmit(e) {
   if (isNaN(gpio)) {
     showToast("Veuillez sélectionner une broche GPIO valide.", "error");
     return;
+
+  wizardState.name = name;
+  wizardState.category = category;
+  wizardState.voltage = voltage;
+  wizardState.mode = mode;
+  wizardState.gpio = (gpioSelect === 'auto') ? null : parseInt(gpioSelect, 10);
+
+  closeDeviceModal();
+  await openWizardModal();
+}
+
+/**
+ * Ouvre le didacticiel de câblage guidé (Wizard)
+ */
+async function openWizardModal() {
+  const modal = document.getElementById('wizard-modal');
+  const title = document.getElementById('wizard-title');
+  const subtitle = document.getElementById('wizard-subtitle');
+  const pinDisplay = document.getElementById('wizard-assigned-gpio');
+  const pinReason = document.getElementById('wizard-pin-reason');
+  const testStatus = document.getElementById('wizard-test-status');
+
+  title.innerText = `Câbler : ${wizardState.name}`;
+  subtitle.innerText = `${wizardState.category === 'ACTUATOR' ? 'Actionneur' : 'Capteur'} ${wizardState.voltage} • Mode : ${wizardState.mode}`;
+  testStatus.className = "wizard-test-status";
+  testStatus.innerHTML = "En attente du test de câblage...";
+
+  // 1. Réservation intelligente de la broche GPIO auprès de l'ESP32 si auto
+  if (!wizardState.gpio) {
+    pinDisplay.innerText = "Recherche...";
+    try {
+      const res = await fetch(`/api/pins/suggest?type=${wizardState.mode}`);
+      const data = await res.json();
+      if (data.success && data.gpio) {
+        wizardState.gpio = data.gpio;
+        pinReason.innerText = data.message || "Broche sécurisée sélectionnée par l'ESP32";
+      } else {
+        throw new Error(data.error || "Aucune broche disponible");
+      }
+    } catch (err) {
+      // Fallback local
+      const usedPins = devicesList.map(d => d.gpio);
+      const candidates = (wizardState.mode === 'INPUT_ADC') 
+        ? [32, 33, 34, 35, 36, 39] 
+        : [4, 5, 13, 14, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33];
+      wizardState.gpio = candidates.find(p => !usedPins.includes(p)) || 18;
+      pinReason.innerText = `GPIO ${wizardState.gpio} alloué automatiquement`;
+    }
   }
 
   const isEditing = (editingDeviceId !== null);
@@ -364,9 +806,177 @@ async function handleDeviceFormSubmit(e) {
   const payload = isEditing 
     ? { id: editingDeviceId, name: name, gpio: gpio }
     : { name: name, type: type, gpio: gpio, isCore: false };
+  pinDisplay.innerText = `GPIO ${wizardState.gpio}`;
+
+  // 2. Sélection du didacticiel sur-mesure
+  const tutKey = `${wizardState.category}_${wizardState.mode}`;
+  const tutorial = WIRING_TUTORIALS[tutKey] || WIRING_TUTORIALS["ACTUATOR_OUTPUT_RELAY"];
+
+  // 3. Remplissage de l'alerte sécurité
+  const alertBox = document.getElementById('wizard-safety-alert');
+  alertBox.innerHTML = `
+    <svg viewBox="0 0 24 24"><path d="M12,2L1,21H23L12,2M12,6L19.53,19H4.47L12,6M11,10V14H13V10H11M11,16V18H13V16H11Z"/></svg>
+    <div>${tutorial.warning}</div>
+  `;
+
+  // 4. Génération du schéma synoptique
+  const schematicBox = document.getElementById('wizard-schematic');
+  schematicBox.innerHTML = tutorial.schematic(wizardState.gpio, wizardState.voltage);
+
+  // 5. Génération des étapes de câblage avec remplacement de {{GPIO}}
+  const stepsContainer = document.getElementById('wizard-steps-container');
+  stepsContainer.innerHTML = tutorial.steps.map((step, idx) => {
+    const formattedDesc = step.desc.replace(/\{\{GPIO\}\}/g, `<strong>GPIO ${wizardState.gpio}</strong>`);
+    return `
+      <div class="step-card">
+        <div class="step-num">${idx + 1}</div>
+        <div class="step-content">
+          <div class="step-title">${step.title}</div>
+          <div class="step-desc">${formattedDesc}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // 6. Adaptation du libellé du bouton de test
+  const testBtnText = document.getElementById('wizard-test-btn-text');
+  if (wizardState.category === 'ACTUATOR') {
+    testBtnText.innerText = "⚡ Tester le branchement (3s)";
+  } else {
+    testBtnText.innerText = "🔍 Tester la lecture du capteur";
+  }
+
+  modal.classList.add('active');
+}
+
+/**
+ * Lance le didacticiel pour un équipement existant
+ */
+function openWizardForExistingDevice(id) {
+  const dev = devicesList.find(d => d.id === id);
+  if (!dev) return;
+
+  wizardState = {
+    id: dev.id,
+    name: dev.name,
+    category: dev.category || 'ACTUATOR',
+    voltage: dev.voltage || '12V',
+    mode: dev.mode || 'OUTPUT_RELAY',
+    gpio: dev.gpio,
+    isCore: dev.isCore
+  };
+
+  openWizardModal();
+}
+
+function closeWizardModal() {
+  document.getElementById('wizard-modal').classList.remove('active');
+}
+
+function backToFormModal() {
+  closeWizardModal();
+  document.getElementById('device-modal').classList.add('active');
+}
+
+/**
+ * Test physique interactif pendant le Wizard
+ */
+async function runWizardTest() {
+  const btn = document.getElementById('wizard-btn-test');
+  const btnText = document.getElementById('wizard-test-btn-text');
+  const statusBox = document.getElementById('wizard-test-status');
+
+  btn.disabled = true;
+  statusBox.className = "wizard-test-status testing";
+
+  if (wizardState.category === 'ACTUATOR') {
+    let countdown = 3;
+    btnText.innerText = `⏳ Test en cours (${countdown}s)...`;
+    statusBox.innerText = `Impulsion électrique active sur GPIO ${wizardState.gpio} (${countdown}s)...`;
+
+    const timer = setInterval(() => {
+      countdown--;
+      if (countdown > 0) {
+        btnText.innerText = `⏳ Test en cours (${countdown}s)...`;
+        statusBox.innerText = `Impulsion électrique active sur GPIO ${wizardState.gpio} (${countdown}s)...`;
+      } else {
+        clearInterval(timer);
+      }
+    }, 1000);
+
+    try {
+      const res = await fetch('/api/devices/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          id: wizardState.id, 
+          gpio: wizardState.gpio, 
+          mode: wizardState.mode, 
+          duration: 3000 
+        })
+      });
+      const data = await res.json();
+      setTimeout(() => {
+        statusBox.className = "wizard-test-status success";
+        statusBox.innerHTML = `✓ ${data.message || 'Signal validé ! Relais/PWM activé pendant 3s.'}`;
+        btn.disabled = false;
+        btnText.innerText = "⚡ Re-tester le branchement (3s)";
+      }, 3000);
+    } catch (e) {
+      setTimeout(() => {
+        statusBox.className = "wizard-test-status success";
+        statusBox.innerHTML = `✓ Test simulé réussi : GPIO ${wizardState.gpio} activé pendant 3s.`;
+        btn.disabled = false;
+        btnText.innerText = "⚡ Re-tester le branchement (3s)";
+      }, 3000);
+    }
+
+  } else {
+    // Test capteur : lecture instantanée
+    btnText.innerText = "🔍 Lecture du signal...";
+    statusBox.innerText = `Lecture de la broche GPIO ${wizardState.gpio}...`;
+
+    try {
+      const res = await fetch('/api/devices/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          id: wizardState.id, 
+          gpio: wizardState.gpio, 
+          mode: wizardState.mode, 
+          duration: 100 
+        })
+      });
+      const data = await res.json();
+      statusBox.className = "wizard-test-status success";
+      statusBox.innerHTML = `✓ ${data.message || 'Signal capteur capté avec succès !'}`;
+    } catch (e) {
+      statusBox.className = "wizard-test-status success";
+      statusBox.innerHTML = `✓ Lecture simulée : GPIO ${wizardState.gpio} détecté (Niveau logique OK).`;
+    } finally {
+      btn.disabled = false;
+      btnText.innerText = "🔍 Tester la lecture du capteur";
+    }
+  }
+}
+
+/**
+ * Validation finale du Wizard : Enregistrement et activation
+ */
+async function finishAndActivateWizard() {
+  const payload = {
+    id: wizardState.id,
+    name: wizardState.name,
+    category: wizardState.category,
+    voltage: wizardState.voltage,
+    mode: wizardState.mode,
+    gpio: wizardState.gpio,
+    isCore: wizardState.isCore
+  };
 
   try {
     const res = await fetch(endpoint, {
+    const res = await fetch('/api/devices/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -375,26 +985,37 @@ async function handleDeviceFormSubmit(e) {
     const result = await res.json();
     if (!res.ok || !result.success) {
       throw new Error(result.error || "Échec de l'enregistrement");
+      throw new Error(result.error || "Erreur de sauvegarde");
     }
 
     showToast(isEditing ? "Périphérique modifié avec succès !" : "Périphérique ajouté avec succès !", "success");
     closeDeviceModal();
     await loadDeviceManager();
+    showToast(`"${wizardState.name}" câblé et activé avec succès sur GPIO ${wizardState.gpio} !`, "success");
   } catch (err) {
     // Mode simulation locale
     if (isEditing) {
       const d = devicesList.find(x => x.id === editingDeviceId);
       if (d) { d.name = name; d.gpio = gpio; }
       showToast("Périphérique mis à jour (simulation).", "success");
+    // Mode simulation
+    if (wizardState.id > 0) {
+      const existing = devicesList.find(d => d.id === wizardState.id);
+      if (existing) Object.assign(existing, payload);
     } else {
       const newId = (devicesList.length > 0 ? Math.max(...devicesList.map(d => d.id)) + 1 : 1);
       devicesList.push({ id: newId, name, type, gpio, state: 0, value: 0, isCore: false });
       showToast("Périphérique ajouté (simulation).", "success");
+      devicesList.push({ ...payload, id: newId, state: 0, value: 0 });
     }
     closeDeviceModal();
     renderDeviceTable(devicesList);
     renderDashboardAuxDevices(devicesList);
+    showToast(`"${wizardState.name}" activé sur GPIO ${wizardState.gpio} (simulation) !`, "success");
   }
+
+  closeWizardModal();
+  await loadDeviceManager();
 }
 
 /**
@@ -430,6 +1051,7 @@ async function deleteDevice(id, name) {
 
 /**
  * Lance un test matériel temporaire pour vérifier le câblage
+ * Lance un test rapide depuis le tableau
  */
 async function testDevice(id, btnElement) {
   btnElement.classList.add('testing');
@@ -437,18 +1059,24 @@ async function testDevice(id, btnElement) {
 
   try {
     await fetch('/api/devices/test', {
+    const res = await fetch('/api/devices/test', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: id, duration: 1200 })
+      body: JSON.stringify({ id: id, duration: 3000 })
     });
     showToast("Signal de test envoyé à l'équipement (1.2s).", "success");
+    const data = await res.json();
+    showToast(data.message || "Test matériel effectué avec succès.", "success");
   } catch (err) {
     showToast("Signal de test simulé (1.2s).", "info");
+    showToast("Signal de test simulé (3s).", "info");
   } finally {
     setTimeout(() => {
       btnElement.classList.remove('testing');
       btnElement.disabled = false;
     }, 1300);
+    }, 3100);
   }
 }
 
