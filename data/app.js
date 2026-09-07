@@ -354,15 +354,18 @@ const WIRING_TUTORIALS = {
 function onCategoryChange() {
   const catEl = document.getElementById('device-category');
   const modeSelect = document.getElementById('device-signal-mode');
+  const modeLabel = document.getElementById('device-signal-label');
   if (!catEl || !modeSelect) return;
 
   const cat = catEl.value;
   if (cat === 'ACTUATOR') {
+    if (modeLabel) modeLabel.innerText = "Type de commande";
     modeSelect.innerHTML = `
       <option value="OUTPUT_RELAY">Tout ou Rien (Relais isolé)</option>
       <option value="OUTPUT_PWM">Progressif (Variateur PWM / MOSFET)</option>
     `;
   } else {
+    if (modeLabel) modeLabel.innerText = "Type de signal / mesure";
     modeSelect.innerHTML = `
       <option value="INPUT_DIGITAL">Tout ou Rien (Contact sec / Flotteur)</option>
       <option value="INPUT_ADC">Analogique 0-3.3V (Sonde pression / jauge)</option>
