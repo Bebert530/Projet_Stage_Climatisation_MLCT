@@ -1,4 +1,6 @@
 #include "DeviceManager.h"
+#include <OneWire.h>
+#include <DallasTemperature.h>
 #include <algorithm>
 
 // Broches système/boot à ne JAMAIS allouer
@@ -106,6 +108,21 @@ void DeviceManager::createDefaultConfig() {
     dev3.pwmChannel = -1;
     dev3.isCore = false;
     _devices.push_back(dev3);
+
+    // 4. Sonde Température Habitacle (1-Wire DS18B20)
+    Device dev4;
+    dev4.id = 4;
+    dev4.name = "Sonde Habitacle";
+    dev4.category = CAT_SENSOR;
+    dev4.voltage = "3.3V";
+    dev4.mode = MODE_INPUT_ONEWIRE;
+    dev4.type = DEVICE_RELAY;
+    dev4.gpio = 18;
+    dev4.state = 0;
+    dev4.value = 0;
+    dev4.pwmChannel = -1;
+    dev4.isCore = false;
+    _devices.push_back(dev4);
 
     xSemaphoreGive(_mutex);
 
@@ -581,7 +598,32 @@ DeviceTestResult DeviceManager::testPinDirect(uint8_t gpio, SignalMode mode, uin
         result.rawValue = 128;
         result.voltageValue = 1.65f;
         result.message = "Signal PWM 50% envoyé pendant 3s avec succès.";
-    } else if (mode == MODE_INPUT_DIGITAL || mode == MODE_INPUT_ONEWIRE) {
+    } else if (mode == MODE_INPUT_ONEWIRE) {
+        OneWire testOw(gpio);
+        DallasTemperature testSensors(&testOw);
+        testSensors.begin();
+        uint8_t count = testSensors.getDeviceCount();
+        if (count > 0) {
+            testSensors.requestTemperatures();
+            float t = testSensors.getTempCByIndex(0);
+            if (t != DEVICE_DISCONNECTED_C && t > -50.0f && t < 125.0f) {
+                result.success = true;
+                result.rawValue = (int)(t * 100);
+                result.voltageValue = 3.3f;
+                result.message = "Sonde 1-Wire DS18B20 détectée (" + String(count) + " sonde(s)) : Température = " + String(t, 2) + " °C";
+            } else {
+                result.success = false;
+                result.rawValue = -127;
+                result.voltageValue = 0.0f;
+                result.message = "Sonde 1-Wire détectée mais valeur invalide (-127°C / Déconnexion).";
+            }
+        } else {
+            result.success = false;
+            result.rawValue = 0;
+            result.voltageValue = 0.0f;
+            result.message = "Aucun capteur DS18B20 détecté sur GPIO " + String(gpio) + ". Vérifiez câblage et résistance 4.7kΩ.";
+        }
+    } else if (mode == MODE_INPUT_DIGITAL) {
         pinMode(gpio, INPUT_PULLUP);
         delay(10);
         int val = digitalRead(gpio);

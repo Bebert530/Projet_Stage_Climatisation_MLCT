@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Climate Pro - OS | ESP32 Device Manager</title>
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="chart.min.js"></script>
 </head>
 <body>
 
@@ -37,8 +37,8 @@
         <div class="app-title">CLIMATE PRO</div>
       </div>
       <div class="header-status">
-        <div class="header-status-indicator"></div>
-        <span data-i18n="header_connected">ESP32 Connecté</span>
+        <div class="header-status-indicator" id="ws-status-indicator"></div>
+        <span id="ws-status-text" data-i18n="header_connected">ESP32 Connecté</span>
       </div>
     </header>
 
@@ -115,6 +115,9 @@
                 </div>
               </div>
               <div class="dial-time-est off" id="dial-time-est" data-i18n="ring_est_ready_default">Temps estimé avant disponibilité : 1h30</div>
+              <div class="anti-cycle-banner" id="anti-cycle-banner" style="display:none; margin-top:8px; padding:6px 12px; background:rgba(251, 146, 60, 0.15); border:1px solid rgba(251, 146, 60, 0.4); border-radius:6px; font-size:11px; color:var(--orange-alert); font-weight:bold; text-align:center;">
+                <span data-i18n="anti_cycle_badge">Protection Compresseur (Anti-court-cycle) :</span> <span id="anti-cycle-timer">3m00s</span>
+              </div>
             </div>
 
             <!-- CARTES DE CONTRÔLE -->
@@ -199,7 +202,11 @@
             <div class="mini-card"><div class="mini-label" data-i18n="stats_setpoint_hold">Maintien de consigne</div><div class="mini-val" style="color: var(--success);">88%</div></div>
             <div class="mini-card"><div class="mini-label" data-i18n="stats_total_energy">Énergie totale consommée</div><div class="mini-val" id="v_energy" style="color: #a78bfa;">12.4 kWh</div></div>
             <div class="mini-card"><div class="mini-label" data-i18n="stats_runtime">Durée de fonctionnement</div><div class="mini-val">142h 30m</div></div>
-            <div class="mini-card"><div class="mini-label" data-i18n="stats_water_temp">Température boucle d'eau</div><div class="mini-val" id="t_water">11.8°</div></div>
+            <div class="mini-card">
+              <div class="mini-label" data-i18n="stats_water_temp">Température boucle d'eau</div>
+              <div class="mini-val" id="t_water">11.8°</div>
+              <div style="font-size:11px; color:var(--text-muted); margin-top:4px;"><span data-i18n="target_prefix">Consigne :</span> <span id="t_water_target_disp" style="color:var(--cyan-light); font-weight:bold;">8.0°</span></div>
+            </div>
             
             <div class="mini-card full">
               <div class="mini-label" data-i18n="stats_chart_curves">Courbes thermiques & Consigne</div>
@@ -240,6 +247,17 @@
             </div>
             <div class="mini-card full" style="display:flex; justify-content: space-between; align-items:center; flex-direction:row; flex-wrap: wrap; gap: 15px;">
               <div>
+                <div style="font-weight:bold;" data-i18n="settings_water_temp_title">Consigne d'eau (Chiller)</div>
+                <div style="font-size:12px; color:var(--text-muted)" data-i18n="settings_water_temp_sub">Température cible du bac d'eau froide (2°C à 20°C)</div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <button class="temp-adjust-btn" style="width:30px; height:30px; font-size:16px;" onclick="changeWaterTargetTemp(-0.5)">-</button>
+                <div id="target_water_temp_val" style="font-weight:bold; font-size:16px; color:var(--cyan-light);">8.0°</div>
+                <button class="temp-adjust-btn" style="width:30px; height:30px; font-size:16px;" onclick="changeWaterTargetTemp(0.5)">+</button>
+              </div>
+            </div>
+            <div class="mini-card full" style="display:flex; justify-content: space-between; align-items:center; flex-direction:row; flex-wrap: wrap; gap: 15px;">
+              <div>
                 <div style="font-weight:bold;" data-i18n="settings_hyst_title">Hystérésis de régulation</div>
                 <div style="font-size:12px; color:var(--text-muted)" data-i18n="settings_hyst_sub">Plage de déclenchement avant réactivation</div>
               </div>
@@ -250,11 +268,78 @@
               </div>
             </div>
             <div class="settings-row"><span style="font-size: 14px;" data-i18n="settings_compressor">Compresseur (Chiller)</span><span id="compressor-state" style="color: var(--cyan-light); font-weight: bold; font-size: 14px;">Cible : -16.0°C</span></div>
-            <div class="settings-row"><span style="font-size: 14px;" data-i18n="settings_wifi">Réseau Wi-Fi (Point d'accès)</span><span style="color: var(--text-muted); font-size: 14px;">Prototype_Clim</span></div>
-            <div class="settings-row"><span style="font-size: 14px;" data-i18n="settings_ip">Adresse IP</span><span style="color: var(--text-muted); font-size: 14px;">192.168.4.1</span></div>
             <div class="settings-row"><span style="font-size: 14px;" data-i18n="settings_probes">Sondes DS18B20</span><span style="color: var(--success); font-weight: bold; font-size: 14px;" id="probes-status" data-i18n="settings_probes_ok">OK (5/5 connectées)</span></div>
             <div class="settings-row"><span style="font-size: 14px;" data-i18n="settings_watchdog_test">Test Watchdog Sécurité</span><button class="settings-btn btn-outline" onclick="triggerWatchdogTest()" data-i18n="settings_btn_simulate">Simuler Perte</button></div>
             <div class="settings-row"><span style="font-size: 14px;" data-i18n="settings_reboot">Redémarrage ESP32</span><button class="settings-btn btn-danger" onclick="triggerRebootConfirm()" data-i18n="settings_btn_reboot">Redémarrer</button></div>
+
+            <!-- SECTION GESTION WI-FI HYBRIDE & RÉSILIENCE -->
+            <div class="mini-card full" style="margin-top: 15px; border-left: 4px solid var(--cyan-light); background: rgba(21, 30, 50, 0.7);">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+                <div>
+                  <div style="font-weight:bold; font-size:15px; display:flex; align-items:center; gap:8px;">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="var(--cyan-light)"><path d="M12,3C7.79,3 3.7,4.41 0.38,7C4.41,12.06 7.89,16.37 12,21.5C16.08,16.42 20.24,11.24 23.65,7C20.32,4.41 16.22,3 12,3M12,5C15.07,5 18.09,5.86 20.71,7.45L12,18.3L3.27,7.44C5.9,5.85 8.92,5 12,5Z"/></svg>
+                    <span data-i18n="wifi_section_title">Paramètres Réseau Wi-Fi Hybride</span>
+                  </div>
+                  <div style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="wifi_section_sub">
+                    Connectez l'ESP32 à la box ou au partage 4G de votre van sans jamais perdre l'accès au réseau local de secours.
+                  </div>
+                </div>
+                <div id="wifi-badge-container">
+                  <span id="wifi-status-badge" class="badge" style="background:rgba(52, 211, 153, 0.15); color:var(--success); border:1px solid var(--success); font-size:12px;">
+                    Mode autonome (Van-Clim-Local)
+                  </span>
+                </div>
+              </div>
+
+              <!-- LIGNE D'INFORMATIONS RÉSEAU ACTUEL -->
+              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px; margin-bottom:15px; background:rgba(0,0,0,0.25); padding:10px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+                <div>
+                  <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;" data-i18n="wifi_ap_label">Point d'accès de secours (AP)</div>
+                  <div style="font-size:13px; font-weight:bold; color:var(--text-main);" id="wifi-info-ap">Van-Clim-Local (192.168.4.1)</div>
+                </div>
+                <div>
+                  <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;" data-i18n="wifi_sta_label">Réseau du Van (Station)</div>
+                  <div style="font-size:13px; font-weight:bold; color:var(--cyan-light);" id="wifi-info-sta">Mode autonome</div>
+                </div>
+                <div>
+                  <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;" data-i18n="wifi_mdns_label">Accès direct mDNS</div>
+                  <div style="font-size:13px; font-weight:bold;"><a href="http://clim.local" target="_blank" style="color:var(--cyan-light); text-decoration:none;">http://clim.local/</a></div>
+                </div>
+              </div>
+
+              <!-- SCANNER ET CONFIGURATION DU RÉSEAU STATION -->
+              <div style="display:flex; flex-direction:column; gap:12px;">
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                  <button class="settings-btn btn-outline" id="btn-wifi-scan" onclick="scanWifiNetworks()" style="display:flex; align-items:center; gap:6px;">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12,4V1L8,5L12,9V6A6,6 0 0,1 18,12A6,6 0 0,1 12,18A6,6 0 0,1 6,12H4A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z"/></svg>
+                    <span id="wifi-scan-btn-text" data-i18n="wifi_btn_scan">Scanner les réseaux</span>
+                  </button>
+                  <select id="wifi-scan-select" class="rule-select" style="flex:1; min-width:200px;" onchange="onWifiSelectedFromScan(this.value)">
+                    <option value="" data-i18n="wifi_select_placeholder">-- Sélectionnez un réseau détecté --</option>
+                  </select>
+                </div>
+
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px;">
+                  <div>
+                    <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;" data-i18n="wifi_field_ssid">Nom du réseau Wi-Fi (SSID)</label>
+                    <input type="text" id="wifi-input-ssid" class="rule-input-num" style="width:100%; text-align:left;" placeholder="Ex: Box-Van-4G, Partage-iPhone...">
+                  </div>
+                  <div>
+                    <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;" data-i18n="wifi_field_pass">Mot de passe du Wi-Fi</label>
+                    <input type="password" id="wifi-input-pass" class="rule-input-num" style="width:100%; text-align:left;" placeholder="Mot de passe de sécurité">
+                  </div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-top:5px;">
+                  <button class="settings-btn btn-danger" id="btn-wifi-forget" onclick="forgetWifiNetwork()" data-i18n="wifi_btn_forget">
+                    Oublier le réseau du van
+                  </button>
+                  <button class="settings-btn" id="btn-wifi-connect" onclick="submitWifiConnect()" style="background:var(--cyan-light); color:#000; font-weight:bold; border:none; padding:8px 16px;">
+                    <span id="wifi-connect-btn-text" data-i18n="wifi_btn_connect">Valider la connexion</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

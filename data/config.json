@@ -35,6 +35,18 @@
       "state": 0,
       "value": 0,
       "isCore": false
+    },
+    {
+      "id": 4,
+      "name": "Sonde Habitacle",
+      "category": "SENSOR",
+      "voltage": "3.3V",
+      "mode": "INPUT_ONEWIRE",
+      "type": "RELAY",
+      "gpio": 18,
+      "state": 0,
+      "value": 0,
+      "isCore": false
     }
   ]
 }

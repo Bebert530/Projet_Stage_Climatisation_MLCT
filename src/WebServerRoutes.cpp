@@ -8,7 +8,36 @@ static void addCorsHeaders(AsyncWebServerResponse *response) {
     response->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 }
 
-void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager, AutomationManager& autoManager) {
+static AsyncWebSocket ws("/ws");
+
+void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager, AutomationManager& autoManager, ClimateManager& climManager, WiFiManager& wifiManager) {
+    // -------------------------------------------------------------
+    // WEBSOCKET TEMPS RÉEL (/ws)
+    // -------------------------------------------------------------
+    ws.onEvent([&climManager](AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
+        if (type == WS_EVT_CONNECT) {
+            Serial.printf("[WebSocket] Client #%u connecte depuis %s\n", client->id(), client->remoteIP().toString().c_str());
+            client->text(climManager.getTelemetryJson());
+        } else if (type == WS_EVT_DISCONNECT) {
+            Serial.printf("[WebSocket] Client #%u deconnecte\n", client->id());
+        } else if (type == WS_EVT_DATA) {
+            AwsFrameInfo *info = (AwsFrameInfo*)arg;
+            if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
+                String msg = "";
+                msg.concat((const char*)data, len);
+                climManager.handleJsonCommand(msg);
+            }
+        }
+    });
+
+    climManager.setBroadcastCallback([](const String& msg) {
+        if (ws.count() > 0) {
+            ws.textAll(msg);
+        }
+    });
+
+    server.addHandler(&ws);
+
     // -------------------------------------------------------------
     // GESTION GLOBALE CORS (Options pre-flight)
     // -------------------------------------------------------------
@@ -371,26 +400,46 @@ void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager, Aut
     // -------------------------------------------------------------
     // 10. Télémétrie Climate Pro : GET /data
     // -------------------------------------------------------------
-    server.on("/data", HTTP_GET, [](AsyncWebServerRequest *request) {
-        String telemetry = "{"
-            "\"t_amb\":23.4,"
-            "\"t_water\":11.8,"
-            "\"est_time\":45,"
-            "\"est_water\":\"1h15\","
-            "\"water_ready\":true,"
-            "\"compressor_status\":\"Targeting -16.0°C\","
-            "\"chiller_enabled\":1,"
-            "\"energy\":12400"
-        "}";
+    server.on("/data", HTTP_GET, [&climManager](AsyncWebServerRequest *request) {
+        String telemetry = climManager.getTelemetryJson();
         AsyncWebServerResponse *response = request->beginResponse(200, "application/json", telemetry);
         addCorsHeaders(response);
         request->send(response);
     });
 
     // -------------------------------------------------------------
-    // 9. Actions rapides (GET /action)
+    // 11. Actions rapides (GET /action)
     // -------------------------------------------------------------
-    server.on("/action", HTTP_GET, [](AsyncWebServerRequest *request) {
+    server.on("/action", HTTP_GET, [&climManager](AsyncWebServerRequest *request) {
+        if (request->hasParam("power")) {
+            climManager.setPower(request->getParam("power")->value() == "1");
+        }
+        if (request->hasParam("temp")) {
+            float t = request->getParam("temp")->value().toFloat();
+            climManager.setTarget(climManager.isTargetEnabled(), t);
+        }
+        if (request->hasParam("target_enabled")) {
+            bool en = request->getParam("target_enabled")->value() == "1";
+            climManager.setTarget(en, climManager.getTargetTemp());
+        }
+        if (request->hasParam("fan")) {
+            int f = request->getParam("fan")->value().toInt();
+            climManager.setFanSpeed((uint8_t)f);
+        }
+        if (request->hasParam("mode")) {
+            climManager.setMode(request->getParam("mode")->value());
+        }
+        if (request->hasParam("hyst")) {
+            float h = request->getParam("hyst")->value().toFloat();
+            climManager.setHysteresis(h);
+        }
+        if (request->hasParam("chiller")) {
+            climManager.setChiller(request->getParam("chiller")->value() == "1");
+        }
+        if (request->hasParam("water_temp")) {
+            climManager.setWaterTargetTemp(request->getParam("water_temp")->value().toFloat());
+        }
+
         AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"status\":\"ok\"}");
         addCorsHeaders(response);
         request->send(response);
@@ -458,7 +507,98 @@ void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager, Aut
     );
 
     // -------------------------------------------------------------
-    // 10. Fichiers statiques LittleFS
+    // 12. GET /api/wifi/status : État de connexion Wi-Fi hybride (AP + STA)
+    // -------------------------------------------------------------
+    server.on("/api/wifi/status", HTTP_GET, [&wifiManager](AsyncWebServerRequest *request) {
+        String json = wifiManager.getStatusJson();
+        AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+        addCorsHeaders(response);
+        request->send(response);
+    });
+
+    // -------------------------------------------------------------
+    // 13. GET /api/wifi/scan : Scan Wi-Fi asynchrone & résultats
+    // -------------------------------------------------------------
+    server.on("/api/wifi/scan", HTTP_GET, [&wifiManager](AsyncWebServerRequest *request) {
+        String json = wifiManager.getScanResultsJson();
+        AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+        addCorsHeaders(response);
+        request->send(response);
+    });
+
+    // -------------------------------------------------------------
+    // 14. POST /api/wifi/connect : Connexion à un réseau station (Van / 4G)
+    // -------------------------------------------------------------
+    server.on("/api/wifi/connect", HTTP_POST,
+        [&wifiManager](AsyncWebServerRequest *request) {
+            String* body = (String*)request->_tempObject;
+            if (!body || body->length() == 0) {
+                AsyncWebServerResponse *response = request->beginResponse(400, "application/json", "{\"success\":false,\"error\":\"Corps JSON vide\"}");
+                addCorsHeaders(response);
+                request->send(response);
+                return;
+            }
+
+#if defined(ARDUINOJSON_VERSION_MAJOR) && (ARDUINOJSON_VERSION_MAJOR >= 7)
+            JsonDocument doc;
+#else
+            DynamicJsonDocument doc(512);
+#endif
+            DeserializationError error = deserializeJson(doc, *body);
+            delete body;
+            request->_tempObject = nullptr;
+
+            if (error) {
+                AsyncWebServerResponse *response = request->beginResponse(400, "application/json", "{\"success\":false,\"error\":\"JSON invalide\"}");
+                addCorsHeaders(response);
+                request->send(response);
+                return;
+            }
+
+            String ssid = doc["ssid"] | "";
+            String pass = doc["pass"] | "";
+
+            if (ssid.length() == 0) {
+                AsyncWebServerResponse *response = request->beginResponse(400, "application/json", "{\"success\":false,\"error\":\"Le nom du réseau (SSID) est obligatoire.\"}");
+                addCorsHeaders(response);
+                request->send(response);
+                return;
+            }
+
+            bool ok = wifiManager.connectSTA(ssid, pass);
+            String resp = ok 
+                ? "{\"success\":true,\"message\":\"Connexion en cours vers '" + ssid + "'. L'AP local reste actif.\"}"
+                : "{\"success\":false,\"error\":\"Impossible d'initialiser la connexion station.\"}";
+
+            AsyncWebServerResponse *response = request->beginResponse(ok ? 200 : 500, "application/json", resp);
+            addCorsHeaders(response);
+            request->send(response);
+        },
+        nullptr,
+        [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+            String* body = (String*)request->_tempObject;
+            if (index == 0) {
+                body = new String();
+                request->_tempObject = body;
+            }
+            if (body) {
+                body->concat((const char*)data, len);
+            }
+        }
+    );
+
+    // -------------------------------------------------------------
+    // 15. POST /api/wifi/reset : Oublier le réseau du van & retour AP seul
+    // -------------------------------------------------------------
+    server.on("/api/wifi/reset", HTTP_POST, [&wifiManager](AsyncWebServerRequest *request) {
+        wifiManager.resetSTA();
+        AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"success\":true,\"message\":\"Configuration Wi-Fi réinitialisée. Retour au mode AP local seul.\"}");
+        addCorsHeaders(response);
+        request->send(response);
+    });
+
+    // -------------------------------------------------------------
+    // 16. Fichiers statiques LittleFS
     // -------------------------------------------------------------
     server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html").setCacheControl("max-age=300");
 

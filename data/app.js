@@ -13,6 +13,7 @@ let estimatedTimeToTarget = "45min";
 let estimatedTimeToReady = "1h30";
 let isWaterReady = true;
 let waterCoolingEnabled = true;
+let targetWaterTemp = 8.0;
 let hyst = 0.5;
 let watchdogInterval, watchdogCount = 30;
 let chartsInitialized = false;
@@ -47,6 +48,9 @@ const TRANSLATIONS = {
     login_submit: "SE CONNECTER",
     login_error: "Identifiants incorrects.",
     header_connected: "ESP32 Connecté",
+    header_connected_ws: "ESP32 Connecté (Temps Réel)",
+    header_reconnecting: "ESP32 Reconnexion...",
+    anti_cycle_badge: "Protection Compresseur (Anti-court-cycle) :",
     watchdog_alert_prefix: "ALERTE : Perte de communication capteurs. Coupure de sécurité dans",
     watchdog_alert_suffix: "s...",
     nav_clim: "Climatisation",
@@ -82,6 +86,9 @@ const TRANSLATIONS = {
     settings_chiller_title: "Refroidissement d'eau (Chiller)",
     settings_chiller_sub: "Auto-refroidissement à basse température. Économie batterie van.",
     settings_chiller_sub_off: "Refroidissement eau COUPÉ (Mode stationnement / Économie batterie).",
+    settings_water_temp_title: "Consigne d'eau (Chiller)",
+    settings_water_temp_sub: "Température cible du bac d'eau froide (2°C à 20°C)",
+    target_prefix: "Consigne :",
     settings_hyst_title: "Hystérésis de régulation",
     settings_hyst_sub: "Plage de déclenchement avant réactivation",
     settings_compressor: "Compresseur (Chiller)",
@@ -257,7 +264,39 @@ const TRANSLATIONS = {
     test_contact_open: "Contact ouvert",
     test_measured_sim_volts_html: "Valeur mesurée (Simulation) : <strong>2.15 V</strong>",
     test_sensor_sim_state_html: "Valeur du capteur (Simulation) : <strong style=\"font-size:16px; color:var(--cyan-light);\">ON</strong> (Contact fermé)",
-    test_btn_caution_sec: "Attention ({sec}s)..."
+    test_btn_caution_sec: "Attention ({sec}s)...",
+    probe_alert_disconnected: "⚠️ ALERTE : Sonde de température déconnectée (-127°C). Sécurité compresseur active.",
+    probes_status_alert: "ALERTE (-127°C Déconnexion)",
+    probes_status_active: "OK ({count} sonde(s) active(s))",
+    probes_status_none: "Aucune sonde détectée",
+    test_sensor_onewire_html: "Sonde 1-Wire : <strong>{val}</strong>",
+    toast_onewire_read: "Lecture 1-Wire : {msg}",
+    toast_esp32_comm_error: "Erreur de communication avec l'ESP32.",
+    toast_hardware_test_error: "Erreur de test matériel",
+    toast_device_comm_error: "{name} : Erreur de communication avec l'ESP32",
+    toast_sensor_test_success: "Test capteur réussi.",
+    wifi_section_title: "Paramètres Réseau Wi-Fi Hybride",
+    wifi_section_sub: "Connectez l'ESP32 à la box ou au partage 4G de votre van sans jamais perdre l'accès au réseau local de secours.",
+    wifi_ap_label: "Point d'accès de secours (AP)",
+    wifi_sta_label: "Réseau du Van (Station)",
+    wifi_mdns_label: "Accès direct mDNS",
+    wifi_btn_scan: "Scanner les réseaux",
+    wifi_btn_scanning: "Scan en cours...",
+    wifi_select_placeholder: "-- Sélectionnez un réseau détecté --",
+    wifi_field_ssid: "Nom du réseau Wi-Fi (SSID)",
+    wifi_field_pass: "Mot de passe du Wi-Fi",
+    wifi_btn_connect: "Valider la connexion",
+    wifi_btn_connecting: "Connexion en cours...",
+    wifi_btn_forget: "Oublier le réseau du van",
+    wifi_badge_ap_only: "Mode autonome (Van-Clim-Local)",
+    wifi_badge_connected: "Connecté à {ssid} ({ip})",
+    wifi_badge_connecting: "Connexion à {ssid} en cours...",
+    wifi_badge_failed: "Échec connexion à {ssid}",
+    toast_wifi_scan_done: "{count} réseau(x) Wi-Fi détecté(s)",
+    toast_wifi_connecting: "Connexion à \"{ssid}\" en cours. L'AP local reste actif.",
+    toast_wifi_forget_confirm: "Êtes-vous sûr de vouloir oublier la connexion au réseau du van ?",
+    toast_wifi_reset_done: "Réseau du van oublié. Retour au mode AP local seul.",
+    toast_wifi_ssid_required: "Veuillez saisir le nom du réseau Wi-Fi (SSID)."
   },
 
   en: {
@@ -266,6 +305,9 @@ const TRANSLATIONS = {
     login_submit: "LOG IN",
     login_error: "Incorrect credentials.",
     header_connected: "ESP32 Connected",
+    header_connected_ws: "ESP32 Connected (Real-Time)",
+    header_reconnecting: "ESP32 Reconnecting...",
+    anti_cycle_badge: "Compressor Safety (Anti-short-cycle):",
     watchdog_alert_prefix: "ALERT: Sensor communication lost. Safety shutoff in",
     watchdog_alert_suffix: "s...",
     nav_clim: "Climate",
@@ -301,6 +343,9 @@ const TRANSLATIONS = {
     settings_chiller_title: "Water Chiller",
     settings_chiller_sub: "Auto-chills water to low temp. Saves van battery.",
     settings_chiller_sub_off: "Water cooling OFF (Van parked / Battery save mode).",
+    settings_water_temp_title: "Chilled Water Target",
+    settings_water_temp_sub: "Target chilled water loop temperature (2°C to 20°C)",
+    target_prefix: "Setpoint:",
     settings_hyst_title: "Regulation Hysteresis",
     settings_hyst_sub: "Trigger range before reactivation",
     settings_compressor: "Compressor (Chiller)",
@@ -476,7 +521,39 @@ const TRANSLATIONS = {
     test_contact_open: "Contact open",
     test_measured_sim_volts_html: "Measured value (Simulation): <strong>2.15 V</strong>",
     test_sensor_sim_state_html: "Sensor value (Simulation): <strong style=\"font-size:16px; color:var(--cyan-light);\">ON</strong> (Contact closed)",
-    test_btn_caution_sec: "Caution ({sec}s)..."
+    test_btn_caution_sec: "Caution ({sec}s)...",
+    probe_alert_disconnected: "⚠️ ALERT: Temperature probe disconnected (-127°C). Compressor safety active.",
+    probes_status_alert: "ALERT (-127°C Disconnected)",
+    probes_status_active: "OK ({count} probe(s) active)",
+    probes_status_none: "No probes detected",
+    test_sensor_onewire_html: "1-Wire Probe: <strong>{val}</strong>",
+    toast_onewire_read: "1-Wire Reading: {msg}",
+    toast_esp32_comm_error: "Communication error with ESP32.",
+    toast_hardware_test_error: "Hardware test error",
+    toast_device_comm_error: "{name}: Communication error with ESP32",
+    toast_sensor_test_success: "Sensor test successful.",
+    wifi_section_title: "Hybrid Wi-Fi Network Settings",
+    wifi_section_sub: "Connect ESP32 to your van router or 4G hotspot without ever losing access to the local fallback AP.",
+    wifi_ap_label: "Fallback Access Point (AP)",
+    wifi_sta_label: "Van Network (Station)",
+    wifi_mdns_label: "Direct mDNS Access",
+    wifi_btn_scan: "Scan networks",
+    wifi_btn_scanning: "Scanning...",
+    wifi_select_placeholder: "-- Select a detected network --",
+    wifi_field_ssid: "Wi-Fi Network Name (SSID)",
+    wifi_field_pass: "Wi-Fi Password",
+    wifi_btn_connect: "Connect to Wi-Fi",
+    wifi_btn_connecting: "Connecting...",
+    wifi_btn_forget: "Forget van network",
+    wifi_badge_ap_only: "Standalone mode (Van-Clim-Local)",
+    wifi_badge_connected: "Connected to {ssid} ({ip})",
+    wifi_badge_connecting: "Connecting to {ssid}...",
+    wifi_badge_failed: "Failed to connect to {ssid}",
+    toast_wifi_scan_done: "{count} Wi-Fi network(s) detected",
+    toast_wifi_connecting: "Connecting to \"{ssid}\". Local AP remains active.",
+    toast_wifi_forget_confirm: "Are you sure you want to forget the van Wi-Fi connection?",
+    toast_wifi_reset_done: "Van network forgotten. Reverted to local AP only.",
+    toast_wifi_ssid_required: "Please enter Wi-Fi network name (SSID)."
   },
 
   es: {
@@ -485,6 +562,9 @@ const TRANSLATIONS = {
     login_submit: "INICIAR SESIÓN",
     login_error: "Credenciales incorrectas.",
     header_connected: "ESP32 Conectado",
+    header_connected_ws: "ESP32 Conectado (Tiempo Real)",
+    header_reconnecting: "ESP32 Reconectando...",
+    anti_cycle_badge: "Protección Compresor (Anti-ciclos cortos):",
     watchdog_alert_prefix: "ALERTA: Pérdida de comunicación de sensores. Corte de seguridad en",
     watchdog_alert_suffix: "s...",
     nav_clim: "Climatización",
@@ -520,6 +600,9 @@ const TRANSLATIONS = {
     settings_chiller_title: "Enfriador de Agua (Chiller)",
     settings_chiller_sub: "Auto-enfriamiento a baja temp. Ahorro batería camper.",
     settings_chiller_sub_off: "Refrigeración agua APAGADA (Modo estacionado / Ahorro de batería).",
+    settings_water_temp_title: "Consigna de agua (Chiller)",
+    settings_water_temp_sub: "Temperatura objetivo del circuito de agua fría (2°C a 20°C)",
+    target_prefix: "Consigna:",
     settings_hyst_title: "Histéresis de regulación",
     settings_hyst_sub: "Rango de activación antes de reiniciar",
     settings_compressor: "Compresor (Chiller)",
@@ -695,7 +778,39 @@ const TRANSLATIONS = {
     test_contact_open: "Contacto abierto",
     test_measured_sim_volts_html: "Valor medido (Simulación): <strong>2.15 V</strong>",
     test_sensor_sim_state_html: "Valor del sensor (Simulación): <strong style=\"font-size:16px; color:var(--cyan-light);\">ON</strong> (Contacto cerrado)",
-    test_btn_caution_sec: "Atención ({sec}s)..."
+    test_btn_caution_sec: "Atención ({sec}s)...",
+    probe_alert_disconnected: "⚠️ ALERTA: Sonda de temperatura desconectada (-127°C). Seguridad compresor activa.",
+    probes_status_alert: "ALERTA (-127°C Desconectada)",
+    probes_status_active: "OK ({count} sonda(s) activa(s))",
+    probes_status_none: "Ninguna sonda detectada",
+    test_sensor_onewire_html: "Sonda 1-Wire: <strong>{val}</strong>",
+    toast_onewire_read: "Lectura 1-Wire: {msg}",
+    toast_esp32_comm_error: "Error de comunicación con el ESP32.",
+    toast_hardware_test_error: "Error de prueba de hardware",
+    toast_device_comm_error: "{name}: Error de comunicación con el ESP32",
+    toast_sensor_test_success: "Prueba de sensor exitosa.",
+    wifi_section_title: "Configuración de Red Wi-Fi Híbrida",
+    wifi_section_sub: "Conecte el ESP32 al router o compartir 4G de su camper sin perder nunca el acceso al AP local de respaldo.",
+    wifi_ap_label: "Punto de acceso de respaldo (AP)",
+    wifi_sta_label: "Red del Camper (Estación)",
+    wifi_mdns_label: "Acceso directo mDNS",
+    wifi_btn_scan: "Escanear redes",
+    wifi_btn_scanning: "Escaneando...",
+    wifi_select_placeholder: "-- Seleccione una red detectada --",
+    wifi_field_ssid: "Nombre de la red Wi-Fi (SSID)",
+    wifi_field_pass: "Contraseña Wi-Fi",
+    wifi_btn_connect: "Conectar al Wi-Fi",
+    wifi_btn_connecting: "Conectando...",
+    wifi_btn_forget: "Olvidar red del camper",
+    wifi_badge_ap_only: "Modo autónomo (Van-Clim-Local)",
+    wifi_badge_connected: "Conectado a {ssid} ({ip})",
+    wifi_badge_connecting: "Conectando a {ssid}...",
+    wifi_badge_failed: "Error de conexión a {ssid}",
+    toast_wifi_scan_done: "{count} red(es) Wi-Fi detectada(s)",
+    toast_wifi_connecting: "Conectando a \"{ssid}\". El AP local sigue activo.",
+    toast_wifi_forget_confirm: "¿Está seguro de olvidar la conexión a la red del camper?",
+    toast_wifi_reset_done: "Red del camper olvidada. Regresado solo al AP local.",
+    toast_wifi_ssid_required: "Por favor introduzca el nombre de la red Wi-Fi (SSID)."
   }
 };
 
@@ -768,10 +883,19 @@ function setLanguage(lang) {
   try { renderAutomationTable(); } catch (e) {}
   try { renderCyclesHistory(); } catch (e) {}
 
+  const watchdogBanner = document.getElementById('watchdog-banner');
+  if (watchdogBanner && watchdogBanner.style.display !== 'none' && !watchdogInterval) {
+    watchdogBanner.innerHTML = t('probe_alert_disconnected', "⚠️ ALERTE : Sonde de température déconnectée (-127°C). Sécurité compresseur active.");
+  }
+
   const wizModal = document.getElementById('wizard-modal');
   if (wizModal && wizModal.classList.contains('active')) {
     try { openWizardModal(); } catch (e) {}
   }
+
+  try {
+    if (lastWifiData) renderWifiStatus(lastWifiData);
+  } catch (e) {}
 }
 
 function triggerRebootConfirm() {
@@ -805,6 +929,7 @@ function checkLogin() {
     try { loadDeviceManager(); } catch (e) { console.warn("Erreur loadDeviceManager:", e); }
     try { loadAutomations(); } catch (e) { console.warn("Erreur loadAutomations:", e); }
     try { loadCyclesHistory(); } catch (e) { console.warn("Erreur loadCyclesHistory:", e); }
+    try { loadWifiStatus(); } catch (e) { console.warn("Erreur loadWifiStatus:", e); }
   } else { 
     const errEl = document.getElementById('login-error');
     if (errEl) errEl.style.display = 'block'; 
@@ -828,11 +953,13 @@ function switchTab(tabId, btn) {
     if (sidebar) sidebar.classList.add('collapsed');
   }
 
-  // Si l'utilisateur clique sur l'onglet Matériel ou Automatisation
+  // Si l'utilisateur clique sur l'onglet Matériel, Automatisation ou Paramètres
   if (tabId === 'devices') {
     loadDeviceManager();
   } else if (tabId === 'automation') {
     loadAutomations();
+  } else if (tabId === 'settings') {
+    loadWifiStatus();
   }
 }
 
@@ -1508,7 +1635,8 @@ async function loadDeviceManager() {
       devicesList = [
         {"id": 1, "name": "Pompe boucle froide", "category": "ACTUATOR", "voltage": "12V", "mode": "OUTPUT_RELAY", "type": "RELAY", "gpio": 4, "state": 0, "value": 0, "isCore": false},
         {"id": 2, "name": "Lanterneau Fiamma", "category": "ACTUATOR", "voltage": "12V", "mode": "OUTPUT_PWM", "type": "PWM", "gpio": 19, "state": 0, "value": 128, "isCore": false},
-        {"id": 3, "name": "Spot Salon", "category": "ACTUATOR", "voltage": "12V", "mode": "OUTPUT_RELAY", "type": "RELAY", "gpio": 23, "state": 0, "value": 0, "isCore": false}
+        {"id": 3, "name": "Spot Salon", "category": "ACTUATOR", "voltage": "12V", "mode": "OUTPUT_RELAY", "type": "RELAY", "gpio": 23, "state": 0, "value": 0, "isCore": false},
+        {"id": 4, "name": "Sonde Habitacle", "category": "SENSOR", "voltage": "3.3V", "mode": "INPUT_ONEWIRE", "type": "RELAY", "gpio": 18, "state": 0, "value": 0, "isCore": false}
       ];
       try { localStorage.setItem('climate_pro_sim_devices', JSON.stringify(devicesList)); } catch(e){}
     }
@@ -1562,6 +1690,8 @@ function renderDeviceTable(devices) {
     let stateDisplay = '';
     if (dev.mode === 'OUTPUT_PWM') {
       stateDisplay = `<span>${Math.round((dev.value / 255) * 100)}%</span>`;
+    } else if (dev.mode === 'INPUT_ONEWIRE') {
+      stateDisplay = dev.value ? `<span>${(dev.value / 100).toFixed(1)}°C</span>` : `<span>--</span>`;
     } else if (dev.mode === 'INPUT_DIGITAL') {
       stateDisplay = dev.state ? `<span>ON</span>` : `<span>OFF</span>`;
     } else if (dev.mode === 'INPUT_ADC') {
@@ -2050,8 +2180,12 @@ async function runWizardTest() {
         })
       });
       const data = await res.json();
-      statusBox.className = "wizard-test-status success";
-      if (wizardState.mode === 'INPUT_ADC') {
+      statusBox.className = data.success ? "wizard-test-status success" : "wizard-test-status warning";
+      if (wizardState.mode === 'INPUT_ONEWIRE') {
+        const msg = data.message || (data.reading !== undefined ? `${(data.reading / 100).toFixed(1)} °C` : '--');
+        statusBox.innerHTML = t('test_sensor_onewire_html', 'Sonde 1-Wire : <strong>{val}</strong>').replace('{val}', escapeHtml(msg));
+        showToast(t('toast_onewire_read', 'Lecture 1-Wire : {msg}').replace('{msg}', msg), data.success ? "success" : "warning");
+      } else if (wizardState.mode === 'INPUT_ADC') {
         const volts = (data.voltage !== undefined) ? data.voltage : ((data.reading / 4095) * 3.3);
         statusBox.innerHTML = t('test_measured_volts_html', 'Valeur mesurée : <strong>{volts} V</strong> (ADC : {raw} / 4095)').replace('{volts}', volts.toFixed(2)).replace('{raw}', data.reading);
         showToast(t('toast_sensor_val', 'Valeur capteur : {val}').replace('{val}', volts.toFixed(2) + ' V'), "success");
@@ -2064,14 +2198,9 @@ async function runWizardTest() {
         showToast(t('toast_sensor_val', 'Valeur capteur : {val}').replace('{val}', stateStr), "success");
       }
     } catch (e) {
-      statusBox.className = "wizard-test-status success";
-      if (wizardState.mode === 'INPUT_ADC') {
-        statusBox.innerHTML = t('test_measured_sim_volts_html', `Valeur mesurée (Simulation) : <strong>2.15 V</strong>`);
-        showToast(t('toast_sensor_val_sim', 'Valeur capteur (Simulation) : {val}').replace('{val}', '2.15 V'), "info");
-      } else {
-        statusBox.innerHTML = t('test_sensor_sim_state_html', `Valeur du capteur (Simulation) : <strong style="font-size:16px; color:var(--cyan-light);">ON</strong> (Contact fermé)`);
-        showToast(t('toast_sensor_val_sim', 'Valeur capteur (Simulation) : {val}').replace('{val}', 'ON'), "info");
-      }
+      statusBox.className = "wizard-test-status warning";
+      statusBox.innerText = t('toast_esp32_comm_error', "Erreur de communication avec l'ESP32.");
+      showToast(t('toast_hardware_test_error', "Erreur de test matériel"), "warning");
     } finally {
       btn.disabled = false;
       btnText.innerText = t('wizard_btn_test_sensor', "Tester la lecture du capteur");
@@ -2105,7 +2234,6 @@ async function finishAndActivateWizard() {
     }
     showToast(`"${wizardState.name}" - ${t('toast_wizard_success', 'Équipement activé et configuré avec succès.')} (GPIO ${wizardState.gpio})`, "success");
   } catch (err) {
-    // Mode simulation
     if (wizardState.id > 0) {
       const existing = devicesList.find(d => d.id === wizardState.id);
       if (existing) Object.assign(existing, payload);
@@ -2168,7 +2296,7 @@ let tableTestTimers = {};
 
 /**
  * Lance un test depuis le tableau Matériel
- * - Capteur : lecture immédiate et affichage de la valeur (ON/OFF ou tension)
+ * - Capteur : lecture immédiate et affichage de la valeur (ON/OFF, tension ou température)
  * - Actionneur : prévention 5 secondes puis mise en marche 3 secondes
  */
 async function testDevice(id, btnElement) {
@@ -2195,7 +2323,11 @@ async function testDevice(id, btnElement) {
       });
       const data = await res.json();
       let displayVal = '';
-      if (dev.mode === 'INPUT_ADC') {
+      if (dev.mode === 'INPUT_ONEWIRE') {
+        const tempC = (data.reading !== undefined && data.reading !== -127) ? (data.reading / 100).toFixed(1) : ((data.voltage !== undefined) ? data.voltage.toFixed(1) : '--');
+        displayVal = `${tempC} °C`;
+        dev.value = data.reading || 0;
+      } else if (dev.mode === 'INPUT_ADC') {
         const volts = (data.voltage !== undefined) ? data.voltage : ((data.reading / 4095) * 3.3);
         dev.value = (data.reading !== undefined) ? data.reading : Math.round((volts / 3.3) * 4095);
         displayVal = `${volts.toFixed(2)} V`;
@@ -2209,13 +2341,7 @@ async function testDevice(id, btnElement) {
       renderDeviceTable(devicesList);
       renderDashboardAuxDevices(devicesList);
     } catch (err) {
-      // Simulation locale
-      dev.state = dev.state ? 0 : 1;
-      const displayVal = (dev.mode === 'INPUT_ADC') ? '2.15 V' : (dev.state ? 'ON' : 'OFF');
-      try { localStorage.setItem('climate_pro_sim_devices', JSON.stringify(devicesList)); } catch(e){}
-      showToast(t('toast_dev_sim_val', '{name} (Simulation) : Valeur = {val}').replace('{name}', dev.name).replace('{val}', displayVal), 'info');
-      renderDeviceTable(devicesList);
-      renderDashboardAuxDevices(devicesList);
+      showToast(t('toast_device_comm_error', "{name} : Erreur de communication avec l'ESP32").replace('{name}', dev.name), 'warning');
     } finally {
       const btn = document.getElementById(`btn-test-${id}`);
       if (btn) {
@@ -2688,7 +2814,238 @@ function evaluateAutomations() {
 }
 
 // =========================================================================
-// LOGIQUE CLIMATISATION EXISTANTE (REPRISE INTÉGRALE)
+// COMMUNICATION TEMPS RÉEL (WEBSOCKET & FALLBACK HTTP)
+// =========================================================================
+let socket = null;
+let socketReconnectTimer = null;
+let isWsConnected = false;
+
+function initWebSocket() {
+  if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
+
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const host = window.location.host || '192.168.4.1';
+  const wsUrl = `${protocol}//${host}/ws`;
+
+  try {
+    socket = new WebSocket(wsUrl);
+
+    socket.onopen = function() {
+      console.log("[WebSocket] Connecté à l'ESP32");
+      isWsConnected = true;
+      updateConnectionStatus(true);
+      if (socketReconnectTimer) {
+        clearTimeout(socketReconnectTimer);
+        socketReconnectTimer = null;
+      }
+      sendWsCommand({ cmd: 'getState' });
+    };
+
+    socket.onmessage = function(event) {
+      try {
+        const data = JSON.parse(event.data);
+        handleIncomingTelemetry(data);
+      } catch (e) {
+        console.warn("[WebSocket] Erreur JSON reçu:", e);
+      }
+    };
+
+    socket.onclose = function() {
+      isWsConnected = false;
+      updateConnectionStatus(false);
+      scheduleWsReconnect();
+    };
+
+    socket.onerror = function(err) {
+      isWsConnected = false;
+      updateConnectionStatus(false);
+    };
+  } catch (e) {
+    isWsConnected = false;
+    updateConnectionStatus(false);
+    scheduleWsReconnect();
+  }
+}
+
+function scheduleWsReconnect() {
+  if (!socketReconnectTimer) {
+    socketReconnectTimer = setTimeout(() => {
+      socketReconnectTimer = null;
+      initWebSocket();
+    }, 2500);
+  }
+}
+
+function updateConnectionStatus(connected) {
+  const indicator = document.getElementById('ws-status-indicator');
+  const textEl = document.getElementById('ws-status-text');
+  if (indicator) {
+    indicator.style.background = connected ? 'var(--success)' : 'var(--orange-alert)';
+    indicator.style.boxShadow = connected ? '0 0 8px rgba(52, 211, 153, 0.6)' : '0 0 8px rgba(251, 146, 60, 0.6)';
+  }
+  if (textEl) {
+    textEl.innerText = connected ? t('header_connected_ws', 'ESP32 Connecté (Temps Réel)') : t('header_reconnecting', 'ESP32 Reconnexion...');
+  }
+}
+
+function sendWsCommand(cmdObj) {
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify(cmdObj));
+  } else {
+    // Fallback HTTP si le WebSocket est en cours de reconnexion
+    if (cmdObj.cmd === 'setPower' || cmdObj.cmd === 'togglePower') {
+      fetch('/action?power=' + (cmdObj.power ? '1' : '0')).catch(() => {});
+    } else if (cmdObj.cmd === 'setTarget') {
+      if (cmdObj.temp !== undefined) fetch('/action?temp=' + cmdObj.temp).catch(() => {});
+      if (cmdObj.enabled !== undefined) fetch('/action?target_enabled=' + (cmdObj.enabled ? '1' : '0')).catch(() => {});
+    } else if (cmdObj.cmd === 'setMode') {
+      fetch('/action?mode=' + encodeURIComponent(cmdObj.mode)).catch(() => {});
+    } else if (cmdObj.cmd === 'setFan') {
+      fetch('/action?fan=' + cmdObj.speed).catch(() => {});
+    } else if (cmdObj.cmd === 'setHyst') {
+      fetch('/action?hyst=' + cmdObj.hyst).catch(() => {});
+    } else if (cmdObj.cmd === 'setChiller') {
+      fetch('/action?chiller=' + (cmdObj.enabled ? '1' : '0')).catch(() => {});
+    } else if (cmdObj.cmd === 'setWaterTemp') {
+      fetch('/action?water_temp=' + cmdObj.temp).catch(() => {});
+    }
+  }
+}
+
+function handleIncomingTelemetry(data) {
+  if (!data) return;
+
+  if (data.t_amb !== undefined) {
+    currentRoomTemp = parseFloat(data.t_amb);
+    const ambEl = document.getElementById('v_t_amb');
+    if (ambEl) ambEl.innerText = currentRoomTemp.toFixed(1) + '°';
+  }
+
+  if (data.t_water !== undefined) {
+    const wEl = document.getElementById('t_water');
+    if (wEl) wEl.innerText = parseFloat(data.t_water).toFixed(1) + '°';
+  }
+
+  if (data.target_water_temp !== undefined) {
+    targetWaterTemp = parseFloat(data.target_water_temp);
+    const twEl = document.getElementById('target_water_temp_val');
+    if (twEl) twEl.innerText = targetWaterTemp.toFixed(1) + '°';
+    const twDisp = document.getElementById('t_water_target_disp');
+    if (twDisp) twDisp.innerText = targetWaterTemp.toFixed(1) + '°';
+  }
+
+  if (data.est_time !== undefined) {
+    estimatedTimeToTarget = data.est_time > 0 ? (data.est_time + " min") : "Consigne atteinte";
+  }
+  if (data.est_water) estimatedTimeToReady = data.est_water;
+  if (typeof data.water_ready !== 'undefined') isWaterReady = data.water_ready;
+
+  // Statut du compresseur & sécurité anti-court-cycle
+  const compState = document.getElementById('compressor-state');
+  if (compState && data.compressor_status) {
+    compState.innerText = data.compressor_status;
+    compState.style.color = data.anti_cycle ? 'var(--orange-alert)' : (data.power ? 'var(--cyan-light)' : 'var(--text-muted)');
+  }
+
+  const antiCycleBanner = document.getElementById('anti-cycle-banner');
+  const antiCycleTimer = document.getElementById('anti-cycle-timer');
+  if (data.anti_cycle && data.anti_cycle_sec > 0) {
+    if (antiCycleBanner) antiCycleBanner.style.display = 'block';
+    if (antiCycleTimer) {
+      const m = Math.floor(data.anti_cycle_sec / 60);
+      const s = data.anti_cycle_sec % 60;
+      antiCycleTimer.innerText = `${m}m${s < 10 ? '0' : ''}${s}s`;
+    }
+  } else {
+    if (antiCycleBanner) antiCycleBanner.style.display = 'none';
+  }
+
+  // Synchronisation de l'état système si initié côté ESP32
+  if (data.power !== undefined && data.power !== systemOn) {
+    systemOn = data.power;
+    const dot = document.getElementById('status-dot');
+    const powerStatus = document.getElementById('power-status-text');
+    if (dot) {
+      if (systemOn) { dot.classList.remove('off'); dot.classList.add('on'); }
+      else { dot.classList.remove('on'); dot.classList.add('off'); }
+    }
+    if (powerStatus) {
+      if (systemOn) { powerStatus.classList.remove('off'); powerStatus.classList.add('on'); powerStatus.innerText = 'ON'; }
+      else { powerStatus.classList.remove('on'); powerStatus.classList.add('off'); powerStatus.innerText = 'OFF'; }
+    }
+  }
+
+  if (data.target_temp !== undefined) {
+    targetTemp = parseFloat(data.target_temp);
+    const ttEl = document.getElementById('target_temp');
+    if (ttEl) ttEl.innerText = targetTemp.toFixed(1) + '°';
+  }
+
+  if (typeof data.target_enabled !== 'undefined') {
+    targetEnabled = data.target_enabled;
+    const ttToggle = document.getElementById('target-toggle');
+    if (ttToggle) ttToggle.checked = targetEnabled;
+    const controls = document.getElementById('target-controls');
+    const sub = document.getElementById('target-sub');
+    if (controls) {
+      if (targetEnabled) controls.classList.remove('disabled');
+      else controls.classList.add('disabled');
+    }
+    if (sub) {
+      sub.innerText = targetEnabled ? t('card_target_sub_active', 'Thermostat actif') : t('card_target_sub_inactive', 'Thermostat inactif');
+      sub.style.color = targetEnabled ? 'var(--cyan-light)' : 'var(--text-muted)';
+    }
+  }
+
+  if (typeof data.chiller_enabled !== 'undefined') {
+    waterCoolingEnabled = (data.chiller_enabled === 1 || data.chiller_enabled === true);
+    const cToggle = document.getElementById('chiller-toggle');
+    if (cToggle) cToggle.checked = waterCoolingEnabled;
+    const sub = document.getElementById('chiller-sub');
+    if (sub) {
+      sub.innerText = waterCoolingEnabled ? t('settings_chiller_sub', 'Auto-refroidissement à basse température. Économie batterie van.') : t('settings_chiller_sub_off', 'Refroidissement eau COUPÉ (Mode stationnement / Économie batterie).');
+      sub.style.color = waterCoolingEnabled ? 'var(--text-muted)' : 'var(--orange-alert)';
+    }
+  }
+
+  if (data.energy) {
+    const eEl = document.getElementById('v_energy');
+    if (eEl) eEl.innerText = (data.energy / 1000).toFixed(2) + ' kWh';
+  }
+
+  // État des sondes physiques DS18B20 & Watchdog matériel
+  const probesStatusEl = document.getElementById('probes-status');
+  if (probesStatusEl && data.probes_count !== undefined) {
+    if (data.probe_alert) {
+      probesStatusEl.innerText = t('probes_status_alert', "ALERTE (-127°C Déconnexion)");
+      probesStatusEl.style.color = "var(--orange-alert)";
+    } else if (data.probes_count > 0) {
+      probesStatusEl.innerText = t('probes_status_active', "OK ({count} sonde(s) active(s))").replace('{count}', data.probes_count);
+      probesStatusEl.style.color = "var(--success)";
+    } else {
+      probesStatusEl.innerText = t('probes_status_none', "Aucune sonde détectée");
+      probesStatusEl.style.color = "var(--text-muted)";
+    }
+  }
+
+  const watchdogBanner = document.getElementById('watchdog-banner');
+  if (watchdogBanner) {
+    if (data.probe_alert) {
+      watchdogBanner.style.display = 'block';
+      watchdogBanner.innerHTML = t('probe_alert_disconnected', "⚠️ ALERTE : Sonde de température déconnectée (-127°C). Sécurité compresseur active.");
+    } else if (!watchdogInterval) {
+      watchdogBanner.style.display = 'none';
+    }
+  }
+
+  updateRing();
+  try { evaluateAutomations(); } catch (e) {}
+}
+
+// =========================================================================
+// LOGIQUE CLIMATISATION & CONTRÔLEURS
 // =========================================================================
 
 function updateRing() {
@@ -2769,7 +3126,7 @@ function togglePower() {
   }
   
   updateRing(); 
-  fetch('/action?power=' + (systemOn ? '1' : '0')).catch(() => {});
+  sendWsCommand({ cmd: 'setPower', power: systemOn });
 }
 
 function toggleTarget() {
@@ -2793,7 +3150,7 @@ function toggleTarget() {
   }
 
   updateRing();
-  fetch('/action?target_enabled=' + (targetEnabled ? '1' : '0')).catch(() => {});
+  sendWsCommand({ cmd: 'setTarget', enabled: targetEnabled, temp: targetTemp });
 }
 
 function changeTemp(change) {
@@ -2810,7 +3167,7 @@ function changeTemp(change) {
   }
 
   updateRing(); 
-  fetch('/action?temp=' + targetTemp.toFixed(1)).catch(() => {});
+  sendWsCommand({ cmd: 'setTarget', enabled: targetEnabled, temp: targetTemp });
 }
 
 function setMode(mode, btnElement) {
@@ -2836,7 +3193,7 @@ function setMode(mode, btnElement) {
   slider.value = speed;
   fanVal.innerText = speed + '%';
   
-  fetch('/action?fan=' + speed).catch(() => {});
+  sendWsCommand({ cmd: 'setMode', mode: mode.toUpperCase() });
 }
 
 function setManualMode() {
@@ -2851,6 +3208,7 @@ function setManualMode() {
   sliderBox.classList.add('active');
   slider.disabled = false;
   fanVal.style.color = 'var(--orange-alert)';
+  sendWsCommand({ cmd: 'setFan', speed: parseInt(slider.value, 10) });
 }
 
 function returnToAuto() {
@@ -2861,7 +3219,7 @@ function returnToAuto() {
 function updateFanSpeed() {
   const val = document.getElementById('fan-slider').value;
   document.getElementById('fan-val').innerText = val + '%';
-  fetch('/action?fan=' + val).catch(() => {});
+  sendWsCommand({ cmd: 'setFan', speed: parseInt(val, 10) });
 }
 
 function toggleTimerSwitch() {
@@ -2905,6 +3263,7 @@ function applyCustomTimer() {
 function changeHyst(val) { 
   hyst += val; if(hyst < 0.1) hyst = 0.1; 
   document.getElementById('target_hyst').innerText = '±' + hyst.toFixed(1) + '°'; 
+  sendWsCommand({ cmd: 'setHyst', hyst: parseFloat(hyst.toFixed(1)) });
 }
 
 function toggleChiller() {
@@ -2918,7 +3277,19 @@ function toggleChiller() {
     sub.style.color = 'var(--orange-alert)';
   }
   updateRing();
-  fetch('/action?chiller=' + (waterCoolingEnabled ? '1' : '0')).catch(() => {});
+  sendWsCommand({ cmd: 'setChiller', enabled: waterCoolingEnabled });
+}
+
+function changeWaterTargetTemp(val) {
+  targetWaterTemp += val;
+  if (targetWaterTemp < 2.0) targetWaterTemp = 2.0;
+  if (targetWaterTemp > 20.0) targetWaterTemp = 20.0;
+  targetWaterTemp = parseFloat(targetWaterTemp.toFixed(1));
+  const twEl = document.getElementById('target_water_temp_val');
+  if (twEl) twEl.innerText = targetWaterTemp.toFixed(1) + '°';
+  const twDisp = document.getElementById('t_water_target_disp');
+  if (twDisp) twDisp.innerText = targetWaterTemp.toFixed(1) + '°';
+  sendWsCommand({ cmd: 'setWaterTemp', temp: targetWaterTemp });
 }
 
 function triggerWatchdogTest() {
@@ -2996,48 +3367,19 @@ function initCharts() {
 }
 
 function startTelemetry() {
+  initWebSocket();
+
+  // Polling de secours si le WebSocket est temporairement déconnecté
   setInterval(function() {
-    fetch('/data')
-      .then(response => response.json())
-      .then(data => {
-        currentRoomTemp = parseFloat(data.t_amb);
-        if(data.est_time) estimatedTimeToTarget = data.est_time + " min";
-        if(data.est_water) estimatedTimeToReady = data.est_water;
-        if(typeof data.water_ready !== 'undefined') isWaterReady = data.water_ready;
-        if(data.compressor_status) {
-          const compState = document.getElementById('compressor-state');
-          if (compState) compState.innerText = data.compressor_status;
-        }
-        if(typeof data.chiller_enabled !== 'undefined') {
-          waterCoolingEnabled = (data.chiller_enabled === 1 || data.chiller_enabled === true);
-          const cToggle = document.getElementById('chiller-toggle');
-          if (cToggle) cToggle.checked = waterCoolingEnabled;
-          const sub = document.getElementById('chiller-sub');
-          if (sub) {
-            sub.innerText = waterCoolingEnabled ? t('settings_chiller_sub', 'Auto-refroidissement à basse température. Économie batterie van.') : t('settings_chiller_sub_off', 'Refroidissement eau COUPÉ (Mode stationnement / Économie batterie).');
-            sub.style.color = waterCoolingEnabled ? 'var(--text-muted)' : 'var(--orange-alert)';
-          }
-        }
-        
-        document.getElementById('v_t_amb').innerText = currentRoomTemp.toFixed(1) + '°';
-        if(data.t_water) document.getElementById('t_water').innerText = data.t_water + '°';
-        
-        if(data.energy) {
-           document.getElementById('v_energy').innerText = (data.energy / 1000).toFixed(2) + ' kWh';
-        }
-        
-        updateRing();
-        try { evaluateAutomations(); } catch (e) {}
-      })
-      .catch(err => {
-        if (systemOn && targetEnabled && currentRoomTemp > targetTemp) {
-            currentRoomTemp -= 0.1;
-            document.getElementById('v_t_amb').innerText = currentRoomTemp.toFixed(1) + '°';
-            updateRing(); 
-        }
-        try { evaluateAutomations(); } catch (e) {}
-      });
-  }, 2000);
+    if (!isWsConnected) {
+      fetch('/data')
+        .then(response => response.json())
+        .then(data => handleIncomingTelemetry(data))
+        .catch(err => {
+          try { evaluateAutomations(); } catch (e) {}
+        });
+    }
+  }, 2500);
 }
 
 // =========================================================================
@@ -3291,10 +3633,274 @@ function exportCyclesCSV() {
   showToast(t('toast_csv_success', "Export CSV généré avec succès"), "success");
 }
 
+// =========================================================================
+// GESTIONNAIRE WI-FI HYBRIDE & RÉSILIENCE (AP + STATION)
+// =========================================================================
+
+let lastWifiData = null;
+let wifiScanPollingTimer = null;
+
+/**
+ * Charge l'état actuel de la connexion Wi-Fi depuis l'ESP32 (/api/wifi/status)
+ */
+async function loadWifiStatus() {
+  try {
+    const res = await fetch('/api/wifi/status');
+    if (!res.ok) throw new Error('Erreur API Wi-Fi');
+    const data = await res.json();
+    lastWifiData = data;
+    renderWifiStatus(data);
+  } catch (err) {
+    console.warn("Impossible de récupérer le statut Wi-Fi:", err);
+  }
+}
+
+/**
+ * Met à jour l'affichage de l'interface Wi-Fi selon les données reçues
+ */
+function renderWifiStatus(data) {
+  if (!data) return;
+
+  const badge = document.getElementById('wifi-status-badge');
+  const infoAp = document.getElementById('wifi-info-ap');
+  const infoSta = document.getElementById('wifi-info-sta');
+  const inputSsid = document.getElementById('wifi-input-ssid');
+
+  if (infoAp) {
+    infoAp.innerText = `${data.ap_ssid || 'Van-Clim-Local'} (${data.ap_ip || '192.168.4.1'})`;
+  }
+
+  if (data.connected && data.ssid) {
+    if (badge) {
+      badge.style.background = 'rgba(52, 211, 153, 0.15)';
+      badge.style.color = 'var(--success)';
+      badge.style.border = '1px solid var(--success)';
+      badge.innerText = t('wifi_badge_connected', 'Connecté à {ssid} ({ip})')
+        .replace('{ssid}', data.ssid)
+        .replace('{ip}', data.ip || 'DHCP');
+    }
+    if (infoSta) {
+      const rssiStr = data.rssi ? `, ${data.rssi} dBm` : '';
+      infoSta.innerText = `${data.ssid} (${data.ip}${rssiStr})`;
+      infoSta.style.color = 'var(--cyan-light)';
+    }
+  } else if (data.status === 'connecting') {
+    if (badge) {
+      badge.style.background = 'rgba(251, 146, 60, 0.15)';
+      badge.style.color = 'var(--orange-alert)';
+      badge.style.border = '1px solid var(--orange-alert)';
+      badge.innerText = t('wifi_badge_connecting', 'Connexion à {ssid} en cours...').replace('{ssid}', data.ssid || '');
+    }
+    if (infoSta) {
+      infoSta.innerText = t('wifi_btn_connecting', 'Connexion en cours...');
+      infoSta.style.color = 'var(--orange-alert)';
+    }
+  } else if (data.status === 'failed') {
+    if (badge) {
+      badge.style.background = 'rgba(239, 68, 68, 0.15)';
+      badge.style.color = 'var(--danger)';
+      badge.style.border = '1px solid var(--danger)';
+      badge.innerText = t('wifi_badge_failed', 'Échec connexion à {ssid}').replace('{ssid}', data.ssid || '');
+    }
+    if (infoSta) {
+      infoSta.innerText = t('wifi_badge_failed', 'Échec connexion à {ssid}').replace('{ssid}', data.ssid || '');
+      infoSta.style.color = 'var(--danger)';
+    }
+  } else {
+    if (badge) {
+      badge.style.background = 'rgba(14, 165, 233, 0.15)';
+      badge.style.color = 'var(--cyan-dark)';
+      badge.style.border = '1px solid var(--cyan-dark)';
+      badge.innerText = t('wifi_badge_ap_only', 'Mode autonome (Van-Clim-Local)');
+    }
+    if (infoSta) {
+      infoSta.innerText = data.configured ? `Non connecté (${data.ssid})` : 'Mode autonome (Non configuré)';
+      infoSta.style.color = 'var(--text-muted)';
+    }
+  }
+
+  // Pré-remplir le SSID si configuré et si le champ est vide
+  if (inputSsid && !inputSsid.value && data.ssid) {
+    inputSsid.value = data.ssid;
+  }
+}
+
+/**
+ * Lance un scan asynchrone des réseaux Wi-Fi et peuple la liste déroulante
+ */
+async function scanWifiNetworks() {
+  const btn = document.getElementById('btn-wifi-scan');
+  const btnText = document.getElementById('wifi-scan-btn-text');
+  const select = document.getElementById('wifi-scan-select');
+
+  if (btn) btn.disabled = true;
+  if (btnText) btnText.innerText = t('wifi_btn_scanning', 'Scan en cours...');
+
+  if (wifiScanPollingTimer) {
+    clearInterval(wifiScanPollingTimer);
+    wifiScanPollingTimer = null;
+  }
+
+  let attempts = 0;
+  const maxAttempts = 6;
+
+  const pollScan = async () => {
+    attempts++;
+    try {
+      const res = await fetch('/api/wifi/scan');
+      if (!res.ok) throw new Error('Erreur scan');
+      const data = await res.json();
+
+      if (data.status === 'complete') {
+        if (wifiScanPollingTimer) {
+          clearInterval(wifiScanPollingTimer);
+          wifiScanPollingTimer = null;
+        }
+
+        if (select) {
+          select.innerHTML = `<option value="">${t('wifi_select_placeholder', '-- Sélectionnez un réseau détecté --')}</option>`;
+          if (Array.isArray(data.networks) && data.networks.length > 0) {
+            data.networks.forEach(net => {
+              const opt = document.createElement('option');
+              opt.value = net.ssid;
+              const lock = net.secure ? ' 🔒' : '';
+              opt.textContent = `${net.ssid} (${net.rssi} dBm${lock})`;
+              select.appendChild(opt);
+            });
+          }
+        }
+
+        const count = Array.isArray(data.networks) ? data.networks.length : 0;
+        showToast(t('toast_wifi_scan_done', '{count} réseau(x) Wi-Fi détecté(s)').replace('{count}', count), 'info');
+
+        if (btn) btn.disabled = false;
+        if (btnText) btnText.innerText = t('wifi_btn_scan', 'Scanner les réseaux');
+      } else if (attempts >= maxAttempts) {
+        if (wifiScanPollingTimer) {
+          clearInterval(wifiScanPollingTimer);
+          wifiScanPollingTimer = null;
+        }
+        if (btn) btn.disabled = false;
+        if (btnText) btnText.innerText = t('wifi_btn_scan', 'Scanner les réseaux');
+      }
+    } catch (err) {
+      console.warn("Erreur polling scan Wi-Fi:", err);
+      if (attempts >= maxAttempts) {
+        if (wifiScanPollingTimer) {
+          clearInterval(wifiScanPollingTimer);
+          wifiScanPollingTimer = null;
+        }
+        if (btn) btn.disabled = false;
+        if (btnText) btnText.innerText = t('wifi_btn_scan', 'Scanner les réseaux');
+      }
+    }
+  };
+
+  // Première interrogation immédiate puis polling toutes les 1.5s
+  await pollScan();
+  if (btn && btn.disabled) {
+    wifiScanPollingTimer = setInterval(pollScan, 1500);
+  }
+}
+
+/**
+ * Remplit le champ SSID lorsqu'un réseau est sélectionné dans la liste
+ */
+function onWifiSelectedFromScan(ssid) {
+  if (!ssid) return;
+  const inputSsid = document.getElementById('wifi-input-ssid');
+  const inputPass = document.getElementById('wifi-input-pass');
+  if (inputSsid) inputSsid.value = ssid;
+  if (inputPass) {
+    inputPass.value = '';
+    inputPass.focus();
+  }
+}
+
+/**
+ * Valide et envoie la nouvelle configuration Wi-Fi vers l'ESP32 (/api/wifi/connect)
+ */
+async function submitWifiConnect() {
+  const inputSsid = document.getElementById('wifi-input-ssid');
+  const inputPass = document.getElementById('wifi-input-pass');
+  const btn = document.getElementById('btn-wifi-connect');
+  const btnText = document.getElementById('wifi-connect-btn-text');
+
+  const ssid = inputSsid ? inputSsid.value.trim() : '';
+  const pass = inputPass ? inputPass.value.trim() : '';
+
+  if (!ssid) {
+    showToast(t('toast_wifi_ssid_required', 'Veuillez saisir le nom du réseau Wi-Fi (SSID).'), 'warning');
+    if (inputSsid) inputSsid.focus();
+    return;
+  }
+
+  if (btn) btn.disabled = true;
+  if (btnText) btnText.innerText = t('wifi_btn_connecting', 'Connexion en cours...');
+
+  try {
+    const res = await fetch('/api/wifi/connect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ssid: ssid, pass: pass })
+    });
+    const result = await res.json();
+    if (!res.ok || !result.success) {
+      throw new Error(result.error || 'Erreur connexion');
+    }
+
+    showToast(t('toast_wifi_connecting', 'Connexion à "{ssid}" en cours. L\'AP local reste actif.').replace('{ssid}', ssid), 'info');
+
+    // Polling du statut à 3s, 6s et 10s pour mise à jour de l'IP
+    setTimeout(loadWifiStatus, 3000);
+    setTimeout(loadWifiStatus, 6000);
+    setTimeout(loadWifiStatus, 10000);
+  } catch (err) {
+    showToast(`Erreur : ${err.message}`, 'danger');
+  } finally {
+    setTimeout(() => {
+      if (btn) btn.disabled = false;
+      if (btnText) btnText.innerText = t('wifi_btn_connect', 'Valider la connexion');
+    }, 2000);
+  }
+}
+
+/**
+ * Réinitialise la configuration Wi-Fi station et repasse en AP local seul (/api/wifi/reset)
+ */
+async function forgetWifiNetwork() {
+  if (!confirm(t('toast_wifi_forget_confirm', 'Êtes-vous sûr de vouloir oublier la connexion au réseau du van ?'))) {
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/wifi/reset', { method: 'POST' });
+    const result = await res.json();
+
+    const inputSsid = document.getElementById('wifi-input-ssid');
+    const inputPass = document.getElementById('wifi-input-pass');
+    const select = document.getElementById('wifi-scan-select');
+
+    if (inputSsid) inputSsid.value = '';
+    if (inputPass) inputPass.value = '';
+    if (select) select.value = '';
+
+    showToast(t('toast_wifi_reset_done', 'Réseau du van oublié. Retour au mode AP local seul.'), 'info');
+    await loadWifiStatus();
+  } catch (err) {
+    showToast(`Erreur réinitialisation : ${err.message}`, 'warning');
+  }
+}
+
 // --- INITIALISATION AU CHARGEMENT DU DOCUMENT ---
 document.addEventListener('DOMContentLoaded', () => {
   setLanguage(currentLang);
+  try { initWebSocket(); } catch (e) {}
+  try { loadWifiStatus(); } catch (e) {}
 });
 if (document.readyState !== 'loading') {
   setLanguage(currentLang);
+  try { initWebSocket(); } catch (e) {}
+  try { loadWifiStatus(); } catch (e) {}
 }
+
