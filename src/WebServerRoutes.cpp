@@ -10,14 +10,14 @@ static void addCorsHeaders(AsyncWebServerResponse *response) {
 
 static AsyncWebSocket ws("/ws");
 
-void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager, AutomationManager& autoManager, ClimateManager& climManager, WiFiManager& wifiManager) {
+void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager, SystemManager& sysManager, AutomationManager& autoManager, ClimateManager& climManager, WiFiManager& wifiManager) {
     // -------------------------------------------------------------
     // WEBSOCKET TEMPS RÉEL (/ws)
     // -------------------------------------------------------------
-    ws.onEvent([&climManager](AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
+    ws.onEvent([&climManager, &sysManager, &devManager](AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
         if (type == WS_EVT_CONNECT) {
             Serial.printf("[WebSocket] Client #%u connecte depuis %s\n", client->id(), client->remoteIP().toString().c_str());
-            client->text(climManager.getTelemetryJson());
+            client->text(climManager.getTelemetryJson(&sysManager, &devManager));
         } else if (type == WS_EVT_DISCONNECT) {
             Serial.printf("[WebSocket] Client #%u deconnecte\n", client->id());
         } else if (type == WS_EVT_DATA) {
@@ -49,6 +49,7 @@ void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager, Aut
     // 1. GET /api/devices : Retourne la liste complète des périphériques
     // -------------------------------------------------------------
     server.on("/api/devices", HTTP_GET, [&devManager](AsyncWebServerRequest *request) {
+        devManager.updateSensors();
         String json = devManager.getDevicesJson();
         AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
         addCorsHeaders(response);
@@ -254,10 +255,10 @@ void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager, Aut
             uint16_t duration = doc["duration"] | 3000;
             DeviceTestResult testRes;
 
-            if (doc.containsKey("id") && doc["id"].as<uint8_t>() > 0) {
+            if (doc["id"].is<uint8_t>() && doc["id"].as<uint8_t>() > 0) {
                 uint8_t id = doc["id"].as<uint8_t>();
                 testRes = devManager.testDevice(id, duration);
-            } else if (doc.containsKey("gpio")) {
+            } else if (doc["gpio"].is<uint8_t>()) {
                 uint8_t gpio = doc["gpio"].as<uint8_t>();
                 String modeStr = doc["mode"] | "OUTPUT_RELAY";
                 SignalMode mode = DeviceManager::stringToSignalMode(modeStr);
@@ -398,10 +399,236 @@ void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager, Aut
     );
 
     // -------------------------------------------------------------
+    // 9.bis GESTION DES SYSTÈMES COMPOSITES (/api/systems)
+    // -------------------------------------------------------------
+    server.on("/api/systems", HTTP_GET, [&sysManager, &devManager, &climManager](AsyncWebServerRequest *request) {
+        String json = sysManager.getSystemsJson(devManager, &climManager);
+        AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+        addCorsHeaders(response);
+        request->send(response);
+    });
+
+    server.on("/api/systems/climatisation/compressor", HTTP_POST,
+        [&climManager](AsyncWebServerRequest *request) {
+            String* body = (String*)request->_tempObject;
+            if (!body || body->length() == 0) {
+                AsyncWebServerResponse *response = request->beginResponse(400, "application/json", "{\"success\":false,\"error\":\"Corps JSON vide\"}");
+                addCorsHeaders(response);
+                request->send(response);
+                return;
+            }
+
+#if defined(ARDUINOJSON_VERSION_MAJOR) && (ARDUINOJSON_VERSION_MAJOR >= 7)
+            JsonDocument doc;
+#else
+            DynamicJsonDocument doc(256);
+#endif
+            DeserializationError error = deserializeJson(doc, *body);
+            delete body;
+            request->_tempObject = nullptr;
+
+            if (error) {
+                AsyncWebServerResponse *response = request->beginResponse(400, "application/json", "{\"success\":false,\"error\":\"JSON invalide\"}");
+                addCorsHeaders(response);
+                request->send(response);
+                return;
+            }
+
+            String state = doc["state"] | (doc["mode"] | "auto");
+            climManager.setCompressorMode(state);
+
+#if defined(ARDUINOJSON_VERSION_MAJOR) && (ARDUINOJSON_VERSION_MAJOR >= 7)
+            JsonDocument respDoc;
+#else
+            DynamicJsonDocument respDoc(256);
+#endif
+            respDoc["success"] = true;
+            respDoc["state"] = climManager.getCompressorStateString();
+            respDoc["mode"] = climManager.getCompressorModeString();
+            respDoc["remaining_delay_sec"] = climManager.getAntiCycleRemainingSec();
+
+            String resp;
+            serializeJson(respDoc, resp);
+            AsyncWebServerResponse *response = request->beginResponse(200, "application/json", resp);
+            addCorsHeaders(response);
+            request->send(response);
+        },
+        nullptr,
+        [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+            String* body = (String*)request->_tempObject;
+            if (index == 0) {
+                body = new String();
+                request->_tempObject = body;
+            }
+            if (body) {
+                body->concat((const char*)data, len);
+            }
+        }
+    );
+
+    server.on("/api/systems/save", HTTP_POST,
+        [&sysManager](AsyncWebServerRequest *request) {
+            String* body = (String*)request->_tempObject;
+            if (!body || body->length() == 0) {
+                AsyncWebServerResponse *response = request->beginResponse(400, "application/json", "{\"success\":false,\"error\":\"Corps JSON vide\"}");
+                addCorsHeaders(response);
+                request->send(response);
+                return;
+            }
+
+#if defined(ARDUINOJSON_VERSION_MAJOR) && (ARDUINOJSON_VERSION_MAJOR >= 7)
+            JsonDocument doc;
+#else
+            DynamicJsonDocument doc(1024);
+#endif
+            DeserializationError error = deserializeJson(doc, *body);
+            delete body;
+            request->_tempObject = nullptr;
+
+            if (error) {
+                AsyncWebServerResponse *response = request->beginResponse(400, "application/json", "{\"success\":false,\"error\":\"JSON invalide\"}");
+                addCorsHeaders(response);
+                request->send(response);
+                return;
+            }
+
+            SystemConfig sys;
+            sys.id = (const char*)(doc["id"] | "clim_main");
+            sys.type = (const char*)(doc["type"] | "climatisation");
+            sys.name = (const char*)(doc["name"] | "Climatisation");
+            sys.enabled = doc["enabled"] | true;
+
+            if (doc["bindings"].is<JsonObject>()) {
+                JsonObject b = doc["bindings"].as<JsonObject>();
+                sys.bindings.tempAirId = b["temp_air_id"] | 0;
+                sys.bindings.tempWaterId = b["temp_water_id"] | 0;
+                sys.bindings.fanPwmId = b["fan_pwm_id"] | 0;
+                sys.bindings.pumpRelayId = b["pump_relay_id"] | 0;
+                sys.bindings.compressorRelayId = b["compressor_relay_id"] | 0;
+            }
+
+            if (doc["settings"].is<JsonObject>()) {
+                JsonObject s = doc["settings"].as<JsonObject>();
+                sys.targetTemp = s["target_temp"] | 21.0f;
+                sys.mode = (const char*)(s["mode"] | "NORMAL");
+            }
+
+            bool ok = sysManager.saveSystem(sys);
+            AsyncWebServerResponse *response = request->beginResponse(ok ? 200 : 500, "application/json", ok ? "{\"success\":true}" : "{\"success\":false,\"error\":\"Échec sauvegarde système\"}");
+            addCorsHeaders(response);
+            request->send(response);
+        },
+        nullptr,
+        [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+            String* body = (String*)request->_tempObject;
+            if (index == 0) {
+                body = new String();
+                request->_tempObject = body;
+            }
+            if (body) {
+                body->concat((const char*)data, len);
+            }
+        }
+    );
+
+    server.on("/api/systems/delete", HTTP_POST,
+        [&sysManager](AsyncWebServerRequest *request) {
+            String* body = (String*)request->_tempObject;
+            if (!body || body->length() == 0) {
+                AsyncWebServerResponse *response = request->beginResponse(400, "application/json", "{\"success\":false,\"error\":\"Corps JSON vide\"}");
+                addCorsHeaders(response);
+                request->send(response);
+                return;
+            }
+
+#if defined(ARDUINOJSON_VERSION_MAJOR) && (ARDUINOJSON_VERSION_MAJOR >= 7)
+            JsonDocument doc;
+#else
+            DynamicJsonDocument doc(256);
+#endif
+            DeserializationError error = deserializeJson(doc, *body);
+            delete body;
+            request->_tempObject = nullptr;
+
+            if (error) {
+                AsyncWebServerResponse *response = request->beginResponse(400, "application/json", "{\"success\":false,\"error\":\"JSON invalide\"}");
+                addCorsHeaders(response);
+                request->send(response);
+                return;
+            }
+
+            String id = (const char*)(doc["id"] | "");
+            bool ok = sysManager.deleteSystem(id);
+            AsyncWebServerResponse *response = request->beginResponse(ok ? 200 : 404, "application/json", ok ? "{\"success\":true}" : "{\"success\":false,\"error\":\"Système introuvable\"}");
+            addCorsHeaders(response);
+            request->send(response);
+        },
+        nullptr,
+        [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+            String* body = (String*)request->_tempObject;
+            if (index == 0) {
+                body = new String();
+                request->_tempObject = body;
+            }
+            if (body) {
+                body->concat((const char*)data, len);
+            }
+        }
+    );
+
+    server.on("/api/systems/bind", HTTP_POST,
+        [&sysManager](AsyncWebServerRequest *request) {
+            String* body = (String*)request->_tempObject;
+            if (!body || body->length() == 0) {
+                AsyncWebServerResponse *response = request->beginResponse(400, "application/json", "{\"success\":false,\"error\":\"Corps JSON vide\"}");
+                addCorsHeaders(response);
+                request->send(response);
+                return;
+            }
+
+#if defined(ARDUINOJSON_VERSION_MAJOR) && (ARDUINOJSON_VERSION_MAJOR >= 7)
+            JsonDocument doc;
+#else
+            DynamicJsonDocument doc(256);
+#endif
+            DeserializationError error = deserializeJson(doc, *body);
+            delete body;
+            request->_tempObject = nullptr;
+
+            if (error) {
+                AsyncWebServerResponse *response = request->beginResponse(400, "application/json", "{\"success\":false,\"error\":\"JSON invalide\"}");
+                addCorsHeaders(response);
+                request->send(response);
+                return;
+            }
+
+            String sysId = (const char*)(doc["system_id"] | "clim_main");
+            String slot = (const char*)(doc["slot"] | "");
+            uint8_t devId = doc["device_id"] | 0;
+
+            bool ok = sysManager.bindDeviceToSlot(sysId, slot, devId);
+            AsyncWebServerResponse *response = request->beginResponse(ok ? 200 : 400, "application/json", ok ? "{\"success\":true}" : "{\"success\":false,\"error\":\"Slot ou système invalide\"}");
+            addCorsHeaders(response);
+            request->send(response);
+        },
+        nullptr,
+        [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+            String* body = (String*)request->_tempObject;
+            if (index == 0) {
+                body = new String();
+                request->_tempObject = body;
+            }
+            if (body) {
+                body->concat((const char*)data, len);
+            }
+        }
+    );
+
+    // -------------------------------------------------------------
     // 10. Télémétrie Climate Pro : GET /data
     // -------------------------------------------------------------
-    server.on("/data", HTTP_GET, [&climManager](AsyncWebServerRequest *request) {
-        String telemetry = climManager.getTelemetryJson();
+    server.on("/data", HTTP_GET, [&climManager, &sysManager, &devManager](AsyncWebServerRequest *request) {
+        String telemetry = climManager.getTelemetryJson(&sysManager, &devManager);
         AsyncWebServerResponse *response = request->beginResponse(200, "application/json", telemetry);
         addCorsHeaders(response);
         request->send(response);
@@ -438,6 +665,11 @@ void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager, Aut
         }
         if (request->hasParam("water_temp")) {
             climManager.setWaterTargetTemp(request->getParam("water_temp")->value().toFloat());
+        }
+        if (request->hasParam("timer_enabled") || request->hasParam("timer_sec")) {
+            bool en = request->hasParam("timer_enabled") ? (request->getParam("timer_enabled")->value() == "1") : climManager.isTimerEnabled();
+            uint32_t sec = request->hasParam("timer_sec") ? (uint32_t)request->getParam("timer_sec")->value().toInt() : climManager.getTimerDurationSec();
+            climManager.setTimer(en, sec);
         }
 
         AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"status\":\"ok\"}");
@@ -598,9 +830,9 @@ void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager, Aut
     });
 
     // -------------------------------------------------------------
-    // 16. Fichiers statiques LittleFS
+    // 16. Fichiers statiques LittleFS (no-cache pour prise en compte immédiate des modifications)
     // -------------------------------------------------------------
-    server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html").setCacheControl("max-age=300");
+    server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html").setCacheControl("no-cache, no-store, must-revalidate");
 
     // -------------------------------------------------------------
     // Gestionnaire 404 & OPTIONS

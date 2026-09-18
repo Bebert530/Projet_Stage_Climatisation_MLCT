@@ -2,16 +2,18 @@
 
 WiFiManager::WiFiManager() : 
     _configPath("/wifi.json"),
-    _staSSID(""),
-    _staPass(""),
+    _staSSID("iPhone de Bebert"),
+    _staPass("pouletgalant"),
     _apSSID("Van-Clim-Local"),
     _apPass("12345678"),
     _apIP(192, 168, 4, 1),
     _apGateway(192, 168, 4, 1),
     _apSubnet(255, 255, 255, 0),
     _staState(STA_STATE_IDLE),
-    _isConfigured(false),
+    _isConfigured(true),
     _isScanning(false),
+    _pendingConnect(false),
+    _pendingConnectTime(0),
     _lastReconnectAttempt(0),
     _connectingStartTime(0),
     _reconnectAttempts(0) {
@@ -32,8 +34,10 @@ bool WiFiManager::begin(const char* configPath) {
     // 1. Initialisation des événements Wi-Fi asynchrones
     setupEvents();
 
-    // 2. Mode hybride WIFI_AP_STA permanent
+    // 2. Désactiver la mise en veille RF et la persistance NVS non maîtrisée
+    WiFi.persistent(false);
     WiFi.mode(WIFI_AP_STA);
+    WiFi.setSleep(false);
 
     // 3. Démarrage de l'Access Point de secours permanent
     setupAP();
@@ -41,29 +45,35 @@ bool WiFiManager::begin(const char* configPath) {
     // 4. Initialisation du résolveur mDNS (http://clim.local)
     setupMDNS();
 
-    // 5. Chargement de la configuration Wi-Fi sauvegardée (/wifi.json)
-    if (loadConfig()) {
-        if (_staSSID.length() > 0) {
-            Serial.printf("[WiFiManager] Connexion au réseau station '%s'...\n", _staSSID.c_str());
-            _staState = STA_STATE_CONNECTING;
-            _connectingStartTime = millis();
-            WiFi.begin(_staSSID.c_str(), _staPass.c_str());
-        }
-    } else {
-        Serial.println("[WiFiManager] Aucune configuration station trouvée. Mode AP autonome actif.");
+    // 5. Chargement de la configuration Wi-Fi sauvegardée (/wifi.json) avec fallback "iPhone de Bebert"
+    if (!loadConfig() || _staSSID.length() == 0) {
+        _staSSID = "iPhone de Bebert";
+        _staPass = "pouletgalant";
+        _isConfigured = true;
+        saveConfig();
     }
+
+    Serial.printf("[WiFiManager] Connexion automatique au réseau station '%s'...\n", _staSSID.c_str());
+    _staState = STA_STATE_CONNECTING;
+    _connectingStartTime = millis();
+    WiFi.begin(_staSSID.c_str(), _staPass.c_str());
 
     return true;
 }
 
 void WiFiManager::setupAP() {
     WiFi.softAPConfig(_apIP, _apGateway, _apSubnet);
-    WiFi.softAP(_apSSID.c_str(), _apPass.c_str());
+    bool ok = WiFi.softAP(_apSSID.c_str(), _apPass.c_str(), 1, 0, 4);
     
     Serial.println("\n--------------------------------------------------");
-    Serial.printf("[WiFiManager] Point d'accès de secours actif : %s\n", _apSSID.c_str());
-    Serial.printf("[WiFiManager] Mot de passe AP                : %s\n", _apPass.c_str());
-    Serial.printf("[WiFiManager] IP Statique AP                 : %s\n", WiFi.softAPIP().toString().c_str());
+    if (ok) {
+        Serial.printf("[WiFiManager] Point d'accès Wi-Fi actif : %s\n", _apSSID.c_str());
+        Serial.printf("[WiFiManager] Mot de passe Wi-Fi        : %s\n", _apPass.c_str());
+        Serial.printf("[WiFiManager] Adresse IP Statique       : http://%s/\n", WiFi.softAPIP().toString().c_str());
+        Serial.println("[WiFiManager] Accès mDNS                : http://clim.local/");
+    } else {
+        Serial.println("[WiFiManager] ERREUR : Impossible de démarrer le point d'accès SoftAP !");
+    }
     Serial.println("--------------------------------------------------");
 }
 
@@ -128,6 +138,21 @@ void WiFiManager::onWiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 void WiFiManager::update() {
     unsigned long now = millis();
 
+    // 0. Lancement différé de la connexion pour laisser le temps à la réponse HTTP 200 de partir
+    xSemaphoreTake(_mutex, portMAX_DELAY);
+    if (_pendingConnect && (long)(now - _pendingConnectTime) >= 0) {
+        _pendingConnect = false;
+        String ssid = _staSSID;
+        String pass = _staPass;
+        xSemaphoreGive(_mutex);
+
+        Serial.printf("[WiFiManager] Démarrage connexion vers '%s'...\n", ssid.c_str());
+        WiFi.disconnect(false);
+        WiFi.begin(ssid.c_str(), pass.c_str());
+        return;
+    }
+    xSemaphoreGive(_mutex);
+
     // 1. Timeout de tentative de connexion station (20 secondes)
     xSemaphoreTake(_mutex, portMAX_DELAY);
     if (_staState == STA_STATE_CONNECTING) {
@@ -139,7 +164,7 @@ void WiFiManager::update() {
     }
 
     // 2. Reconnexion automatique non-bloquante si configuré et déconnecté (toutes les 30 secondes)
-    if (_isConfigured && _staSSID.length() > 0 && (_staState == STA_STATE_DISCONNECTED || _staState == STA_STATE_FAILED)) {
+    if (_isConfigured && !_pendingConnect && _staSSID.length() > 0 && (_staState == STA_STATE_DISCONNECTED || _staState == STA_STATE_FAILED)) {
         if (now - _lastReconnectAttempt > 30000) {
             _lastReconnectAttempt = now;
             _reconnectAttempts++;
@@ -162,15 +187,14 @@ bool WiFiManager::connectSTA(const String& ssid, const String& pass) {
     _staState = STA_STATE_CONNECTING;
     _connectingStartTime = millis();
     _reconnectAttempts = 0;
+    _pendingConnect = true;
+    _pendingConnectTime = millis() + 500; // 500ms de répit pour vider la réponse HTTP 200 vers le client
     xSemaphoreGive(_mutex);
 
     // Sauvegarde persistante dans LittleFS
     saveConfig();
 
-    Serial.printf("[WiFiManager] Nouvelle connexion demandée pour '%s'...\n", ssid.c_str());
-    WiFi.disconnect(false);
-    WiFi.begin(ssid.c_str(), pass.c_str());
-
+    Serial.printf("[WiFiManager] Paramètres Wi-Fi enregistrés pour '%s'. Connexion programmée dans 500ms...\n", ssid.c_str());
     return true;
 }
 

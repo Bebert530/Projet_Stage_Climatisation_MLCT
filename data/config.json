@@ -14,12 +14,12 @@
     },
     {
       "id": 2,
-      "name": "Lanterneau Fiamma",
+      "name": "Ventilateur Habitacle",
       "category": "ACTUATOR",
       "voltage": "12V",
       "mode": "OUTPUT_PWM",
       "type": "PWM",
-      "gpio": 19,
+      "gpio": 14,
       "state": 0,
       "value": 0,
       "isCore": false
@@ -38,12 +38,24 @@
     },
     {
       "id": 4,
-      "name": "Sonde Habitacle",
+      "name": "Sonde Température Air",
       "category": "SENSOR",
       "voltage": "3.3V",
       "mode": "INPUT_ONEWIRE",
       "type": "RELAY",
-      "gpio": 18,
+      "gpio": 27,
+      "state": 0,
+      "value": 0,
+      "isCore": false
+    },
+    {
+      "id": 5,
+      "name": "Compresseur Glacière",
+      "category": "ACTUATOR",
+      "voltage": "12V",
+      "mode": "OUTPUT_RELAY",
+      "type": "RELAY",
+      "gpio": 22,
       "state": 0,
       "value": 0,
       "isCore": false

@@ -79,15 +79,15 @@ void DeviceManager::createDefaultConfig() {
     dev1.isCore = false;
     _devices.push_back(dev1);
 
-    // 2. Lanterneau Fiamma (PWM)
+    // 2. Ventilateur / Pulseur Habitacle (PWM sur GPIO 14)
     Device dev2;
     dev2.id = 2;
-    dev2.name = "Lanterneau Fiamma";
+    dev2.name = "Ventilateur Habitacle";
     dev2.category = CAT_ACTUATOR;
     dev2.voltage = "12V";
     dev2.mode = MODE_OUTPUT_PWM;
     dev2.type = DEVICE_PWM;
-    dev2.gpio = 19;
+    dev2.gpio = 14;
     dev2.state = 0;
     dev2.value = 0;
     dev2.pwmChannel = allocatePwmChannel();
@@ -109,20 +109,35 @@ void DeviceManager::createDefaultConfig() {
     dev3.isCore = false;
     _devices.push_back(dev3);
 
-    // 4. Sonde Température Habitacle (1-Wire DS18B20)
+    // 4. Sonde Température Air (1-Wire DS18B20 sur GPIO 27)
     Device dev4;
     dev4.id = 4;
-    dev4.name = "Sonde Habitacle";
+    dev4.name = "Sonde Température Air";
     dev4.category = CAT_SENSOR;
     dev4.voltage = "3.3V";
     dev4.mode = MODE_INPUT_ONEWIRE;
     dev4.type = DEVICE_RELAY;
-    dev4.gpio = 18;
+    dev4.gpio = 27;
     dev4.state = 0;
     dev4.value = 0;
     dev4.pwmChannel = -1;
     dev4.isCore = false;
     _devices.push_back(dev4);
+
+    // 5. Compresseur Glacière (Relais 12V GPIO 22)
+    Device dev5;
+    dev5.id = 5;
+    dev5.name = "Compresseur Glacière";
+    dev5.category = CAT_ACTUATOR;
+    dev5.voltage = "12V";
+    dev5.mode = MODE_OUTPUT_RELAY;
+    dev5.type = DEVICE_RELAY;
+    dev5.gpio = 22;
+    dev5.state = 0;
+    dev5.value = 0;
+    dev5.pwmChannel = -1;
+    dev5.isCore = false;
+    _devices.push_back(dev5);
 
     xSemaphoreGive(_mutex);
 
@@ -180,7 +195,7 @@ bool DeviceManager::loadConfig() {
 
         dev.voltage = obj["voltage"] | "12V";
 
-        if (obj.containsKey("mode")) {
+        if (obj["mode"].is<String>()) {
             dev.mode = stringToSignalMode(obj["mode"].as<String>());
         } else {
             dev.mode = (dev.type == DEVICE_PWM) ? MODE_OUTPUT_PWM : MODE_OUTPUT_RELAY;
@@ -323,7 +338,7 @@ int8_t DeviceManager::suggestPin(SignalMode mode) {
     xSemaphoreTake(_mutex, portMAX_DELAY);
 
     const std::vector<uint8_t>* pool = &SAFE_OUTPUT_PINS;
-    if (mode == MODE_INPUT_ADC) {
+    if (mode == MODE_INPUT_ADC || mode == MODE_INPUT_ADC_NTC) {
         pool = &SAFE_ADC1_PINS;
     } else if (mode == MODE_INPUT_DIGITAL || mode == MODE_INPUT_ONEWIRE) {
         pool = &SAFE_PULLUP_PINS;
@@ -390,23 +405,27 @@ void DeviceManager::setupHardware(Device& dev) {
         if (dev.pwmChannel < 0) {
             dev.pwmChannel = allocatePwmChannel();
         }
+        // Logique normalement éteint : si state == 0, le signal PWM reste forcé à 0 (0V)
+        uint8_t pwmVal = (dev.state == 0) ? 0 : ((dev.value > 255) ? 255 : ((dev.value < 0) ? 0 : (uint8_t)dev.value));
+        pinMode(dev.gpio, OUTPUT);
+        digitalWrite(dev.gpio, LOW);
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
         ledcAttach(dev.gpio, 5000, 8);
-        ledcWrite(dev.gpio, dev.value);
+        ledcWrite(dev.gpio, pwmVal);
 #else
         if (dev.pwmChannel >= 0) {
             ledcSetup(dev.pwmChannel, 5000, 8);
             ledcAttachPin(dev.gpio, dev.pwmChannel);
-            ledcWrite(dev.pwmChannel, dev.value);
+            ledcWrite(dev.pwmChannel, pwmVal);
         }
 #endif
-        Serial.printf("[Hardware] PWM '%s' sur GPIO %d (canal: %d, val: %d)\n", dev.name.c_str(), dev.gpio, dev.pwmChannel, dev.value);
+        Serial.printf("[Hardware] PWM '%s' sur GPIO %d (canal: %d, val: %d, état: %d - normalement éteint)\n", dev.name.c_str(), dev.gpio, dev.pwmChannel, pwmVal, dev.state);
     } else if (dev.mode == MODE_INPUT_DIGITAL || dev.mode == MODE_INPUT_ONEWIRE) {
         pinMode(dev.gpio, INPUT_PULLUP);
         Serial.printf("[Hardware] Capteur Digital '%s' sur GPIO %d (INPUT_PULLUP)\n", dev.name.c_str(), dev.gpio);
-    } else if (dev.mode == MODE_INPUT_ADC) {
+    } else if (dev.mode == MODE_INPUT_ADC || dev.mode == MODE_INPUT_ADC_NTC) {
         pinMode(dev.gpio, INPUT);
-        Serial.printf("[Hardware] Capteur ADC '%s' sur GPIO %d (INPUT)\n", dev.name.c_str(), dev.gpio);
+        Serial.printf("[Hardware] Capteur ADC/NTC '%s' sur GPIO %d (INPUT)\n", dev.name.c_str(), dev.gpio);
     }
 }
 
@@ -415,9 +434,11 @@ void DeviceManager::releaseHardware(Device& dev) {
 
     if (dev.mode == MODE_OUTPUT_PWM) {
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
+        ledcWrite(dev.gpio, 0);
         ledcDetach(dev.gpio);
 #else
         if (dev.pwmChannel >= 0) {
+            ledcWrite(dev.pwmChannel, 0);
             ledcDetachPin(dev.gpio);
         }
 #endif
@@ -427,8 +448,9 @@ void DeviceManager::releaseHardware(Device& dev) {
         digitalWrite(dev.gpio, LOW);
     }
 
-    pinMode(dev.gpio, INPUT);
-    Serial.printf("[Hardware] GPIO %d libéré pour '%s'\n", dev.gpio, dev.name.c_str());
+    pinMode(dev.gpio, OUTPUT);
+    digitalWrite(dev.gpio, LOW);
+    Serial.printf("[Hardware] GPIO %d coupé et libéré pour '%s'\n", dev.gpio, dev.name.c_str());
 }
 
 void DeviceManager::applyHardwareState(const Device& dev) {
@@ -437,11 +459,13 @@ void DeviceManager::applyHardwareState(const Device& dev) {
     if (dev.mode == MODE_OUTPUT_RELAY) {
         digitalWrite(dev.gpio, dev.state ? HIGH : LOW);
     } else if (dev.mode == MODE_OUTPUT_PWM) {
+        // Logique normalement éteint : sortie à 0V si state == 0 ou value == 0
+        uint8_t pwmVal = (dev.state == 0) ? 0 : ((dev.value > 255) ? 255 : ((dev.value < 0) ? 0 : (uint8_t)dev.value));
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
-        ledcWrite(dev.gpio, dev.value);
+        ledcWrite(dev.gpio, pwmVal);
 #else
         if (dev.pwmChannel >= 0) {
-            ledcWrite(dev.pwmChannel, dev.value);
+            ledcWrite(dev.pwmChannel, pwmVal);
         }
 #endif
     }
@@ -539,7 +563,7 @@ bool DeviceManager::deleteDevice(uint8_t id, String& errorMsg) {
     return true;
 }
 
-bool DeviceManager::setDeviceState(uint8_t id, uint8_t state, uint8_t value) {
+bool DeviceManager::setDeviceState(uint8_t id, uint8_t state, int16_t value) {
     xSemaphoreTake(_mutex, portMAX_DELAY);
 
     Device* dev = getDeviceById(id);
@@ -554,6 +578,36 @@ bool DeviceManager::setDeviceState(uint8_t id, uint8_t state, uint8_t value) {
 
     xSemaphoreGive(_mutex);
     return true;
+}
+
+void DeviceManager::updateSensors() {
+    xSemaphoreTake(_mutex, portMAX_DELAY);
+    for (auto& dev : _devices) {
+        if (dev.category != CAT_SENSOR) continue;
+
+        if (dev.mode == MODE_INPUT_DIGITAL) {
+            pinMode(dev.gpio, INPUT_PULLUP);
+            int val = digitalRead(dev.gpio);
+            // LOW = contact fermé = 1, HIGH = contact ouvert = 0
+            dev.state = (val == LOW) ? 1 : 0;
+            dev.value = dev.state;
+        } else if (dev.mode == MODE_INPUT_ADC) {
+            int raw = analogRead(dev.gpio);
+            dev.value = raw;
+            dev.state = (raw > 100) ? 1 : 0;
+        } else if (dev.mode == MODE_INPUT_ADC_NTC) {
+            int raw = analogRead(dev.gpio);
+            float volts = (raw / 4095.0f) * 3.3f;
+            if (volts > 0.1f && volts < 3.2f) {
+                float rNtc = 10000.0f * (3.3f / volts - 1.0f);
+                float steinhart = log(rNtc / 10000.0f) / 3950.0f + 1.0f / (25.0f + 273.15f);
+                float tC = (1.0f / steinhart) - 273.15f;
+                dev.value = (int16_t)round(tC * 100.0f);
+                dev.state = 1;
+            }
+        }
+    }
+    xSemaphoreGive(_mutex);
 }
 
 DeviceTestResult DeviceManager::testPinDirect(uint8_t gpio, SignalMode mode, uint16_t durationMs) {
@@ -593,7 +647,8 @@ DeviceTestResult DeviceManager::testPinDirect(uint8_t gpio, SignalMode mode, uin
         ledcWrite(15, 0);
         ledcDetachPin(gpio);
 #endif
-        pinMode(gpio, INPUT);
+        pinMode(gpio, OUTPUT);
+        digitalWrite(gpio, LOW); // Maintien ferme à 0V pour éviter le flottement (pull-up ventilateurs)
         result.success = true;
         result.rawValue = 128;
         result.voltageValue = 1.65f;
@@ -635,7 +690,7 @@ DeviceTestResult DeviceManager::testPinDirect(uint8_t gpio, SignalMode mode, uin
         } else {
             result.message = "Contact OUVERT (3.3V détecté / Tirage haut Pull-up)";
         }
-    } else if (mode == MODE_INPUT_ADC) {
+    } else if (mode == MODE_INPUT_ADC || mode == MODE_INPUT_ADC_NTC) {
         pinMode(gpio, INPUT);
         delay(10);
         int raw = analogRead(gpio);
@@ -643,7 +698,11 @@ DeviceTestResult DeviceManager::testPinDirect(uint8_t gpio, SignalMode mode, uin
         result.success = true;
         result.rawValue = raw;
         result.voltageValue = volts;
-        result.message = "Mesure analogique : " + String(volts, 2) + " V (ADC brut : " + String(raw) + " / 4095)";
+        if (mode == MODE_INPUT_ADC_NTC) {
+            result.message = "Sonde NTC (Pont 10kΩ) : " + String(volts, 2) + " V (ADC brut : " + String(raw) + " / 4095)";
+        } else {
+            result.message = "Mesure analogique active : " + String(volts, 2) + " V (ADC brut : " + String(raw) + " / 4095)";
+        }
     }
 
     return result;
@@ -654,6 +713,7 @@ DeviceTestResult DeviceManager::testDevice(uint8_t id, uint16_t durationMs) {
     SignalMode mode = MODE_OUTPUT_RELAY;
     uint8_t prevState = 0;
     uint8_t prevValue = 0;
+    int8_t pwmChannel = -1;
 
     {
         xSemaphoreTake(_mutex, portMAX_DELAY);
@@ -669,24 +729,53 @@ DeviceTestResult DeviceManager::testDevice(uint8_t id, uint16_t durationMs) {
         mode = dev->mode;
         prevState = dev->state;
         prevValue = dev->value;
+        pwmChannel = dev->pwmChannel;
         xSemaphoreGive(_mutex);
     }
 
-    DeviceTestResult res = testPinDirect(gpio, mode, durationMs);
+    DeviceTestResult res;
+    res.success = true;
+    res.rawValue = 0;
+    res.voltageValue = 0.0f;
 
-    // Restaurer l'état précédent pour les actionneurs
     if (mode == MODE_OUTPUT_RELAY) {
+        pinMode(gpio, OUTPUT);
+        digitalWrite(gpio, HIGH);
+        delay(durationMs);
         digitalWrite(gpio, prevState ? HIGH : LOW);
+        res.rawValue = 1;
+        res.voltageValue = 3.3f;
+        res.message = "Impulsion validée : Relais activé puis restauré.";
     } else if (mode == MODE_OUTPUT_PWM) {
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
         ledcAttach(gpio, 5000, 8);
+        ledcWrite(gpio, 128); // 50%
+        delay(durationMs);
         ledcWrite(gpio, prevValue);
 #else
-        Device* dev = getDeviceById(id);
-        if (dev && dev->pwmChannel >= 0) {
-            ledcWrite(dev->pwmChannel, prevValue);
+        if (pwmChannel >= 0) {
+            ledcWrite(pwmChannel, 128); // 50%
+            delay(durationMs);
+            ledcWrite(pwmChannel, prevValue);
+        } else {
+            ledcSetup(15, 5000, 8);
+            ledcAttachPin(gpio, 15);
+            ledcWrite(15, 128);
+            delay(durationMs);
+            ledcWrite(15, 0);
+            ledcDetachPin(gpio);
+            pinMode(gpio, OUTPUT);
+            digitalWrite(gpio, LOW);
         }
 #endif
+        res.rawValue = 128;
+        res.voltageValue = 1.65f;
+        res.message = "Signal PWM 50% envoyé pendant " + String(durationMs / 1000) + "s puis arrêté.";
+    } else {
+        res = testPinDirect(gpio, mode, durationMs);
+        if (res.success) {
+            setDeviceState(id, (res.rawValue != 0) ? 1 : 0, (int16_t)res.rawValue);
+        }
     }
 
     return res;
@@ -765,7 +854,8 @@ String DeviceManager::categoryToString(DeviceCategory cat) {
 SignalMode DeviceManager::stringToSignalMode(const String& str) {
     if (str.equalsIgnoreCase("OUTPUT_PWM") || str.equalsIgnoreCase("PWM")) return MODE_OUTPUT_PWM;
     if (str.equalsIgnoreCase("INPUT_DIGITAL") || str.equalsIgnoreCase("DIGITAL")) return MODE_INPUT_DIGITAL;
-    if (str.equalsIgnoreCase("INPUT_ADC") || str.equalsIgnoreCase("ADC") || str.equalsIgnoreCase("ANALOG")) return MODE_INPUT_ADC;
+    if (str.equalsIgnoreCase("INPUT_ADC_NTC") || str.equalsIgnoreCase("ADC_NTC") || str.equalsIgnoreCase("NTC") || str.equalsIgnoreCase("ntc_passive")) return MODE_INPUT_ADC_NTC;
+    if (str.equalsIgnoreCase("INPUT_ADC") || str.equalsIgnoreCase("ADC") || str.equalsIgnoreCase("ANALOG") || str.equalsIgnoreCase("analog_active")) return MODE_INPUT_ADC;
     if (str.equalsIgnoreCase("INPUT_ONEWIRE") || str.equalsIgnoreCase("ONEWIRE")) return MODE_INPUT_ONEWIRE;
     return MODE_OUTPUT_RELAY;
 }
@@ -775,6 +865,7 @@ String DeviceManager::signalModeToString(SignalMode mode) {
         case MODE_OUTPUT_PWM:    return "OUTPUT_PWM";
         case MODE_INPUT_DIGITAL: return "INPUT_DIGITAL";
         case MODE_INPUT_ADC:     return "INPUT_ADC";
+        case MODE_INPUT_ADC_NTC: return "INPUT_ADC_NTC";
         case MODE_INPUT_ONEWIRE: return "INPUT_ONEWIRE";
         case MODE_OUTPUT_RELAY:
         default:                 return "OUTPUT_RELAY";

@@ -22,8 +22,9 @@ enum SignalMode {
     MODE_OUTPUT_RELAY   = 0, // Relais Tout-ou-Rien (HIGH/LOW)
     MODE_OUTPUT_PWM     = 1, // Progressif PWM / MOSFET
     MODE_INPUT_DIGITAL  = 2, // Contact sec / Flotteur (INPUT_PULLUP)
-    MODE_INPUT_ADC      = 3, // Analogique 0-3.3V (ADC1)
-    MODE_INPUT_ONEWIRE  = 4  // Bus numérique 1-Wire
+    MODE_INPUT_ADC      = 3, // Analogique actif 0-3.3V (ADC1)
+    MODE_INPUT_ADC_NTC  = 4, // Sonde température résistive NTC 2 fils (Pont 10k)
+    MODE_INPUT_ONEWIRE  = 5  // Bus numérique 1-Wire
 };
 
 /**
@@ -48,7 +49,7 @@ struct Device {
     DeviceType type;        // Pour rétro-compatibilité dashboard
     uint8_t gpio;           // Broche GPIO ESP32 assignée
     uint8_t state;          // État logique binaire (0 ou 1)
-    uint8_t value;          // Valeur PWM ou ADC (0 - 255 / raw)
+    int16_t value;          // Valeur PWM (0-255), ADC (0-4095), ou Température en centièmes (ex: 2800 = 28.00°C)
     int8_t pwmChannel;      // Canal LEDC alloué (0-15 pour PWM, -1 sinon)
     bool isCore;            // Équipement système protégé contre suppression
 };
@@ -105,7 +106,12 @@ public:
     /**
      * @brief Modifie l'état d'un équipement
      */
-    bool setDeviceState(uint8_t id, uint8_t state, uint8_t value = 0);
+    bool setDeviceState(uint8_t id, uint8_t state, int16_t value = 0);
+
+    /**
+     * @brief Lit et actualise les capteurs physiques (Digital, ADC, NTC)
+     */
+    void updateSensors();
 
     /**
      * @brief Teste le câblage d'un périphérique existant (3s pulse pour actionneur, lecture directe pour capteur)

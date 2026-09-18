@@ -6,6 +6,8 @@
 #include <vector>
 #include "DeviceManager.h"
 
+class ClimateManager; // Déclaration anticipée
+
 /**
  * @struct AutomationRule
  * @brief Représentation d'une règle d'automatisation (SI ... EST ... ALORS ...)
@@ -15,8 +17,8 @@ struct AutomationRule {
     bool enabled;           // Règle activée ou désactivée
     uint8_t triggerId;      // ID de l'équipement déclencheur (source)
     String conditionValue;  // "ON" ou "OFF" pour Tout-ou-Rien
-    String op;              // "<", ">", "=" pour analogique / PWM
-    float threshold;        // Seuil numérique pour analogique (Volts, %, etc.)
+    String op;              // "<", ">", "=" pour analogique / PWM / température
+    float threshold;        // Seuil numérique (°C, Volts, %, etc.)
     uint8_t targetId;       // ID de l'équipement cible (actionneur)
     String actionValue;     // "ON" ou "OFF" pour relais
     uint8_t actionPercent;  // 0 à 100% pour variateur PWM
@@ -39,8 +41,9 @@ public:
     /**
      * @brief Évalue périodiquement les règles actives et pilote les équipements
      * @param devManager Référence vers le DeviceManager
+     * @param climManager Pointeur optionnel vers ClimateManager pour les températures en direct
      */
-    void update(DeviceManager& devManager);
+    void update(DeviceManager& devManager, ClimateManager* climManager = nullptr);
 
 private:
     String _rulesPath;
@@ -48,4 +51,5 @@ private:
     SemaphoreHandle_t _mutex;
     unsigned long _lastEvalTime;
 };
+
 

@@ -52,6 +52,8 @@ private:
     WiFiStaState _staState;
     bool _isConfigured;
     bool _isScanning;
+    bool _pendingConnect;
+    unsigned long _pendingConnectTime;
     unsigned long _lastReconnectAttempt;
     unsigned long _connectingStartTime;
     uint8_t _reconnectAttempts;

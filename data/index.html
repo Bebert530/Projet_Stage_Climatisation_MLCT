@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Climate Pro - OS | ESP32 Device Manager</title>
+  <title>Climate Pro - OS | ESP32 System & Device Manager</title>
   <link rel="stylesheet" href="style.css">
   <script src="chart.min.js"></script>
 </head>
@@ -50,27 +50,27 @@
       
       <!-- MENU LATÉRAL DE NAVIGATION -->
       <nav class="sidebar collapsed" id="sidebar">
-        <button class="nav-btn active" onclick="switchTab('clim', this)">
+        <button class="nav-btn active" id="nav-btn-clim" data-tab="clim" onclick="switchTab('clim', this)">
           <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4Z"/></svg></span>
           <span data-i18n="nav_clim">Climatisation</span>
         </button>
-        <button class="nav-btn" onclick="switchTab('devices', this)">
+        <button class="nav-btn" id="nav-btn-devices" data-tab="devices" onclick="switchTab('devices', this)">
           <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M4,6H20V16H4M20,18A2,2 0 0,0 22,16V6C22,4.89 21.1,4 20,4H4C2.89,4 2,4.89 2,6V16A2,2 0 0,0 4,18H0V20H24V18H20Z"/></svg></span>
           <span data-i18n="nav_devices">Matériel</span>
         </button>
-        <button class="nav-btn" onclick="switchTab('automation', this)">
+        <button class="nav-btn" id="nav-btn-automation" data-tab="automation" onclick="switchTab('automation', this)">
           <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,6V11H7V13H11V18H13V13H17V11H13V6H11Z"/></svg></span>
           <span data-i18n="nav_automation">Automatisation</span>
         </button>
-        <button class="nav-btn" onclick="switchTab('stats', this)">
+        <button class="nav-btn" id="nav-btn-stats" data-tab="stats" onclick="switchTab('stats', this)">
           <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M22,21H2V3H4V19H6V10H10V19H12V6H16V19H18V14H22V21Z"/></svg></span>
           <span data-i18n="nav_stats">Statistiques</span>
         </button>
-        <button class="nav-btn" onclick="switchTab('settings', this)">
+        <button class="nav-btn" id="nav-btn-settings" data-tab="settings" onclick="switchTab('settings', this)">
           <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/></svg></span>
           <span data-i18n="nav_settings">Paramètres</span>
         </button>
-        <button class="nav-btn" onclick="switchTab('account', this)">
+        <button class="nav-btn" id="nav-btn-account" data-tab="account" onclick="switchTab('account', this)">
           <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/></svg></span>
           <span data-i18n="nav_account">Compte</span>
         </button>
@@ -83,112 +83,162 @@
         <!-- ========================================== -->
         <div id="view-clim" class="view active">
           
-          <!-- BARRE DE SÉLECTION DE MODE -->
-          <div class="mode-bar">
-            <button class="mode-btn" onclick="setMode('eco+', this)">ECO+</button>
-            <button class="mode-btn" onclick="setMode('eco', this)">ECO</button>
-            <button class="mode-btn active" id="btn-default-mode" onclick="setMode('normal', this)">NORMAL</button>
-            <button class="mode-btn" onclick="setMode('boost', this)">BOOST</button>
-            <button class="mode-btn" onclick="setMode('boost+', this)">BOOST+</button>
-            <button class="mode-btn manual" id="btn-manual" onclick="setManualMode()" data-i18n="mode_manual">MANUEL</button>
-          </div>
-
-          <!-- SLIDER PWM VENTILATION -->
-          <div id="manual-slider-container" class="locked">
-            <div style="font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;" data-i18n="label_ventilation">Ventilation</div>
-            <input type="range" id="fan-slider" min="0" max="100" value="60" oninput="updateFanSpeed()" disabled>
-            <span id="fan-val" style="font-weight: bold; width: 45px; text-align: right; color: var(--text-muted);">60%</span>
-            <button class="btn-auto" onclick="returnToAuto()">AUTO</button>
-          </div>
-
-          <!-- GRILLE PRINCIPALE -->
-          <div class="dashboard-grid">
-            
-            <!-- CADRAN CENTRAL -->
-            <div class="dial-wrapper">
-              <div class="dial-outer" id="main-dial" onclick="togglePower()">
-                <div class="dial-inner">
-                  <div class="power-text off" id="power-status-text">OFF</div>
-                  <div class="status-container">
-                    <div class="status-dot off" id="status-dot"></div>
-                  </div>
-                </div>
+          <!-- ÉCRAN D'ÉTAT : SYSTÈME INCOMPLET / NON CONFIGURÉ -->
+          <div id="clim-incomplete-view" style="display:none;">
+            <div class="incomplete-card">
+              <div class="incomplete-icon">
+                <svg viewBox="0 0 24 24"><path d="M12,2L1,21H23L12,2M12,6L19.53,19H4.47L12,6M11,10V14H13V10H11M11,16V18H13V16H11Z"/></svg>
               </div>
-              <div class="dial-time-est off" id="dial-time-est" data-i18n="ring_est_ready_default">Temps estimé avant disponibilité : 1h30</div>
-              <div class="anti-cycle-banner" id="anti-cycle-banner" style="display:none; margin-top:8px; padding:6px 12px; background:rgba(251, 146, 60, 0.15); border:1px solid rgba(251, 146, 60, 0.4); border-radius:6px; font-size:11px; color:var(--orange-alert); font-weight:bold; text-align:center;">
-                <span data-i18n="anti_cycle_badge">Protection Compresseur (Anti-court-cycle) :</span> <span id="anti-cycle-timer">3m00s</span>
-              </div>
-            </div>
-
-            <!-- CARTES DE CONTRÔLE -->
-            <div class="cards-column">
+              <h2 data-i18n="clim_incomplete_title">Système Climatisation Incomplet</h2>
+              <p data-i18n="clim_incomplete_desc">Pour démarrer la régulation thermique autonome, tous les équipements obligatoires du système doivent être pourvus et raccordés.</p>
               
-              <!-- TEMPÉRATURE AMBIANTE -->
-              <div class="ui-card">
-                <div class="card-header">
-                  <svg viewBox="0 0 24 24"><path d="M15,13V5A3,3 0 0,0 9,5V13A5,5 0 1,0 15,13M12,4A1,1 0 0,1 13,5V8H11V5A1,1 0 0,1 12,4Z"/></svg>
-                  <span data-i18n="card_amb_title">TEMPÉRATURE AMBIANTE</span>
-                </div>
-                <div class="room-temp-val" id="v_t_amb">23.4°</div>
-                <div class="tile-sub" data-i18n="card_amb_sub">Capteur intérieur habitacle</div>
+              <div class="incomplete-slots-grid" id="clim-incomplete-checklist">
+                <!-- Rempli dynamiquement par app.js -->
               </div>
 
-              <!-- THERMOSTAT CIBLE -->
-              <div class="ui-card">
-                <div class="card-header">
-                  <svg viewBox="0 0 24 24"><path d="M12,2A10,10 0 1,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,7V13H17V11H13V7H11Z"/></svg>
-                  <span data-i18n="card_target_title">TEMPÉRATURE CIBLE</span>
-                </div>
-                <div class="card-main-row">
-                  <div class="target-controls disabled" id="target-controls">
-                    <button class="temp-adjust-btn" onclick="changeTemp(-0.5)">-</button>
-                    <div class="tile-val" id="target_temp">21.0°</div>
-                    <button class="temp-adjust-btn" onclick="changeTemp(0.5)">+</button>
-                  </div>
-                  <label class="toggle-switch">
-                    <input type="checkbox" id="target-toggle" onchange="toggleTarget()">
-                    <span class="slider"></span>
-                  </label>
-                </div>
-                <div class="tile-sub" id="target-sub" data-i18n="card_target_sub_inactive">Thermostat inactif</div>
+              <div class="incomplete-actions">
+                <button class="btn-primary" onclick="switchTab('devices', document.getElementById('nav-btn-devices'))">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M4,6H20V16H4M20,18A2,2 0 0,0 22,16V6C22,4.89 21.1,4 20,4H4C2.89,4 2,4.89 2,6V16A2,2 0 0,0 4,18H0V20H24V18H20Z"/></svg>
+                  <span data-i18n="btn_configure_hardware">Configurer et câbler dans Matériel</span>
+                </button>
               </div>
-
-              <!-- MINUTERIE -->
-              <div class="ui-card">
-                <div class="card-header">
-                  <svg viewBox="0 0 24 24"><path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/></svg>
-                  <span data-i18n="card_timer_title">MINUTERIE</span>
-                </div>
-                <div class="card-main-row">
-                  <div class="tile-val" id="timer-display">00h 00m</div>
-                  <label class="toggle-switch">
-                    <input type="checkbox" id="timer-toggle" onchange="toggleTimerSwitch()">
-                    <span class="slider"></span>
-                  </label>
-                </div>
-                <div class="timer-controls-area disabled" id="timer-controls-area">
-                  <div class="presets-row">
-                    <button class="preset-btn" onclick="setPreset('30m', this)">30m</button>
-                    <button class="preset-btn" onclick="setPreset('1h', this)">1h</button>
-                    <button class="preset-btn" onclick="setPreset('2h', this)">2h</button>
-                    <button class="preset-btn" onclick="setPreset('perso', this)" data-i18n="preset_custom">Perso</button>
-                  </div>
-                  <div class="timer-custom-inputs" id="timer-inputs">
-                    <input type="number" id="t-hours" min="0" max="24" value="0"> h 
-                    <input type="number" id="t-mins" min="0" max="59" value="30"> m
-                    <button class="btn-outline" style="padding: 4px 8px; font-size: 10px;" onclick="applyCustomTimer()">OK</button>
-                  </div>
-                </div>
-              </div>
-
             </div>
           </div>
 
-          <!-- BOUTON HISTORIQUE (EN BAS À GAUCHE) -->
-          <div class="clim-bottom-bar">
-            <button class="btn-history-icon" onclick="openCyclesHistoryModal()" title="Historique des cycles" aria-label="Historique des cycles" data-i18n-title="btn_history_title">
-              <svg viewBox="0 0 24 24"><path d="M13,3A9,9 0 0,0 4,12H1L4.89,15.89L4.96,16.03L9,12H6A7,7 0 0,1 13,5A7,7 0 0,1 20,12A7,7 0 0,1 13,19C11.07,19 9.32,18.21 8.06,16.94L6.64,18.36C8.27,20 10.5,21 13,21A9,9 0 0,0 22,12A9,9 0 0,0 13,3M12,8V13L16.28,15.54L17,14.33L13.5,12.25V8H12Z"/></svg>
-            </button>
+          <!-- ÉCRAN DE CONTRÔLE COMPLET (Affiché si le système est opérationnel) -->
+          <div id="clim-operational-view">
+            <!-- BARRE DE SÉLECTION DE MODE -->
+            <div class="mode-bar">
+              <button class="mode-btn" onclick="setMode('eco+', this)">ECO+</button>
+              <button class="mode-btn" onclick="setMode('eco', this)">ECO</button>
+              <button class="mode-btn active" id="btn-default-mode" onclick="setMode('normal', this)">NORMAL</button>
+              <button class="mode-btn" onclick="setMode('boost', this)">BOOST</button>
+              <button class="mode-btn" onclick="setMode('boost+', this)">BOOST+</button>
+              <button class="mode-btn manual" id="btn-manual" onclick="setManualMode()" data-i18n="mode_manual">MANUEL</button>
+            </div>
+
+            <!-- SLIDER PWM VENTILATION -->
+            <div id="manual-slider-container" class="locked">
+              <div style="font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase;" data-i18n="label_ventilation">Ventilation</div>
+              <input type="range" id="fan-slider" min="0" max="100" value="60" oninput="updateFanSpeed()" disabled>
+              <span id="fan-val" style="font-weight: bold; width: 45px; text-align: right; color: var(--text-muted);">60%</span>
+              <button class="btn-auto" onclick="returnToAuto()">AUTO</button>
+            </div>
+
+            <!-- GRILLE PRINCIPALE -->
+            <div class="dashboard-grid">
+              
+              <!-- CADRAN CENTRAL -->
+              <div class="dial-wrapper">
+                <div class="dial-outer" id="main-dial" onclick="togglePower()">
+                  <div class="dial-inner">
+                    <div class="power-text off" id="power-status-text">OFF</div>
+                    <div class="status-container">
+                      <div class="status-dot off" id="status-dot"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="dial-time-est off" id="dial-time-est" data-i18n="ring_est_ready_default">Temps estimé avant disponibilité : 1h30</div>
+                <div class="anti-cycle-banner" id="anti-cycle-banner" style="display:none; margin-top:8px; padding:6px 12px; background:rgba(251, 146, 60, 0.15); border:1px solid rgba(251, 146, 60, 0.4); border-radius:6px; font-size:11px; color:var(--orange-alert); font-weight:bold; text-align:center;">
+                  <span data-i18n="anti_cycle_badge">Protection Compresseur (Anti-court-cycle) :</span> <span id="anti-cycle-timer">3m00s</span>
+                </div>
+              </div>
+
+              <!-- CARTES DE CONTRÔLE -->
+              <div class="cards-column">
+                
+                <!-- TEMPÉRATURE AMBIANTE -->
+                <div class="ui-card">
+                  <div class="card-header">
+                    <svg viewBox="0 0 24 24"><path d="M15,13V5A3,3 0 0,0 9,5V13A5,5 0 1,0 15,13M12,4A1,1 0 0,1 13,5V8H11V5A1,1 0 0,1 12,4Z"/></svg>
+                    <span data-i18n="card_amb_title">TEMPÉRATURE AMBIANTE</span>
+                  </div>
+                  <div class="room-temp-val" id="v_t_amb">--</div>
+                  <div class="tile-sub" id="card_amb_sub_label" data-i18n="card_amb_sub">Capteur intérieur habitacle</div>
+                </div>
+
+                <!-- THERMOSTAT CIBLE -->
+                <div class="ui-card">
+                  <div class="card-header">
+                    <svg viewBox="0 0 24 24"><path d="M12,2A10,10 0 1,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,7V13H17V11H13V7H11Z"/></svg>
+                    <span data-i18n="card_target_title">TEMPÉRATURE CIBLE</span>
+                  </div>
+                  <div class="card-main-row">
+                    <div class="target-controls disabled" id="target-controls">
+                      <button class="temp-adjust-btn" onclick="changeTemp(-0.5)">-</button>
+                      <div class="tile-val" id="target_temp">21.0°</div>
+                      <button class="temp-adjust-btn" onclick="changeTemp(0.5)">+</button>
+                    </div>
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="target-toggle" onchange="toggleTarget()">
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                  <div class="tile-sub" id="target-sub" data-i18n="card_target_sub_inactive">Thermostat inactif</div>
+                </div>
+
+                <!-- MINUTERIE -->
+                <div class="ui-card">
+                  <div class="card-header">
+                    <svg viewBox="0 0 24 24"><path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/></svg>
+                    <span data-i18n="card_timer_title">MINUTERIE</span>
+                  </div>
+                  <div class="card-main-row">
+                    <div class="tile-val" id="timer-display">00h 00m</div>
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="timer-toggle" onchange="toggleTimerSwitch()">
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                  <div class="timer-controls-area disabled" id="timer-controls-area">
+                    <div class="presets-row">
+                      <button class="preset-btn" onclick="setPreset('30m', this)">30m</button>
+                      <button class="preset-btn" onclick="setPreset('1h', this)">1h</button>
+                      <button class="preset-btn" onclick="setPreset('2h', this)">2h</button>
+                      <button class="preset-btn" onclick="setPreset('perso', this)" data-i18n="preset_custom">Perso</button>
+                    </div>
+                    <div class="timer-custom-inputs" id="timer-inputs">
+                      <input type="number" id="t-hours" min="0" max="24" value="0"> h 
+                      <input type="number" id="t-mins" min="0" max="59" value="30"> m
+                      <button class="btn-outline" style="padding: 4px 8px; font-size: 10px;" onclick="applyCustomTimer()">OK</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- COMPRESSEUR DE FROID GLACIÈRE -->
+                <div class="ui-card compressor-card" id="card-compressor">
+                  <div class="card-header" style="justify-content:space-between;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                      <div class="comp-icon-wrap" id="comp-icon-wrap">
+                        <svg viewBox="0 0 24 24" id="comp-svg-icon"><path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,6V11H7V13H11V18H13V13H17V11H13V6H11Z"/></svg>
+                      </div>
+                      <span data-i18n="card_comp_title">COMPRESSEUR GLACIÈRE</span>
+                    </div>
+                    <span class="badge badge-comp-state off" id="comp-state-badge" data-i18n="comp_status_off">Éteint</span>
+                  </div>
+                  
+                  <div class="comp-controls-row">
+                    <div class="comp-mode-selector">
+                      <button class="comp-mode-btn active" id="btn-comp-auto" onclick="setCompressorMode('auto')" data-i18n="comp_mode_auto">AUTO</button>
+                      <button class="comp-mode-btn" id="btn-comp-on" onclick="setCompressorMode('on')" data-i18n="comp_mode_force_on">FORCÉ</button>
+                      <button class="comp-mode-btn" id="btn-comp-off" onclick="setCompressorMode('off')" data-i18n="comp_mode_force_off">COUPÉ</button>
+                    </div>
+                  </div>
+
+                  <div class="tile-sub" id="comp-sub-label" style="display:flex; align-items:center; gap:6px;">
+                    <span id="comp-sub-text">Protection active (repos 180s)</span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- BOUTON HISTORIQUE (EN BAS À GAUCHE) -->
+            <div class="clim-bottom-bar">
+              <button class="btn-history-icon" onclick="openCyclesHistoryModal()" title="Historique des cycles" aria-label="Historique des cycles" data-i18n-title="btn_history_title">
+                <svg viewBox="0 0 24 24"><path d="M13,3A9,9 0 0,0 4,12H1L4.89,15.89L4.96,16.03L9,12H6A7,7 0 0,1 13,5A7,7 0 0,1 20,12A7,7 0 0,1 13,19C11.07,19 9.32,18.21 8.06,16.94L6.64,18.36C8.27,20 10.5,21 13,21A9,9 0 0,0 22,12A9,9 0 0,0 13,3M12,8V13L16.28,15.54L17,14.33L13.5,12.25V8H12Z"/></svg>
+              </button>
+            </div>
           </div>
 
         </div>
@@ -204,7 +254,7 @@
             <div class="mini-card"><div class="mini-label" data-i18n="stats_runtime">Durée de fonctionnement</div><div class="mini-val">142h 30m</div></div>
             <div class="mini-card">
               <div class="mini-label" data-i18n="stats_water_temp">Température boucle d'eau</div>
-              <div class="mini-val" id="t_water">11.8°</div>
+              <div class="mini-val" id="t_water">--</div>
               <div style="font-size:11px; color:var(--text-muted); margin-top:4px;"><span data-i18n="target_prefix">Consigne :</span> <span id="t_water_target_disp" style="color:var(--cyan-light); font-weight:bold;">8.0°</span></div>
             </div>
             
@@ -344,20 +394,41 @@
         </div>
 
         <!-- ========================================== -->
-        <!-- VUE 4 : GESTIONNAIRE DE MATÉRIEL (DEVICE MGR)-->
+        <!-- VUE 4 : GESTIONNAIRE DE MATÉRIEL & SYSTÈMES -->
         <!-- ========================================== -->
         <div id="view-devices" class="view">
           <div class="device-manager-header">
             <div class="device-manager-title">
-              <h2 data-i18n="devices_title">Gestionnaire de Matériel</h2>
-              <p data-i18n="devices_desc">Configurez et pilotez dynamiquement les broches GPIO de l'ESP32 sans recompiler.</p>
+              <h2 data-i18n="devices_title">Gestionnaire de Matériel & Systèmes</h2>
+              <p data-i18n="devices_desc">Déclarez vos équipements et associez-les aux systèmes applicatifs du van.</p>
             </div>
-            <button class="btn-primary" onclick="openAddDeviceModal()">
+            <button class="btn-primary" onclick="openUnifiedAddModal()">
               <svg viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
-              <span data-i18n="devices_btn_add">Ajouter un équipement</span>
+              <span data-i18n="btn_unified_add">+ Ajouter</span>
             </button>
           </div>
 
+          <!-- SECTION 1 : SYSTÈMES COMPOSITES (CLIMATISATION, ETC.) -->
+          <div class="systems-section" id="systems-section">
+            <div class="section-title-row">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="var(--cyan-light)"><path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4Z"/></svg>
+                <h3 data-i18n="systems_title" style="margin:0;">Systèmes Configurés</h3>
+              </div>
+              <span class="badge badge-system-count" id="systems-count-badge">0 système</span>
+            </div>
+            <div id="systems-cards-container" class="systems-cards-container">
+              <!-- Rempli dynamiquement par app.js -->
+            </div>
+          </div>
+
+          <!-- SECTION 2 : ÉQUIPEMENTS PHYSIQUES INDIVIDUELS -->
+          <div class="section-title-row" style="margin-top:25px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="var(--text-muted)"><path d="M4,6H20V16H4M20,18A2,2 0 0,0 22,16V6C22,4.89 21.1,4 20,4H4C2.89,4 2,4.89 2,6V16A2,2 0 0,0 4,18H0V20H24V18H20Z"/></svg>
+              <h3 data-i18n="devices_raw_title" style="margin:0;">Équipements Individuels Déclarés</h3>
+            </div>
+          </div>
           <div class="table-card">
             <div class="table-responsive">
               <table class="device-table">
@@ -462,13 +533,103 @@
             <div style="margin-top: 10px; font-size: 14px; color: var(--text-muted); line-height: 1.6;">
               <span data-i18n="account_access_level">Niveau d'accès</span> : <strong style="color:white;" data-i18n="account_role">Administrateur (R&D)</strong><br>
               <span data-i18n="account_flash_storage">Stockage flash</span> : <strong style="color:white;" data-i18n="account_storage_status">LittleFS Actif</strong><br>
-              <span data-i18n="account_firmware">Firmware</span> : <strong style="color:var(--cyan-light);">v2.6 - Dynamic Device Manager & Automations</strong>
+              <span data-i18n="account_firmware">Firmware</span> : <strong style="color:var(--cyan-light);">v3.0 - Modular Systems & Climate Manager</strong>
             </div>
             <button style="width:100%; margin-top: 20px; padding: 12px; background: var(--bg-surface); color: var(--danger); border: 1px solid var(--danger); border-radius: 8px; font-weight:bold; cursor: pointer;" onclick="logout()" data-i18n="account_logout">Se déconnecter</button>
           </div>
         </div>
 
       </main>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODALE UNIFIÉE : CHOIX DU TYPE D'AJOUT     -->
+  <!-- ========================================== -->
+  <div class="modal-backdrop" id="unified-add-modal">
+    <div class="modal-dialog modal-unified-add">
+      <div class="modal-header">
+        <div>
+          <h3 data-i18n="modal_unified_title">Que souhaitez-vous ajouter ?</h3>
+          <div class="modal-subtitle" data-i18n="modal_unified_sub">Choisissez la catégorie de matériel ou de fonction pour votre van</div>
+        </div>
+        <button class="modal-close-btn" onclick="closeUnifiedAddModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="unified-add-grid">
+          
+          <!-- CHOIX 1 : CAPTEUR -->
+          <div class="add-choice-card" onclick="selectAddType('sensor')">
+            <div class="choice-icon sensor-icon">
+              <svg viewBox="0 0 24 24"><path d="M15,13V5A3,3 0 0,0 9,5V13A5,5 0 1,0 15,13M12,4A1,1 0 0,1 13,5V8H11V5A1,1 0 0,1 12,4Z"/></svg>
+            </div>
+            <div class="choice-title" data-i18n="choice_sensor_title">Capteur</div>
+            <div class="choice-desc" data-i18n="choice_sensor_desc">Équipement individuel de mesure : Sonde 1-Wire DS18B20, Sonde température NTC 10k, Capteur analogique 0-3.3V, Flotteur niveau d'eau.</div>
+            <span class="choice-badge badge-sensor" data-i18n="badge_sensor">Capteur</span>
+          </div>
+
+          <!-- CHOIX 2 : ACTIONNEUR -->
+          <div class="add-choice-card" onclick="selectAddType('actuator')">
+            <div class="choice-icon actuator-icon">
+              <svg viewBox="0 0 24 24"><path d="M7,2V4H8V18A4,4 0 0,0 12,22A4,4 0 0,0 16,18V4H17V2H7M11,16C10.45,16 10,15.55 10,15C10,14.45 10.45,14 11,14C11.55,14 12,14.45 12,15C12,15.55 11.55,16 11,16M13,12C12.45,12 12,11.55 12,11C12,10.45 12.45,10 13,10C13.55,10 14,10.45 14,11C14,11.55 13.55,12 13,12Z"/></svg>
+            </div>
+            <div class="choice-title" data-i18n="choice_actuator_title">Actionneur</div>
+            <div class="choice-desc" data-i18n="choice_actuator_desc">Équipement individuel de commande : Variateur de vitesse PWM, Relais de puissance 12V/230V, Électrovanne, MOSFET.</div>
+            <span class="choice-badge badge-actuator" data-i18n="badge_actuator">Actionneur</span>
+          </div>
+
+          <!-- CHOIX 3 : SYSTÈME COMPOSITE -->
+          <div class="add-choice-card highlight" onclick="selectAddType('system')">
+            <div class="choice-icon system-icon">
+              <svg viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4Z"/></svg>
+            </div>
+            <div class="choice-title" data-i18n="choice_system_title">Système Composite</div>
+            <div class="choice-desc" data-i18n="choice_system_desc">Fonction complète et modulaire : Climatisation Réversible / Rafraîchisseur d'air avec association de 4 slots matériels.</div>
+            <span class="choice-badge badge-system" data-i18n="badge_system">Système</span>
+          </div>
+
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeUnifiedAddModal()" data-i18n="btn_cancel">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODALE : CRÉATION DE SYSTÈME COMPOSITE     -->
+  <!-- ========================================== -->
+  <div class="modal-backdrop" id="system-modal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div>
+          <h3 data-i18n="modal_system_title">Nouveau Système</h3>
+          <div class="modal-subtitle" data-i18n="modal_system_sub">Déclarez une fonction applicative pour votre van</div>
+        </div>
+        <button class="modal-close-btn" onclick="closeSystemModal()">&times;</button>
+      </div>
+      <form onsubmit="handleSystemFormSubmit(event)">
+        <div class="modal-body">
+          <div class="input-group">
+            <label for="system-name" data-i18n="label_system_name">Nom du système</label>
+            <input type="text" id="system-name" value="Climatisation Salon" required>
+          </div>
+          <div class="input-group">
+            <label for="system-type" data-i18n="label_system_type">Type de système</label>
+            <select id="system-type">
+              <option value="climatisation" data-i18n="opt_sys_clim">Climatisation Réversible / Rafraîchisseur</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="system-target-temp" data-i18n="label_system_target">Consigne par défaut (°C)</label>
+            <input type="number" id="system-target-temp" step="0.5" value="21.0" min="16" max="30">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeSystemModal()" data-i18n="btn_cancel">Annuler</button>
+          <button type="submit" class="btn-primary" data-i18n="btn_create_system">Créer et configurer les slots</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -675,4 +836,3 @@
   <script src="app.js"></script>
 </body>
 </html>
-
