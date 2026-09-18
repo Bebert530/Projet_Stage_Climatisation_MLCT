@@ -21,6 +21,7 @@ ClimateManager::ClimateManager()
       _fanSpeed(60),
       _chillerEnabled(true),
       _targetWaterTemp(8.0f),
+      _coolingDemand(false),
       _timerEnabled(false),
       _timerDurationSec(1800),
       _timerRemainingSec(1800),
@@ -386,12 +387,6 @@ bool ClimateManager::handleJsonCommand(const String& jsonStr) {
 }
 
 void ClimateManager::readPhysicalSensors(DeviceManager& devManager, SystemManager& sysManager) {
-    unsigned long now = millis();
-    if (now - _lastSensorReadTime < 2000) {
-        return; // Lecture physique toutes les 2 secondes
-    }
-    _lastSensorReadTime = now;
-
     SystemConfig* climSys = sysManager.getPrimaryClimateSystem();
     if (!climSys) {
         _systemConfigured = false;
@@ -412,105 +407,41 @@ void ClimateManager::readPhysicalSensors(DeviceManager& devManager, SystemManage
 
     xSemaphoreTake(_mutex, portMAX_DELAY);
 
-    // 1. Détection de la broche GPIO de la sonde d'air
-    uint8_t tempAirGpio = 255;
+    // 1. Détection de la sonde d'air ambiant
     uint8_t tempAirId = 0;
     if (climSys && climSys->bindings.tempAirId > 0) {
-        Device* dAir = devManager.getDeviceById(climSys->bindings.tempAirId);
-        if (dAir) {
-            tempAirGpio = dAir->gpio;
-            tempAirId = dAir->id;
-        }
-    }
-    
-    // Si aucun système configuré ou id non relié, chercher le premier capteur 1-Wire dans DeviceManager
-    if (tempAirGpio == 255) {
+        tempAirId = climSys->bindings.tempAirId;
+    } else {
         std::vector<Device> devs = devManager.getDevices();
         for (const auto& d : devs) {
-            if (d.mode == MODE_INPUT_ONEWIRE) {
-                tempAirGpio = d.gpio;
+            if (d.mode == MODE_INPUT_ONEWIRE || d.mode == MODE_INPUT_ADC_NTC) {
                 tempAirId = d.id;
                 break;
             }
         }
     }
 
-    // Lecture de la sonde d'air
-    if (tempAirGpio != 255) {
-        initOrUpdate1Wire(tempAirGpio);
-        if (_dallasSensors) {
-            _dallasSensors->requestTemperatures();
-            float tAmb = _dallasSensors->getTempCByIndex(0);
-
-            if (tAmb != DEVICE_DISCONNECTED_C && tAmb > -50.0f && tAmb < 125.0f && tAmb != 85.0f) {
-                _currentAmbientTemp = tAmb;
-                _probesConnectedCount = 1;
-                _probeWatchdogAlert = false;
-                if (tempAirId > 0) {
-                    devManager.setDeviceState(tempAirId, 1, (int16_t)round(tAmb * 100.0f));
-                }
-            } else if (tAmb == 85.0f) {
-                // Échantillon 85°C transitoire au démarrage : conserver l'état actuel
-            } else {
-                // Sonde déconnectée / débranchée (-127°C)
-                _currentAmbientTemp = NAN;
-                _probesConnectedCount = 0;
-                _probeWatchdogAlert = true;
-                if (tempAirId > 0) {
-                    devManager.setDeviceState(tempAirId, 0, 0);
-                }
-            }
-        }
-    } else if (climSys && climSys->bindings.tempAirId > 0) {
-        Device* devAir = devManager.getDeviceById(climSys->bindings.tempAirId);
-        if (devAir && (devAir->mode == MODE_INPUT_ADC || devAir->mode == MODE_INPUT_ADC_NTC)) {
-            int raw = analogRead(devAir->gpio);
-            float volts = (raw / 4095.0f) * 3.3f;
-            if (devAir->mode == MODE_INPUT_ADC_NTC) {
-                if (volts > 0.1f && volts < 3.2f) {
-                    float rNtc = 10000.0f * (3.3f / volts - 1.0f);
-                    float steinhart = log(rNtc / 10000.0f) / 3950.0f + 1.0f / (25.0f + 273.15f);
-                    _currentAmbientTemp = (1.0f / steinhart) - 273.15f;
-                    _probesConnectedCount = 1;
-                    _probeWatchdogAlert = false;
-                    devManager.setDeviceState(devAir->id, 1, (int16_t)round(_currentAmbientTemp * 100.0f));
-                } else {
-                    _currentAmbientTemp = NAN;
-                    _probesConnectedCount = 0;
-                    _probeWatchdogAlert = true;
-                    devManager.setDeviceState(devAir->id, 0, 0);
-                }
-            } else {
-                _currentAmbientTemp = volts * 15.15f;
-                _probesConnectedCount = 1;
-                _probeWatchdogAlert = false;
-                devManager.setDeviceState(devAir->id, 1, (int16_t)round(_currentAmbientTemp * 100.0f));
-            }
-        }
+    Device* devAir = (tempAirId > 0) ? devManager.getDeviceById(tempAirId) : nullptr;
+    if (devAir && devAir->state == 1 && devAir->value != 0) {
+        _currentAmbientTemp = devAir->value / 100.0f;
+        _probesConnectedCount = 1;
+        _probeWatchdogAlert = false;
+    } else {
+        _currentAmbientTemp = NAN;
+        _probesConnectedCount = 0;
+        _probeWatchdogAlert = true;
     }
 
-    // 2. Lecture de la sonde d'eau (Slot 2 : tempWaterId - Optionnelle)
+    // 2. Détection de la sonde d'eau (Optionnelle)
     if (climSys && climSys->bindings.tempWaterId > 0) {
         Device* devWater = devManager.getDeviceById(climSys->bindings.tempWaterId);
-        if (devWater) {
-            if (devWater->mode == MODE_INPUT_ONEWIRE) {
-                if (tempAirGpio == devWater->gpio && _dallasSensors) {
-                    float tWater = _dallasSensors->getTempCByIndex(1);
-                    if (tWater != DEVICE_DISCONNECTED_C && tWater > -50.0f && tWater < 125.0f && tWater != 85.0f) {
-                        _currentWaterTemp = tWater;
-                        devManager.setDeviceState(devWater->id, 1, (int16_t)round(tWater * 100.0f));
-                    } else {
-                        _currentWaterTemp = NAN;
-                        devManager.setDeviceState(devWater->id, 0, 0);
-                    }
-                }
-            } else if (devWater->mode == MODE_INPUT_ADC || devWater->mode == MODE_INPUT_ADC_NTC) {
-                int raw = analogRead(devWater->gpio);
-                float volts = (raw / 4095.0f) * 3.3f;
-                _currentWaterTemp = volts * 15.15f;
-                devManager.setDeviceState(devWater->id, 1, (int16_t)round(_currentWaterTemp * 100.0f));
-            }
+        if (devWater && devWater->state == 1 && devWater->value != 0) {
+            _currentWaterTemp = devWater->value / 100.0f;
+        } else {
+            _currentWaterTemp = NAN;
         }
+    } else {
+        _currentWaterTemp = NAN;
     }
 
     xSemaphoreGive(_mutex);
@@ -589,6 +520,7 @@ void ClimateManager::update(DeviceManager& devManager) {
 }
 
 void ClimateManager::evaluateRegulation(DeviceManager& devManager, SystemManager& sysManager, float dtSec) {
+    bool stateChanged = false;
     xSemaphoreTake(_mutex, portMAX_DELAY);
     unsigned long now = millis();
 
@@ -625,46 +557,53 @@ void ClimateManager::evaluateRegulation(DeviceManager& devManager, SystemManager
         return;
     }
 
-    bool coolingDemand = false;
+    // 1. VÉRIFICATION DU THERMOSTAT D'AIR : Passage en OFF direct dès que la température cible est atteinte !
+    if (_systemOn && _targetEnabled && !isnan(_currentAmbientTemp) && _currentAmbientTemp <= _targetTemp) {
+        Serial.printf("[ClimateManager] Consigne d'air atteinte (%.1f°C <= %.1f°C) -> Passage en OFF.\n", _currentAmbientTemp, _targetTemp);
+        _systemOn = false;
+        stateChanged = true;
+        _timerRemainingSec = _timerDurationSec;
+    }
+
+    // 2. ÉVALUATION DE LA DEMANDE FRIGORIFIQUE
+    bool airNeedsCooling = false;
+    bool waterNeedsCooling = false;
 
     if (_systemOn) {
-        if (_compressorMode == COMP_MODE_FORCE_ON) {
-            coolingDemand = true;
-        } else if (_compressorMode == COMP_MODE_FORCE_OFF) {
-            coolingDemand = false;
+        if (_targetEnabled) {
+            airNeedsCooling = (!isnan(_currentAmbientTemp) && _currentAmbientTemp > _targetTemp);
         } else {
-            // Mode AUTO : évaluation thermostatique
-            if (_targetEnabled) {
-                float highThreshold = _targetTemp + (_hysteresis / 2.0f);
-                float lowThreshold = _targetTemp - (_hysteresis / 2.0f);
+            airNeedsCooling = true; // Mode continu / manuel
+        }
 
-                if (_currentAmbientTemp > highThreshold) {
-                    coolingDemand = true;
-                } else if (_currentAmbientTemp < lowThreshold) {
-                    coolingDemand = false;
-                } else {
-                    // Zone morte d'hystérésis : conserver la demande précédente
-                    coolingDemand = _compressorActive;
-                }
-            } else {
-                // Mode continu sans thermostat
-                coolingDemand = true;
-            }
+        if (_chillerEnabled) {
+            waterNeedsCooling = (!isnan(_currentWaterTemp) && _currentWaterTemp > _targetWaterTemp);
+        } else {
+            waterNeedsCooling = airNeedsCooling;
+        }
+    }
 
-            // Condition Chiller (eau froide)
-            bool waterNeedsCooling = (_currentWaterTemp > _targetWaterTemp);
-            if (!_chillerEnabled || !waterNeedsCooling) {
-                coolingDemand = false;
-            }
+    // Demande effective pour le compresseur
+    bool compressorDemand = false;
+    if (_systemOn) {
+        if (_compressorMode == COMP_MODE_FORCE_ON) {
+            compressorDemand = true;
+        } else if (_compressorMode == COMP_MODE_FORCE_OFF) {
+            compressorDemand = false;
+        } else {
+            // Mode AUTO : le compresseur s'active si l'eau (ou l'air en direct) a besoin d'être refroidie
+            compressorDemand = waterNeedsCooling;
         }
     } else {
-        coolingDemand = false;
+        compressorDemand = false;
     }
+
+    _coolingDemand = airNeedsCooling;
 
     // Protection frigorifique compresseur :
     // 1. Délai minimal de repos de 180s (3 minutes) avant redémarrage (Anti-court-cycle)
     // 2. Temps de fonctionnement minimal de 60s avant extinction (Anti-microcycle)
-    if (coolingDemand) {
+    if (compressorDemand) {
         if (_compressorActive) {
             _compressorState = COMP_STATE_RUNNING;
             _antiCycleActive = false;
@@ -687,14 +626,14 @@ void ClimateManager::evaluateRegulation(DeviceManager& devManager, SystemManager
             }
         }
     } else {
-        // Pas de demande de froid
+        // Pas de demande pour le compresseur (soit eau à température cible atteinte, soit système OFF)
         if (_compressorActive) {
             // Vérification du temps de fonctionnement minimum (60 secondes)
             if (_lastCompressorStartTime > 0 && (now - _lastCompressorStartTime < MIN_RUN_TIME_MS) && _systemOn && _compressorMode != COMP_MODE_FORCE_OFF) {
                 // Maintenir en marche jusqu'à la fin des 60s pour préserver le compresseur
                 _compressorState = COMP_STATE_RUNNING;
             } else {
-                // Extinction du compresseur et armement du délai de repos de 180s
+                // Extinction du compresseur et armement immédiat du délai de repos de 180s !
                 _compressorActive = false;
                 _compressorState = COMP_STATE_OFF;
                 _lastCompressorStopTime = now;
@@ -702,7 +641,7 @@ void ClimateManager::evaluateRegulation(DeviceManager& devManager, SystemManager
                 _antiCycleRemainingSec = ANTI_CYCLE_DELAY_MS / 1000;
             }
         } else {
-            _compressorState = (_antiCycleActive && _antiCycleRemainingSec > 0 && _systemOn && _chillerEnabled)
+            _compressorState = (_antiCycleActive && _antiCycleRemainingSec > 0 && _chillerEnabled)
                 ? COMP_STATE_WAITING_DELAY
                 : COMP_STATE_OFF;
         }
@@ -717,18 +656,27 @@ void ClimateManager::evaluateRegulation(DeviceManager& devManager, SystemManager
 
     // Slot 4 : Pompe boucle froide (Relais)
     if (pumpRelayId > 0) {
-        uint8_t pumpState = (_systemOn && (_compressorActive || (_currentWaterTemp < (_targetWaterTemp + 3.0f) && (_systemOn && _chillerEnabled)))) ? 1 : 0;
+        uint8_t pumpState = (_systemOn && airNeedsCooling) ? 1 : 0;
         devManager.setDeviceState(pumpRelayId, pumpState, 0);
     }
 
-    // Slot 3 : Ventilateur / Pulseur d'air (PWM) - Régulé seulement si le système Climatisation est actif
-    if (fanPwmId > 0 && _systemOn) {
-        uint8_t fanState = (_fanSpeed > 0) ? 1 : 0;
-        uint8_t fanPwm = (uint8_t)round((_fanSpeed / 100.0f) * 255.0f);
-        devManager.setDeviceState(fanPwmId, fanState, fanPwm);
+    // Slot 3 : Ventilateur / Pulseur d'air (PWM)
+    if (fanPwmId > 0) {
+        if (_systemOn && airNeedsCooling && _fanSpeed > 0) {
+            uint8_t fanPwm = (uint8_t)round((_fanSpeed / 100.0f) * 255.0f);
+            devManager.setDeviceState(fanPwmId, 1, fanPwm);
+        } else {
+            // Coupure franche du ventilateur à 0% / 0V dès que la consigne est atteinte ou système OFF
+            devManager.setDeviceState(fanPwmId, 0, 0);
+        }
     }
 
     xSemaphoreGive(_mutex);
+
+    if (stateChanged) {
+        saveConfig();
+        broadcastState();
+    }
 }
 
 String ClimateManager::getTelemetryJson(SystemManager* sysManager, DeviceManager* devManager) {
@@ -756,6 +704,8 @@ String ClimateManager::getTelemetryJson(SystemManager* sysManager, DeviceManager
     doc["power"] = _systemOn;
     doc["target_enabled"] = _targetEnabled;
     doc["target_temp"] = _targetTemp;
+    doc["cooling_demand"] = _coolingDemand;
+    doc["cooling_active"] = (_systemOn && _coolingDemand);
     doc["mode"] = _mode;
     doc["fan"] = _fanSpeed;
     doc["hyst"] = _hysteresis;

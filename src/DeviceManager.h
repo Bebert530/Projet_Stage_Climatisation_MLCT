@@ -4,6 +4,7 @@
 #include <ArduinoJson.h>
 #include <LittleFS.h>
 #include <vector>
+#include <map>
 
 /**
  * @enum DeviceCategory
@@ -139,6 +140,7 @@ private:
     String _configPath;
     std::vector<Device> _devices;
     SemaphoreHandle_t _mutex;
+    unsigned long _lastSensorReadTime;
 
     bool _pwmChannelsInUse[16];
 

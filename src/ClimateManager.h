@@ -89,6 +89,7 @@ public:
     bool isTimerEnabled() const { return _timerEnabled; }
     uint32_t getTimerDurationSec() const { return _timerDurationSec; }
     uint32_t getTimerRemainingSec() const { return _timerRemainingSec; }
+    bool isCoolingDemand() const { return _coolingDemand; }
 
     // Constantes de sécurité frigorifique
     static const uint32_t ANTI_CYCLE_DELAY_MS = 180000; // 180 s (3 minutes) délai de repos minimal
@@ -121,6 +122,7 @@ private:
     uint8_t _fanSpeed;
     bool _chillerEnabled;
     float _targetWaterTemp;
+    bool _coolingDemand;
 
     // Minuterie de fonctionnement (décompte dynamique)
     bool _timerEnabled;

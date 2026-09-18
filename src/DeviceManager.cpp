@@ -23,7 +23,7 @@ const std::vector<uint8_t> DeviceManager::SAFE_PULLUP_PINS = {
     4, 5, 13, 14, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33
 };
 
-DeviceManager::DeviceManager() : _configPath("/config.json") {
+DeviceManager::DeviceManager() : _configPath("/config.json"), _lastSensorReadTime(0) {
     _mutex = xSemaphoreCreateMutex();
     for (int i = 0; i < 16; i++) {
         _pwmChannelsInUse[i] = false;
@@ -581,7 +581,16 @@ bool DeviceManager::setDeviceState(uint8_t id, uint8_t state, int16_t value) {
 }
 
 void DeviceManager::updateSensors() {
+    unsigned long now = millis();
+    if (now - _lastSensorReadTime < 1500) {
+        return; // Lecture cadencée toutes les 1.5s
+    }
+    _lastSensorReadTime = now;
+
+    // 1. Lecture des entrées Digital et ADC / NTC
     xSemaphoreTake(_mutex, portMAX_DELAY);
+    std::map<uint8_t, std::vector<uint8_t>> onewirePinToIds; // gpio -> list of device IDs
+
     for (auto& dev : _devices) {
         if (dev.category != CAT_SENSOR) continue;
 
@@ -604,10 +613,48 @@ void DeviceManager::updateSensors() {
                 float tC = (1.0f / steinhart) - 273.15f;
                 dev.value = (int16_t)round(tC * 100.0f);
                 dev.state = 1;
+            } else {
+                dev.value = 0;
+                dev.state = 0;
             }
+        } else if (dev.mode == MODE_INPUT_ONEWIRE) {
+            onewirePinToIds[dev.gpio].push_back(dev.id);
         }
     }
     xSemaphoreGive(_mutex);
+
+    // 2. Lecture individuelle de tous les bus et sondes 1-Wire DS18B20
+    for (const auto& entry : onewirePinToIds) {
+        uint8_t gpio = entry.first;
+        const auto& devIds = entry.second;
+        if (!isPinSafe(gpio)) continue;
+
+        OneWire ow(gpio);
+        DallasTemperature ds(&ow);
+        ds.begin();
+        ds.setWaitForConversion(true);
+        uint8_t count = ds.getDeviceCount();
+        if (count > 0) {
+            ds.requestTemperatures();
+            for (size_t idx = 0; idx < devIds.size(); ++idx) {
+                uint8_t devId = devIds[idx];
+                if (idx < count) {
+                    float t = ds.getTempCByIndex(idx);
+                    if (t != DEVICE_DISCONNECTED_C && t > -50.0f && t < 125.0f && t != 85.0f) {
+                        setDeviceState(devId, 1, (int16_t)round(t * 100.0f));
+                    } else {
+                        setDeviceState(devId, 0, 0);
+                    }
+                } else {
+                    setDeviceState(devId, 0, 0);
+                }
+            }
+        } else {
+            for (uint8_t devId : devIds) {
+                setDeviceState(devId, 0, 0);
+            }
+        }
+    }
 }
 
 DeviceTestResult DeviceManager::testPinDirect(uint8_t gpio, SignalMode mode, uint16_t durationMs) {
@@ -770,7 +817,48 @@ DeviceTestResult DeviceManager::testDevice(uint8_t id, uint16_t durationMs) {
 #endif
         res.rawValue = 128;
         res.voltageValue = 1.65f;
-        res.message = "Signal PWM 50% envoyé pendant " + String(durationMs / 1000) + "s puis arrêté.";
+    } else if (mode == MODE_INPUT_ONEWIRE) {
+        // Déterminer l'index de cette sonde sur son bus GPIO
+        uint8_t busIndex = 0;
+        xSemaphoreTake(_mutex, portMAX_DELAY);
+        for (const auto& d : _devices) {
+            if (d.mode == MODE_INPUT_ONEWIRE && d.gpio == gpio) {
+                if (d.id == id) break;
+                busIndex++;
+            }
+        }
+        xSemaphoreGive(_mutex);
+
+        OneWire testOw(gpio);
+        DallasTemperature testSensors(&testOw);
+        testSensors.begin();
+        testSensors.setWaitForConversion(true);
+        uint8_t count = testSensors.getDeviceCount();
+        if (count > busIndex) {
+            testSensors.requestTemperatures();
+            float t = testSensors.getTempCByIndex(busIndex);
+            if (t != DEVICE_DISCONNECTED_C && t > -50.0f && t < 125.0f && t != 85.0f) {
+                res.success = true;
+                res.rawValue = (int)(round(t * 100.0f));
+                res.voltageValue = 3.3f;
+                res.message = "Sonde 1-Wire (GPIO " + String(gpio) + ", index #" + String(busIndex + 1) + "/" + String(count) + ") : " + String(t, 2) + " °C";
+            } else {
+                res.success = false;
+                res.rawValue = 0;
+                res.voltageValue = 0.0f;
+                res.message = "Sonde #" + String(busIndex + 1) + " non connectée (-127°C / Déconnexion).";
+            }
+        } else {
+            res.success = false;
+            res.rawValue = 0;
+            res.voltageValue = 0.0f;
+            res.message = "Aucune sonde trouvée pour l'index #" + String(busIndex + 1) + " sur GPIO " + String(gpio) + " (" + String(count) + " sonde(s) détectée(s)).";
+        }
+        if (res.success) {
+            setDeviceState(id, 1, (int16_t)res.rawValue);
+        } else {
+            setDeviceState(id, 0, 0);
+        }
     } else {
         res = testPinDirect(gpio, mode, durationMs);
         if (res.success) {

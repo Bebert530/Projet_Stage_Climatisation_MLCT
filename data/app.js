@@ -3944,19 +3944,42 @@ function handleIncomingTelemetry(data) {
     }
   }
 
-  // Synchronisation dynamique du tableau des équipements avec la télémétrie en direct
-  if (data.t_amb !== undefined && devicesList && devicesList.length > 0) {
+  // Synchronisation dynamique ciblée des équipements avec la télémétrie en direct
+  if (devicesList && devicesList.length > 0) {
     let changed = false;
-    devicesList.forEach(dev => {
-      if (dev.mode === 'INPUT_ONEWIRE' || dev.mode === 'INPUT_ADC_NTC') {
-        const newVal = Math.round(data.t_amb * 100);
-        if (dev.value !== newVal) {
-          dev.value = newVal;
-          dev.state = 1;
+    const airSlotId = (systemsList && systemsList[0]?.bindings?.temp_air_id);
+    const waterSlotId = (systemsList && systemsList[0]?.bindings?.temp_water_id);
+
+    if (data.t_amb !== undefined) {
+      // Trouver la sonde d'air spécifique (ou la 1ère sonde de température déclarée)
+      let airDev = airSlotId ? devicesList.find(d => d.id === airSlotId) : null;
+      if (!airDev) {
+        airDev = devicesList.find(d => d.mode === 'INPUT_ONEWIRE' || d.mode === 'INPUT_ADC_NTC');
+      }
+      if (airDev) {
+        const newVal = (data.t_amb !== null && !isNaN(data.t_amb)) ? Math.round(data.t_amb * 100) : 0;
+        const newState = (data.t_amb !== null && !isNaN(data.t_amb)) ? 1 : 0;
+        if (airDev.value !== newVal || airDev.state !== newState) {
+          airDev.value = newVal;
+          airDev.state = newState;
           changed = true;
         }
       }
-    });
+    }
+
+    if (data.t_water !== undefined && waterSlotId) {
+      const waterDev = devicesList.find(d => d.id === waterSlotId);
+      if (waterDev) {
+        const newVal = (data.t_water !== null && !isNaN(data.t_water)) ? Math.round(data.t_water * 100) : 0;
+        const newState = (data.t_water !== null && !isNaN(data.t_water)) ? 1 : 0;
+        if (waterDev.value !== newVal || waterDev.state !== newState) {
+          waterDev.value = newVal;
+          waterDev.state = newState;
+          changed = true;
+        }
+      }
+    }
+
     const devView = document.getElementById('view-devices');
     const isDevTab = devView && devView.classList.contains('active');
     const isModalOpen = document.querySelector('.modal-backdrop.active');
@@ -3976,30 +3999,53 @@ function handleIncomingTelemetry(data) {
 function updateRing() {
   const dial = document.getElementById('main-dial');
   const timeEstDisplay = document.getElementById('dial-time-est');
+  const dot = document.getElementById('status-dot');
+  const powerStatus = document.getElementById('power-status-text');
   if (!dial || !timeEstDisplay) return;
   
   if (!systemOn) {
     dial.style.background = 'conic-gradient(from -90deg, #334155 0%, #334155 100%)';
+    timeEstDisplay.classList.remove('standby');
     timeEstDisplay.classList.add('off');
-    timeEstDisplay.innerText = waterCoolingEnabled ? (t('ring_est_ready_prefix', 'Temps estimé avant disponibilité : ') + estimatedTimeToReady) : t('ring_chiller_standby', "Refroidissement d'eau (Chiller) en veille");
+    timeEstDisplay.innerText = waterCoolingEnabled ? (t('ring_est_ready_prefix', 'Temps estimé avant disponibilité : ') + estimatedTimeToReady) : t('ring_chiller_standby', "Refroidissement d'eau (Chiller) arrêté");
+    if (dot) {
+      dot.classList.remove('on', 'standby');
+      dot.classList.add('off');
+    }
+    if (powerStatus) {
+      powerStatus.classList.remove('on', 'standby');
+      powerStatus.classList.add('off');
+      powerStatus.innerText = 'OFF';
+    }
     return;
+  }
+
+  // Climatisation en cours de fonctionnement actif (ON)
+  if (dot) {
+    dot.classList.remove('off', 'standby');
+    dot.classList.add('on');
+  }
+  if (powerStatus) {
+    powerStatus.classList.remove('off', 'standby');
+    powerStatus.classList.add('on');
+    powerStatus.innerText = 'ON';
   }
 
   if (!waterCoolingEnabled) {
     dial.style.background = 'conic-gradient(from -90deg, #fb923c 0%, #fb923c 100%)';
-    timeEstDisplay.classList.remove('off');
-    timeEstDisplay.innerText = t('ring_chiller_off', "Refroidissement eau COUPÉ (Ventilation seule / Veille)");
+    timeEstDisplay.classList.remove('off', 'standby');
+    timeEstDisplay.innerText = t('ring_chiller_off', "Refroidissement eau COUPÉ (Ventilation seule)");
     return;
   }
 
   if (!isWaterReady) {
     dial.style.background = 'conic-gradient(from -90deg, #334155 0%, #334155 100%)';
-    timeEstDisplay.classList.remove('off');
+    timeEstDisplay.classList.remove('off', 'standby');
     timeEstDisplay.innerText = t('ring_est_ready_prefix', 'Temps estimé avant disponibilité : ') + estimatedTimeToReady;
     return;
   }
 
-  timeEstDisplay.classList.remove('off');
+  timeEstDisplay.classList.remove('off', 'standby');
   if (targetEnabled) {
     timeEstDisplay.innerText = t('ring_est_target_prefix', "Temps estimé jusqu'à ") + targetTemp.toFixed(1) + "°: " + estimatedTimeToTarget;
   } else {
