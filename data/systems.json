@@ -1,0 +1,21 @@
+{
+  "systems": [
+    {
+      "id": "clim_main",
+      "type": "climatisation",
+      "name": "Climatisation Salon",
+      "enabled": true,
+      "bindings": {
+        "temp_air_id": 4,
+        "temp_water_id": 6,
+        "fan_pwm_id": 2,
+        "pump_relay_id": 1,
+        "compressor_relay_id": 5
+      },
+      "settings": {
+        "target_temp": 21.0,
+        "mode": "NORMAL"
+      }
+    }
+  ]
+}

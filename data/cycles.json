@@ -1,0 +1,89 @@
+{
+  "cycles": [
+    {
+      "id": "CYC-001",
+      "date": "05/09/2026",
+      "startTime": "09:30",
+      "endTime": "10:45",
+      "duration": "1h 15m",
+      "durationSec": 4500,
+      "mode": "NORMAL",
+      "startTemp": 27.2,
+      "endTemp": 21.0,
+      "targetTemp": 21.0,
+      "energy": 0.65,
+      "status": "Consigne atteinte"
+    },
+    {
+      "id": "CYC-002",
+      "date": "05/09/2026",
+      "startTime": "14:10",
+      "endTime": "15:10",
+      "duration": "1h 00m",
+      "durationSec": 3600,
+      "mode": "BOOST",
+      "startTemp": 29.5,
+      "endTemp": 22.0,
+      "targetTemp": 21.5,
+      "energy": 0.92,
+      "status": "Consigne atteinte"
+    },
+    {
+      "id": "CYC-003",
+      "date": "06/09/2026",
+      "startTime": "11:20",
+      "endTime": "12:05",
+      "duration": "45m",
+      "durationSec": 2700,
+      "mode": "ECO",
+      "startTemp": 25.8,
+      "endTemp": 22.4,
+      "targetTemp": 22.0,
+      "energy": 0.38,
+      "status": "Minuterie terminee"
+    },
+    {
+      "id": "CYC-004",
+      "date": "06/09/2026",
+      "startTime": "16:00",
+      "endTime": "17:30",
+      "duration": "1h 30m",
+      "durationSec": 5400,
+      "mode": "NORMAL",
+      "startTemp": 28.1,
+      "endTemp": 21.2,
+      "targetTemp": 21.0,
+      "energy": 0.81,
+      "status": "Consigne atteinte"
+    },
+    {
+      "id": "CYC-005",
+      "date": "07/09/2026",
+      "startTime": "10:15",
+      "endTime": "11:00",
+      "duration": "45m",
+      "durationSec": 2700,
+      "mode": "ECO+",
+      "startTemp": 24.6,
+      "endTemp": 22.8,
+      "targetTemp": 22.5,
+      "energy": 0.29,
+      "status": "Consigne atteinte"
+    },
+    {
+      "id": "CYC-006",
+      "date": "07/09/2026",
+      "startTime": "13:00",
+      "endTime": "13:40",
+      "duration": "40m",
+      "durationSec": 2400,
+      "mode": "BOOST+",
+      "startTemp": 30.2,
+      "endTemp": 23.5,
+      "targetTemp": 20.5,
+      "energy": 0.74,
+      "status": "Arret manuel"
+    }
+  ]
+}
+

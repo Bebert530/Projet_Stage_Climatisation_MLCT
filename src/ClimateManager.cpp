@@ -1,0 +1,797 @@
+#include "ClimateManager.h"
+#include <cmath>
+
+ClimateManager::ClimateManager()
+    : _configPath("/climate.json"),
+      _broadcastCb(nullptr),
+      _systemConfigured(true),
+      _systemOperational(true),
+      _missingSlotsList(""),
+      _oneWire(nullptr),
+      _dallasSensors(nullptr),
+      _currentOneWirePin(-1),
+      _probesConnectedCount(0),
+      _probeWatchdogAlert(false),
+      _lastSensorReadTime(0),
+      _systemOn(false),
+      _targetEnabled(false),
+      _targetTemp(21.0f),
+      _hysteresis(0.5f),
+      _mode("NORMAL"),
+      _fanSpeed(60),
+      _chillerEnabled(true),
+      _targetWaterTemp(8.0f),
+      _coolingDemand(false),
+      _timerEnabled(false),
+      _timerDurationSec(1800),
+      _timerRemainingSec(1800),
+      _compressorActive(false),
+      _compressorState(COMP_STATE_OFF),
+      _compressorMode(COMP_MODE_AUTO),
+      _antiCycleActive(false),
+      _antiCycleRemainingSec(0),
+      _lastCompressorStartTime(0),
+      _lastCompressorStopTime(0),
+      _currentAmbientTemp(NAN),
+      _currentWaterTemp(NAN),
+      _totalEnergyKwh(0.0f),
+      _totalRuntimeSec(0),
+      _lastRegulTime(0),
+      _lastBroadcastTime(0),
+      _lastStatsTick(0),
+      _compressorRunTimer(COMPRESSOR_MAX_RUN_MS),
+      _compressorRestTimer(COMPRESSOR_REST_MS),
+      _antiCycleTimer(ANTI_CYCLE_DELAY_MS),
+      _minRunTimer(MIN_RUN_TIME_MS),
+      _regulTimer(500),
+      _statsTimer(1000),
+      _broadcastTimer(1500),
+      _sensorReadTimer(1500) {
+    _mutex = xSemaphoreCreateMutex();
+}
+
+ClimateManager::~ClimateManager() {
+    if (_dallasSensors) delete _dallasSensors;
+    if (_oneWire) delete _oneWire;
+    if (_mutex) {
+        vSemaphoreDelete(_mutex);
+    }
+}
+
+bool ClimateManager::begin(const char* configPath) {
+    if (configPath && strlen(configPath) > 0) {
+        _configPath = configPath;
+    }
+    _regulTimer.start(500);
+    _broadcastTimer.start(1500);
+    _statsTimer.start(1000);
+    _sensorReadTimer.start(1500);
+
+    Serial.println("[ClimateManager] Démarrage du moteur de régulation sur matériel réel (ESP32)...");
+
+    bool ok = loadConfig();
+    if (!ok) {
+        saveConfig();
+    }
+    return true;
+}
+
+void ClimateManager::initOrUpdate1Wire(uint8_t gpio) {
+    if (_currentOneWirePin == (int8_t)gpio && _dallasSensors != nullptr) {
+        return;
+    }
+
+    if (_dallasSensors) {
+        delete _dallasSensors;
+        _dallasSensors = nullptr;
+    }
+    if (_oneWire) {
+        delete _oneWire;
+        _oneWire = nullptr;
+    }
+
+    _currentOneWirePin = gpio;
+    _oneWire = new OneWire(gpio);
+    _dallasSensors = new DallasTemperature(_oneWire);
+    _dallasSensors->begin();
+    _dallasSensors->setResolution(10); // 10 bits = 187ms
+    _dallasSensors->setWaitForConversion(true); // Conversion synchrone fiable
+
+    Serial.printf("[ClimateManager] Bus 1-Wire initialisé sur GPIO %d.\n", gpio);
+}
+
+bool ClimateManager::loadConfig() {
+    xSemaphoreTake(_mutex, portMAX_DELAY);
+    if (!LittleFS.exists(_configPath)) {
+        xSemaphoreGive(_mutex);
+        Serial.printf("[ClimateManager] %s inexistant. Valeurs par défaut conservées.\n", _configPath.c_str());
+        return false;
+    }
+
+    File f = LittleFS.open(_configPath, "r");
+    if (!f) {
+        xSemaphoreGive(_mutex);
+        return false;
+    }
+
+#if defined(ARDUINOJSON_VERSION_MAJOR) && (ARDUINOJSON_VERSION_MAJOR >= 7)
+    JsonDocument doc;
+#else
+    DynamicJsonDocument doc(1024);
+#endif
+    DeserializationError err = deserializeJson(doc, f);
+    f.close();
+
+    if (err) {
+        xSemaphoreGive(_mutex);
+        return false;
+    }
+
+    _systemOn = doc["systemOn"] | false;
+    _targetEnabled = doc["targetEnabled"] | true;
+    _targetTemp = doc["targetTemp"] | 21.0f;
+    _hysteresis = doc["hysteresis"] | 0.5f;
+    _mode = (const char*)(doc["mode"] | "NORMAL");
+    _fanSpeed = doc["fanSpeed"] | 60;
+    _chillerEnabled = doc["chillerEnabled"] | true;
+    _targetWaterTemp = doc["targetWaterTemp"] | 8.0f;
+    _timerEnabled = doc["timerEnabled"] | false;
+    _timerDurationSec = doc["timerDurationSec"] | 1800UL;
+    _timerRemainingSec = _timerDurationSec;
+    _totalEnergyKwh = doc["totalEnergyKwh"] | 0.0f;
+    _totalRuntimeSec = doc["totalRuntimeSec"] | 0UL;
+
+    String cMode = doc["compressorMode"] | "auto";
+    if (cMode == "on") _compressorMode = COMP_MODE_FORCE_ON;
+    else if (cMode == "off") _compressorMode = COMP_MODE_FORCE_OFF;
+    else _compressorMode = COMP_MODE_AUTO;
+
+    xSemaphoreGive(_mutex);
+    Serial.printf("[ClimateManager] Configuration chargée : Consigne=%.1f°C, Consigne Eau=%.1f°C, Mode=%s, Chiller=%d, CompMode=%s, Timer=%d (%lu s)\n",
+                  _targetTemp, _targetWaterTemp, _mode.c_str(), _chillerEnabled, cMode.c_str(), _timerEnabled, (unsigned long)_timerDurationSec);
+    return true;
+}
+
+bool ClimateManager::saveConfig() {
+    xSemaphoreTake(_mutex, portMAX_DELAY);
+
+#if defined(ARDUINOJSON_VERSION_MAJOR) && (ARDUINOJSON_VERSION_MAJOR >= 7)
+    JsonDocument doc;
+#else
+    DynamicJsonDocument doc(1024);
+#endif
+
+    doc["systemOn"] = _systemOn;
+    doc["targetEnabled"] = _targetEnabled;
+    doc["targetTemp"] = _targetTemp;
+    doc["hysteresis"] = _hysteresis;
+    doc["mode"] = _mode;
+    doc["fanSpeed"] = _fanSpeed;
+    doc["chillerEnabled"] = _chillerEnabled;
+    doc["targetWaterTemp"] = _targetWaterTemp;
+    doc["timerEnabled"] = _timerEnabled;
+    doc["timerDurationSec"] = _timerDurationSec;
+    doc["totalEnergyKwh"] = _totalEnergyKwh;
+    doc["totalRuntimeSec"] = _totalRuntimeSec;
+    doc["compressorMode"] = getCompressorModeString();
+
+    File f = LittleFS.open(_configPath, "w");
+    if (!f) {
+        xSemaphoreGive(_mutex);
+        return false;
+    }
+
+    serializeJson(doc, f);
+    f.close();
+    xSemaphoreGive(_mutex);
+    return true;
+}
+
+void ClimateManager::setBroadcastCallback(BroadcastCallback cb) {
+    _broadcastCb = cb;
+}
+
+void ClimateManager::broadcastState() {
+    if (_broadcastCb) {
+        String json = getTelemetryJson();
+        _broadcastCb(json);
+    }
+}
+
+void ClimateManager::setPower(bool on) {
+    xSemaphoreTake(_mutex, portMAX_DELAY);
+    if (_systemOn != on) {
+        _systemOn = on;
+        if (_systemOn) {
+            if (_timerEnabled) {
+                _timerRemainingSec = _timerDurationSec;
+            }
+        } else {
+            _timerRemainingSec = _timerDurationSec;
+        }
+    }
+    xSemaphoreGive(_mutex);
+    saveConfig();
+    broadcastState();
+}
+
+void ClimateManager::setTimer(bool enabled, uint32_t durationSec) {
+    xSemaphoreTake(_mutex, portMAX_DELAY);
+    _timerEnabled = enabled;
+    if (durationSec > 0) {
+        _timerDurationSec = durationSec;
+    }
+    if (_systemOn && _timerEnabled) {
+        _timerRemainingSec = _timerDurationSec;
+    }
+    xSemaphoreGive(_mutex);
+    saveConfig();
+    broadcastState();
+}
+
+void ClimateManager::setTarget(bool enabled, float temp) {
+    xSemaphoreTake(_mutex, portMAX_DELAY);
+    _targetEnabled = enabled;
+    if (temp >= 16.0f && temp <= 30.0f) {
+        _targetTemp = temp;
+    }
+    xSemaphoreGive(_mutex);
+    saveConfig();
+    broadcastState();
+}
+
+void ClimateManager::applyModePreset(const String& newMode) {
+    _mode = newMode;
+    if (newMode == "ECO+") _fanSpeed = 15;
+    else if (newMode == "ECO") _fanSpeed = 30;
+    else if (newMode == "NORMAL") _fanSpeed = 60;
+    else if (newMode == "BOOST") _fanSpeed = 85;
+    else if (newMode == "BOOST+") _fanSpeed = 100;
+}
+
+void ClimateManager::setMode(const String& newMode) {
+    xSemaphoreTake(_mutex, portMAX_DELAY);
+    applyModePreset(newMode);
+    xSemaphoreGive(_mutex);
+    saveConfig();
+    broadcastState();
+}
+
+void ClimateManager::setFanSpeed(uint8_t speed) {
+    xSemaphoreTake(_mutex, portMAX_DELAY);
+    if (speed > 100) speed = 100;
+    _fanSpeed = speed;
+    _mode = "MANUEL";
+    xSemaphoreGive(_mutex);
+    saveConfig();
+    broadcastState();
+}
+
+void ClimateManager::setHysteresis(float hyst) {
+    xSemaphoreTake(_mutex, portMAX_DELAY);
+    if (hyst < 0.1f) hyst = 0.1f;
+    if (hyst > 3.0f) hyst = 3.0f;
+    _hysteresis = hyst;
+    xSemaphoreGive(_mutex);
+    saveConfig();
+    broadcastState();
+}
+
+void ClimateManager::setChiller(bool enabled) {
+    xSemaphoreTake(_mutex, portMAX_DELAY);
+    if (_chillerEnabled != enabled) {
+        _chillerEnabled = enabled;
+        if (!_chillerEnabled && _compressorActive) {
+            _compressorActive = false;
+            _compressorRunTimer.stop();
+            _compressorRestTimer.start(COMPRESSOR_REST_MS);
+            _antiCycleActive = true;
+            _antiCycleRemainingSec = COMPRESSOR_REST_MS / 1000;
+        }
+    }
+    xSemaphoreGive(_mutex);
+    saveConfig();
+    broadcastState();
+}
+
+void ClimateManager::setWaterTargetTemp(float temp) {
+    xSemaphoreTake(_mutex, portMAX_DELAY);
+    if (temp >= 2.0f && temp <= 22.0f) {
+        _targetWaterTemp = temp;
+    }
+    xSemaphoreGive(_mutex);
+    saveConfig();
+    broadcastState();
+}
+
+void ClimateManager::setCompressorMode(const String& mode) {
+    xSemaphoreTake(_mutex, portMAX_DELAY);
+    if (mode.equalsIgnoreCase("on") || mode.equalsIgnoreCase("force_on") || mode.equalsIgnoreCase("1")) {
+        _compressorMode = COMP_MODE_FORCE_ON;
+    } else if (mode.equalsIgnoreCase("off") || mode.equalsIgnoreCase("force_off") || mode.equalsIgnoreCase("0")) {
+        _compressorMode = COMP_MODE_FORCE_OFF;
+        if (_compressorActive) {
+            _compressorActive = false;
+            _compressorRunTimer.stop();
+            _compressorRestTimer.start(COMPRESSOR_REST_MS);
+            _antiCycleActive = true;
+            _antiCycleRemainingSec = COMPRESSOR_REST_MS / 1000;
+        }
+    } else {
+        _compressorMode = COMP_MODE_AUTO;
+    }
+    xSemaphoreGive(_mutex);
+    saveConfig();
+    broadcastState();
+}
+
+String ClimateManager::getCompressorStateString() const {
+    switch (_compressorState) {
+        case COMP_STATE_RUNNING: return "RUNNING";
+        case COMP_STATE_WAITING_DELAY: return "WAITING_DELAY";
+        case COMP_STATE_OFF:
+        default: return "OFF";
+    }
+}
+
+String ClimateManager::getCompressorModeString() const {
+    switch (_compressorMode) {
+        case COMP_MODE_FORCE_ON: return "on";
+        case COMP_MODE_FORCE_OFF: return "off";
+        case COMP_MODE_AUTO:
+        default: return "auto";
+    }
+}
+
+bool ClimateManager::handleJsonCommand(const String& jsonStr) {
+#if defined(ARDUINOJSON_VERSION_MAJOR) && (ARDUINOJSON_VERSION_MAJOR >= 7)
+    JsonDocument doc;
+#else
+    DynamicJsonDocument doc(512);
+#endif
+    DeserializationError err = deserializeJson(doc, jsonStr);
+    if (err) {
+        Serial.printf("[ClimateManager] Erreur JSON reçu : %s\n", err.c_str());
+        return false;
+    }
+
+    String cmd = doc["cmd"] | "";
+
+    if (cmd == "togglePower" || cmd == "setPower") {
+        bool state = doc["power"].is<bool>() ? (bool)doc["power"] : !_systemOn;
+        setPower(state);
+    } else if (cmd == "setTarget") {
+        bool enabled = doc["enabled"].is<bool>() ? (bool)doc["enabled"] : _targetEnabled;
+        float temp = doc["temp"].is<float>() ? (float)doc["temp"] : _targetTemp;
+        setTarget(enabled, temp);
+    } else if (cmd == "setWaterTemp" || cmd == "setWaterTarget") {
+        float wt = doc["temp"].is<float>() ? (float)doc["temp"] : _targetWaterTemp;
+        setWaterTargetTemp(wt);
+    } else if (cmd == "setCompressor" || cmd == "setCompressorMode") {
+        String cm = doc["mode"] | (doc["state"] | "auto");
+        setCompressorMode(cm);
+    } else if (cmd == "setMode") {
+        String m = doc["mode"] | "NORMAL";
+        setMode(m);
+    } else if (cmd == "setFan") {
+        uint8_t speed = doc["speed"] | 60;
+        setFanSpeed(speed);
+    } else if (cmd == "setHyst") {
+        float h = doc["hyst"] | 0.5f;
+        setHysteresis(h);
+    } else if (cmd == "setChiller") {
+        bool ch = doc["enabled"] | true;
+        setChiller(ch);
+    } else if (cmd == "setTimer") {
+        bool enabled = doc["enabled"].is<bool>() ? (bool)doc["enabled"] : _timerEnabled;
+        uint32_t durationSec = doc["durationSec"].is<uint32_t>() ? (uint32_t)doc["durationSec"] : _timerDurationSec;
+        setTimer(enabled, durationSec);
+    } else if (cmd == "getState") {
+        broadcastState();
+    } else {
+        Serial.printf("[ClimateManager] Commande inconnue : %s\n", cmd.c_str());
+        return false;
+    }
+
+    return true;
+}
+
+void ClimateManager::readPhysicalSensors(DeviceManager& devManager, SystemManager& sysManager) {
+    SystemConfig* climSys = sysManager.getPrimaryClimateSystem();
+    if (!climSys) {
+        _systemConfigured = false;
+        _systemOperational = false;
+        _missingSlotsList = "no_system";
+    } else {
+        _systemConfigured = true;
+        std::vector<String> missing;
+        _systemOperational = sysManager.isSystemOperational(climSys->id, devManager, missing);
+        
+        String missStr = "";
+        for (size_t i = 0; i < missing.size(); ++i) {
+            if (i > 0) missStr += ",";
+            missStr += missing[i];
+        }
+        _missingSlotsList = missStr;
+    }
+
+    xSemaphoreTake(_mutex, portMAX_DELAY);
+
+    // 1. Détection de la sonde d'air ambiant
+    uint8_t tempAirId = 0;
+    if (climSys && climSys->bindings.tempAirId > 0) {
+        tempAirId = climSys->bindings.tempAirId;
+    } else {
+        std::vector<Device> devs = devManager.getDevices();
+        for (const auto& d : devs) {
+            if (d.mode == MODE_INPUT_ONEWIRE || d.mode == MODE_INPUT_ADC_NTC) {
+                tempAirId = d.id;
+                break;
+            }
+        }
+    }
+
+    Device* devAir = (tempAirId > 0) ? devManager.getDeviceById(tempAirId) : nullptr;
+    if (devAir && devAir->state == 1 && devAir->value != 0) {
+        _currentAmbientTemp = devAir->value / 100.0f;
+        _probesConnectedCount = 1;
+        _probeWatchdogAlert = false;
+    } else {
+        _currentAmbientTemp = NAN;
+        _probesConnectedCount = 0;
+        _probeWatchdogAlert = true;
+    }
+
+    // 2. Détection de la sonde d'eau (Optionnelle)
+    if (climSys && climSys->bindings.tempWaterId > 0) {
+        Device* devWater = devManager.getDeviceById(climSys->bindings.tempWaterId);
+        if (devWater && devWater->state == 1 && devWater->value != 0) {
+            _currentWaterTemp = devWater->value / 100.0f;
+        } else {
+            _currentWaterTemp = NAN;
+        }
+    } else {
+        _currentWaterTemp = NAN;
+    }
+
+    xSemaphoreGive(_mutex);
+}
+
+void ClimateManager::update(DeviceManager& devManager, SystemManager& sysManager) {
+    if (!_regulTimer.checkAndReset()) {
+        return; // Boucle de régulation à 2 Hz (500 ms)
+    }
+
+    float dtSec = 0.5f;
+
+    // 1. Évaluation et mise à jour de la sécurité anti-court-cycle compresseur via NonBlockingTimer
+    if (_antiCycleTimer.isRunning()) {
+        if (!_antiCycleTimer.hasExpired()) {
+            _antiCycleActive = true;
+            _antiCycleRemainingSec = _antiCycleTimer.getRemainingSec();
+        } else {
+            _antiCycleTimer.stop();
+            _antiCycleActive = false;
+            _antiCycleRemainingSec = 0;
+        }
+    } else {
+        _antiCycleActive = false;
+        _antiCycleRemainingSec = 0;
+    }
+
+    // 2. Lecture physique des sondes matérielles (DS18B20 & ADC1)
+    readPhysicalSensors(devManager, sysManager);
+
+    // 3. Boucle de régulation thermostatique 24/24 sur données réelles
+    evaluateRegulation(devManager, sysManager, dtSec);
+
+    // 4. Statistiques réelles d'énergie, temps de fonctionnement et décompte minuterie
+    if (_statsTimer.checkAndReset()) {
+        if (_systemOn && _systemOperational) {
+            _totalRuntimeSec++;
+            float kw = 0.60f;
+            if (_mode == "ECO+") kw = 0.20f;
+            else if (_mode == "ECO") kw = 0.35f;
+            else if (_mode == "BOOST") kw = 0.95f;
+            else if (_mode == "BOOST+") kw = 1.15f;
+            else if (_mode == "MANUEL") kw = 0.15f + (_fanSpeed / 100.0f) * 0.65f;
+
+            if (!_compressorActive) {
+                kw *= 0.15f; // Seulement la ventilation sans le compresseur
+            }
+            _totalEnergyKwh += (kw / 3600.0f);
+
+            // Décompte autonome de la minuterie
+            if (_timerEnabled) {
+                if (_timerRemainingSec > 0) {
+                    _timerRemainingSec--;
+                }
+                if (_timerRemainingSec == 0) {
+                    Serial.println("[ClimateManager] Minuterie terminée -> Arrêt automatique du système.");
+                    setPower(false);
+                }
+            }
+        }
+    }
+
+    // 5. Diffusion WebSocket périodique (toutes les 1500 ms)
+    if (_broadcastTimer.checkAndReset()) {
+        broadcastState();
+    }
+}
+
+void ClimateManager::update(DeviceManager& devManager) {
+    // Surcharge de compatibilité si appelée sans SystemManager
+}
+
+void ClimateManager::evaluateRegulation(DeviceManager& devManager, SystemManager& sysManager, float dtSec) {
+    bool stateChanged = false;
+    xSemaphoreTake(_mutex, portMAX_DELAY);
+
+    SystemConfig* climSys = sysManager.getPrimaryClimateSystem();
+    if (!climSys || !_systemOperational) {
+        if (_compressorActive) {
+            _compressorActive = false;
+            _compressorRunTimer.stop();
+            _compressorRestTimer.start(COMPRESSOR_REST_MS);
+            _antiCycleActive = true;
+            _antiCycleRemainingSec = COMPRESSOR_REST_MS / 1000;
+        }
+        _compressorState = COMP_STATE_OFF;
+        xSemaphoreGive(_mutex);
+        return;
+    }
+
+    uint8_t fanPwmId = climSys->bindings.fanPwmId;
+    uint8_t pumpRelayId = climSys->bindings.pumpRelayId;
+    uint8_t compressorRelayId = climSys->bindings.compressorRelayId;
+
+    // SÉCURITÉ WATCHDOG : Si la sonde d'air est débranchée, coupure de la climatisation habitacle
+    if (_probeWatchdogAlert && _systemOn) {
+        _systemOn = false;
+        stateChanged = true;
+        if (pumpRelayId > 0) devManager.setDeviceState(pumpRelayId, 0, 0);
+        if (fanPwmId > 0) devManager.setDeviceState(fanPwmId, 0, 0);
+    }
+
+    // 1. THERMOSTAT D'AIR HABITACLE : Passage en OFF dès que la température cible d'air est atteinte
+    if (_systemOn && _targetEnabled && !isnan(_currentAmbientTemp) && _currentAmbientTemp <= _targetTemp) {
+        Serial.printf("[ClimateManager] Consigne d'air atteinte (%.1f°C <= %.1f°C) -> Arrêt ventilation.\n", _currentAmbientTemp, _targetTemp);
+        _systemOn = false;
+        stateChanged = true;
+        _timerRemainingSec = _timerDurationSec;
+    }
+
+    // 2. DEMANDE DE VENTILATION / CLIMATISATION HABITACLE (Indépendante du compresseur)
+    bool airNeedsCooling = false;
+    if (_systemOn) {
+        if (_targetEnabled) {
+            airNeedsCooling = (!isnan(_currentAmbientTemp) && _currentAmbientTemp > _targetTemp);
+        } else {
+            airNeedsCooling = true; // Mode manuel / continu
+        }
+    }
+    _coolingDemand = airNeedsCooling;
+
+    // 3. GESTION AUTOMATIQUE & AUTONOME DU REFROIDISSEMENT D'EAU (COMPRESSEUR)
+    // Règle :
+    // - Si T_eau > 15°C : Démarrage du compresseur pour 2h max
+    // - Si T_eau < 10°C OU 2h écoulées : Arrêt du compresseur pendant 30min de repos obligatoire
+    // - Après 30min : Revérification automatique de T_eau
+    if (!_chillerEnabled || _compressorMode == COMP_MODE_FORCE_OFF) {
+        if (_compressorActive) {
+            _compressorActive = false;
+            _compressorRunTimer.stop();
+            _compressorRestTimer.start(COMPRESSOR_REST_MS);
+        }
+        _compressorState = COMP_STATE_OFF;
+        _antiCycleActive = (_compressorRestTimer.isRunning() && !_compressorRestTimer.hasExpired());
+        _antiCycleRemainingSec = _antiCycleActive ? _compressorRestTimer.getRemainingSec() : 0;
+    } else {
+        if (_compressorActive) {
+            // Compresseur en marche : surveiller les critères d'arrêt
+            bool stopComp = false;
+            if (isnan(_currentWaterTemp)) {
+                stopComp = true; // Sécurité sonde d'eau
+            } else if (_currentWaterTemp < WATER_STOP_TEMP_THRESHOLD) {
+                Serial.printf("[ClimateManager] T_eau = %.1f°C (< %.1f°C) -> Eau froide atteinte. Arrêt compresseur (repos 30min).\n",
+                              _currentWaterTemp, WATER_STOP_TEMP_THRESHOLD);
+                stopComp = true;
+            } else if (_compressorRunTimer.hasExpired()) {
+                Serial.println("[ClimateManager] 2h de marche continue atteintes -> Arrêt compresseur (repos 30min).");
+                stopComp = true;
+            }
+
+            if (stopComp) {
+                _compressorActive = false;
+                _compressorRunTimer.stop();
+                _compressorRestTimer.start(COMPRESSOR_REST_MS);
+                _compressorState = COMP_STATE_WAITING_DELAY;
+                _antiCycleActive = true;
+                _antiCycleRemainingSec = COMPRESSOR_REST_MS / 1000;
+            } else {
+                _compressorState = COMP_STATE_RUNNING;
+                _antiCycleActive = false;
+                _antiCycleRemainingSec = 0;
+            }
+        } else {
+            // Compresseur à l'arrêt
+            if (_compressorRestTimer.isRunning() && !_compressorRestTimer.hasExpired()) {
+                // Période de repos obligatoire de 30min en cours
+                _compressorActive = false;
+                _compressorState = COMP_STATE_WAITING_DELAY;
+                _antiCycleActive = true;
+                _antiCycleRemainingSec = _compressorRestTimer.getRemainingSec();
+            } else {
+                // Repos de 30min terminé (ou initialisation) -> Revérification de la température d'eau
+                _compressorRestTimer.stop();
+                _antiCycleActive = false;
+                _antiCycleRemainingSec = 0;
+
+                bool startComp = false;
+                if (_compressorMode == COMP_MODE_FORCE_ON) {
+                    startComp = true;
+                } else {
+                    // Mode AUTO : Démarrer si T_eau > 15°C
+                    if (!isnan(_currentWaterTemp) && _currentWaterTemp > WATER_START_TEMP_THRESHOLD) {
+                        startComp = true;
+                    }
+                }
+
+                if (startComp) {
+                    Serial.printf("[ClimateManager] T_eau = %.1f°C (> %.1f°C) -> Démarrage compresseur pour 2h max.\n",
+                                  _currentWaterTemp, WATER_START_TEMP_THRESHOLD);
+                    _compressorActive = true;
+                    _compressorRunTimer.start(COMPRESSOR_MAX_RUN_MS);
+                    _compressorState = COMP_STATE_RUNNING;
+                } else {
+                    _compressorActive = false;
+                    _compressorState = COMP_STATE_OFF;
+                }
+            }
+        }
+    }
+
+    // 4. PILOTAGE DIRECT DES ACTIONNEURS
+    // Slot 5 : Compresseur (Relais)
+    if (compressorRelayId > 0) {
+        devManager.setDeviceState(compressorRelayId, _compressorActive ? 1 : 0, 0);
+    }
+
+    // Slot 4 : Pompe boucle froide (Relais)
+    if (pumpRelayId > 0) {
+        uint8_t pumpState = (_systemOn && airNeedsCooling) ? 1 : 0;
+        devManager.setDeviceState(pumpRelayId, pumpState, 0);
+    }
+
+    // Slot 3 : Ventilateur Habitacle (PWM)
+    if (fanPwmId > 0) {
+        if (_systemOn && airNeedsCooling && _fanSpeed > 0) {
+            uint8_t fanPwm = (uint8_t)round((_fanSpeed / 100.0f) * 255.0f);
+            devManager.setDeviceState(fanPwmId, 1, fanPwm);
+        } else {
+            devManager.setDeviceState(fanPwmId, 0, 0);
+        }
+    }
+
+    xSemaphoreGive(_mutex);
+
+    if (stateChanged) {
+        saveConfig();
+        broadcastState();
+    }
+}
+
+String ClimateManager::getTelemetryJson(SystemManager* sysManager, DeviceManager* devManager) {
+    xSemaphoreTake(_mutex, portMAX_DELAY);
+
+#if defined(ARDUINOJSON_VERSION_MAJOR) && (ARDUINOJSON_VERSION_MAJOR >= 7)
+    JsonDocument doc;
+#else
+    DynamicJsonDocument doc(1024);
+#endif
+
+    if (isnan(_currentAmbientTemp) || _currentAmbientTemp < -50.0f || _currentAmbientTemp > 125.0f) {
+        doc["t_amb"] = nullptr;
+    } else {
+        doc["t_amb"] = (float)round(_currentAmbientTemp * 10.0f) / 10.0f;
+    }
+
+    if (isnan(_currentWaterTemp) || _currentWaterTemp < -50.0f || _currentWaterTemp > 125.0f) {
+        doc["t_water"] = nullptr;
+    } else {
+        doc["t_water"] = (float)round(_currentWaterTemp * 10.0f) / 10.0f;
+    }
+
+    doc["target_water_temp"] = (float)round(_targetWaterTemp * 10.0f) / 10.0f;
+    doc["power"] = _systemOn;
+    doc["target_enabled"] = _targetEnabled;
+    doc["target_temp"] = _targetTemp;
+    doc["cooling_demand"] = _coolingDemand;
+    doc["cooling_active"] = (_systemOn && _coolingDemand);
+    doc["mode"] = _mode;
+    doc["fan"] = _fanSpeed;
+    doc["hyst"] = _hysteresis;
+    doc["chiller_enabled"] = _chillerEnabled;
+    doc["timer_enabled"] = _timerEnabled;
+    doc["timer_duration_sec"] = _timerDurationSec;
+    doc["timer_remaining_sec"] = _timerRemainingSec;
+    doc["water_ready"] = (!isnan(_currentWaterTemp) && _currentWaterTemp <= 10.0f);
+    doc["probes_count"] = _probesConnectedCount;
+    doc["probe_alert"] = _probeWatchdogAlert;
+
+    // Informations du système Climatisation
+    doc["system_configured"] = _systemConfigured;
+    doc["system_operational"] = _systemOperational;
+    doc["missing_slots"] = _missingSlotsList;
+
+    // Objet compresseur frigorifique dédié
+    JsonObject compJson = doc["compressor"].to<JsonObject>();
+    compJson["state"] = getCompressorStateString();
+    compJson["mode"] = getCompressorModeString();
+    compJson["remaining_delay_sec"] = _antiCycleRemainingSec;
+
+    if (sysManager && devManager) {
+        SystemConfig* climSys = sysManager->getPrimaryClimateSystem();
+        if (climSys && climSys->bindings.compressorRelayId > 0) {
+            Device* devComp = devManager->getDeviceById(climSys->bindings.compressorRelayId);
+            if (devComp) compJson["gpio"] = devComp->gpio;
+            else compJson["gpio"] = nullptr;
+        } else {
+            compJson["gpio"] = nullptr;
+        }
+    } else {
+        compJson["gpio"] = nullptr;
+    }
+
+    // Calcul du temps estimé d'atteinte de la consigne
+    if (_systemOn && _targetEnabled && _currentAmbientTemp > _targetTemp) {
+        float tempDiff = _currentAmbientTemp - _targetTemp;
+        int estMinutes = (int)round(tempDiff * 14.0f);
+        if (estMinutes < 1) estMinutes = 1;
+        doc["est_time"] = estMinutes;
+    } else {
+        doc["est_time"] = 0;
+    }
+
+    doc["est_water"] = (!isnan(_currentWaterTemp) && _currentWaterTemp <= 10.0f) ? "Prete" : "En cours";
+
+    // Statut précis du compresseur (discret)
+    if (!_systemOperational) {
+        doc["compressor_status"] = "Systeme Incomplet";
+        doc["anti_cycle"] = false;
+        doc["anti_cycle_sec"] = 0;
+    } else if (_probeWatchdogAlert) {
+        doc["compressor_status"] = "ALERTE : Sonde deconnectee";
+        doc["anti_cycle"] = false;
+        doc["anti_cycle_sec"] = 0;
+    } else if (_compressorState == COMP_STATE_WAITING_DELAY || (_antiCycleActive && _antiCycleRemainingSec > 0)) {
+        int m = _antiCycleRemainingSec / 60;
+        int s = _antiCycleRemainingSec % 60;
+        char buf[64];
+        snprintf(buf, sizeof(buf), "Repos compresseur (%dm%02ds)", m, s);
+        doc["compressor_status"] = String(buf);
+        doc["anti_cycle"] = true;
+        doc["anti_cycle_sec"] = _antiCycleRemainingSec;
+    } else if (_compressorActive) {
+        doc["compressor_status"] = "Refroidissement eau actif (2h max)";
+        doc["anti_cycle"] = false;
+        doc["anti_cycle_sec"] = 0;
+    } else if (!_chillerEnabled) {
+        doc["compressor_status"] = "Coupe";
+        doc["anti_cycle"] = false;
+        doc["anti_cycle_sec"] = 0;
+    } else {
+        doc["compressor_status"] = "En veille";
+        doc["anti_cycle"] = false;
+        doc["anti_cycle_sec"] = 0;
+    }
+
+    doc["energy"] = (unsigned long)(_totalEnergyKwh * 1000.0f);
+    doc["runtime"] = _totalRuntimeSec;
+
+    String output;
+    serializeJson(doc, output);
+    xSemaphoreGive(_mutex);
+    return output;
+}

@@ -1,0 +1,76 @@
+{
+  "devices": [
+    {
+      "id": 1,
+      "name": "Pompe boucle froide",
+      "category": "ACTUATOR",
+      "voltage": "12V",
+      "mode": "OUTPUT_RELAY",
+      "type": "RELAY",
+      "gpio": 4,
+      "state": 0,
+      "value": 0,
+      "isCore": false
+    },
+    {
+      "id": 2,
+      "name": "Ventilateur Habitacle",
+      "category": "ACTUATOR",
+      "voltage": "12V",
+      "mode": "OUTPUT_PWM",
+      "type": "PWM",
+      "gpio": 21,
+      "state": 0,
+      "value": 0,
+      "isCore": false
+    },
+    {
+      "id": 3,
+      "name": "Spot Salon",
+      "category": "ACTUATOR",
+      "voltage": "12V",
+      "mode": "OUTPUT_RELAY",
+      "type": "RELAY",
+      "gpio": 23,
+      "state": 0,
+      "value": 0,
+      "isCore": false
+    },
+    {
+      "id": 4,
+      "name": "Sonde Température Air",
+      "category": "SENSOR",
+      "voltage": "3.3V",
+      "mode": "INPUT_ONEWIRE",
+      "type": "RELAY",
+      "gpio": 19,
+      "state": 0,
+      "value": 0,
+      "isCore": false
+    },
+    {
+      "id": 5,
+      "name": "Compresseur Glacière",
+      "category": "ACTUATOR",
+      "voltage": "12V",
+      "mode": "OUTPUT_RELAY",
+      "type": "RELAY",
+      "gpio": 22,
+      "state": 0,
+      "value": 0,
+      "isCore": false
+    },
+    {
+      "id": 6,
+      "name": "Sonde Température Eau",
+      "category": "SENSOR",
+      "voltage": "3.3V",
+      "mode": "INPUT_ONEWIRE",
+      "type": "RELAY",
+      "gpio": 5,
+      "state": 0,
+      "value": 0,
+      "isCore": false
+    }
+  ]
+}
