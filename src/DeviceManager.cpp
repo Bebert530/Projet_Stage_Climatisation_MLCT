@@ -23,7 +23,16 @@ const std::vector<uint8_t> DeviceManager::SAFE_PULLUP_PINS = {
     4, 5, 13, 14, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33
 };
 
-DeviceManager::DeviceManager() : _configPath("/config.json"), _lastSensorReadTime(0) {
+DeviceManager::DeviceManager() 
+    : _configPath("/config.json"), 
+      _sensorTimer(1500),
+      _testActive(false),
+      _testDeviceId(0),
+      _testGpio(255),
+      _testMode(MODE_OUTPUT_RELAY),
+      _testPrevState(0),
+      _testPrevValue(0),
+      _testTimer(3000) {
     _mutex = xSemaphoreCreateMutex();
     for (int i = 0; i < 16; i++) {
         _pwmChannelsInUse[i] = false;
@@ -40,6 +49,7 @@ bool DeviceManager::begin(const char* configPath) {
     if (configPath != nullptr && strlen(configPath) > 0) {
         _configPath = configPath;
     }
+    _sensorTimer.start(1500);
 
     Serial.println("[DeviceManager] Initialisation de LittleFS...");
     if (!LittleFS.begin(true)) {
@@ -79,7 +89,7 @@ void DeviceManager::createDefaultConfig() {
     dev1.isCore = false;
     _devices.push_back(dev1);
 
-    // 2. Ventilateur / Pulseur Habitacle (PWM sur GPIO 14)
+    // 2. Ventilateur / Pulseur Habitacle (PWM sur GPIO 21)
     Device dev2;
     dev2.id = 2;
     dev2.name = "Ventilateur Habitacle";
@@ -87,7 +97,7 @@ void DeviceManager::createDefaultConfig() {
     dev2.voltage = "12V";
     dev2.mode = MODE_OUTPUT_PWM;
     dev2.type = DEVICE_PWM;
-    dev2.gpio = 14;
+    dev2.gpio = 21;
     dev2.state = 0;
     dev2.value = 0;
     dev2.pwmChannel = allocatePwmChannel();
@@ -109,7 +119,7 @@ void DeviceManager::createDefaultConfig() {
     dev3.isCore = false;
     _devices.push_back(dev3);
 
-    // 4. Sonde Température Air (1-Wire DS18B20 sur GPIO 27)
+    // 4. Sonde Température Air (1-Wire DS18B20 sur GPIO 19)
     Device dev4;
     dev4.id = 4;
     dev4.name = "Sonde Température Air";
@@ -117,7 +127,7 @@ void DeviceManager::createDefaultConfig() {
     dev4.voltage = "3.3V";
     dev4.mode = MODE_INPUT_ONEWIRE;
     dev4.type = DEVICE_RELAY;
-    dev4.gpio = 27;
+    dev4.gpio = 19;
     dev4.state = 0;
     dev4.value = 0;
     dev4.pwmChannel = -1;
@@ -138,6 +148,21 @@ void DeviceManager::createDefaultConfig() {
     dev5.pwmChannel = -1;
     dev5.isCore = false;
     _devices.push_back(dev5);
+
+    // 6. Sonde Température Eau (1-Wire DS18B20 sur GPIO 5)
+    Device dev6;
+    dev6.id = 6;
+    dev6.name = "Sonde Température Eau";
+    dev6.category = CAT_SENSOR;
+    dev6.voltage = "3.3V";
+    dev6.mode = MODE_INPUT_ONEWIRE;
+    dev6.type = DEVICE_RELAY;
+    dev6.gpio = 5;
+    dev6.state = 0;
+    dev6.value = 0;
+    dev6.pwmChannel = -1;
+    dev6.isCore = false;
+    _devices.push_back(dev6);
 
     xSemaphoreGive(_mutex);
 
@@ -574,18 +599,59 @@ bool DeviceManager::setDeviceState(uint8_t id, uint8_t state, int16_t value) {
 
     dev->state = state ? 1 : 0;
     dev->value = value;
-    applyHardwareState(*dev);
+
+    // Si un test matériel actif cible cet équipement, ne pas écraser l'état du GPIO
+    if (!_testActive || _testDeviceId != id) {
+        applyHardwareState(*dev);
+    }
 
     xSemaphoreGive(_mutex);
     return true;
 }
 
+void DeviceManager::updateHardwareTests() {
+    if (!_testActive) return;
+
+    if (_testTimer.hasExpired()) {
+        xSemaphoreTake(_mutex, portMAX_DELAY);
+        _testActive = false;
+
+        if (_testDeviceId > 0) {
+            Device* dev = getDeviceById(_testDeviceId);
+            if (dev) {
+                applyHardwareState(*dev);
+                Serial.printf("[Test] Fin du test sur '%s' (GPIO %d) - État normal restauré.\n", dev->name.c_str(), dev->gpio);
+            }
+        } else if (_testGpio != 255) {
+            if (_testMode == MODE_OUTPUT_PWM) {
+#if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
+                ledcWrite(_testGpio, 0);
+                ledcDetach(_testGpio);
+#else
+                ledcWrite(15, 0);
+                ledcDetachPin(_testGpio);
+#endif
+                pinMode(_testGpio, OUTPUT);
+                digitalWrite(_testGpio, LOW);
+            } else if (_testMode == MODE_OUTPUT_RELAY) {
+                pinMode(_testGpio, OUTPUT);
+                digitalWrite(_testGpio, LOW);
+            }
+            Serial.printf("[Test] Fin du test direct sur GPIO %d - Sortie désactivée.\n", _testGpio);
+        }
+
+        _testDeviceId = 0;
+        _testGpio = 255;
+        xSemaphoreGive(_mutex);
+    }
+}
+
 void DeviceManager::updateSensors() {
-    unsigned long now = millis();
-    if (now - _lastSensorReadTime < 1500) {
+    updateHardwareTests();
+
+    if (!_sensorTimer.checkAndReset()) {
         return; // Lecture cadencée toutes les 1.5s
     }
-    _lastSensorReadTime = now;
 
     // 1. Lecture des entrées Digital et ADC / NTC
     xSemaphoreTake(_mutex, portMAX_DELAY);
@@ -671,31 +737,37 @@ DeviceTestResult DeviceManager::testPinDirect(uint8_t gpio, SignalMode mode, uin
     Serial.printf("[Test] Test direct sur GPIO %d, mode %d, durée %d ms\n", gpio, mode, durationMs);
 
     if (mode == MODE_OUTPUT_RELAY) {
+        xSemaphoreTake(_mutex, portMAX_DELAY);
+        _testActive = true;
+        _testDeviceId = 0;
+        _testGpio = gpio;
+        _testMode = mode;
+        _testTimer.start(durationMs);
         pinMode(gpio, OUTPUT);
         digitalWrite(gpio, HIGH);
-        delay(durationMs);
-        digitalWrite(gpio, LOW);
+        xSemaphoreGive(_mutex);
+
         result.success = true;
         result.rawValue = 1;
         result.voltageValue = 3.3f;
-        result.message = "Impulsion 3s validée : Relais activé puis coupé.";
+        result.message = "Impulsion 3s lancée : Relais activé.";
     } else if (mode == MODE_OUTPUT_PWM) {
+        xSemaphoreTake(_mutex, portMAX_DELAY);
+        _testActive = true;
+        _testDeviceId = 0;
+        _testGpio = gpio;
+        _testMode = mode;
+        _testTimer.start(durationMs);
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
         ledcAttach(gpio, 5000, 8);
         ledcWrite(gpio, 128); // 50%
-        delay(durationMs);
-        ledcWrite(gpio, 0);
-        ledcDetach(gpio);
 #else
         ledcSetup(15, 5000, 8);
         ledcAttachPin(gpio, 15);
         ledcWrite(15, 128);
-        delay(durationMs);
-        ledcWrite(15, 0);
-        ledcDetachPin(gpio);
 #endif
-        pinMode(gpio, OUTPUT);
-        digitalWrite(gpio, LOW); // Maintien ferme à 0V pour éviter le flottement (pull-up ventilateurs)
+        xSemaphoreGive(_mutex);
+
         result.success = true;
         result.rawValue = 128;
         result.voltageValue = 1.65f;
@@ -786,37 +858,49 @@ DeviceTestResult DeviceManager::testDevice(uint8_t id, uint16_t durationMs) {
     res.voltageValue = 0.0f;
 
     if (mode == MODE_OUTPUT_RELAY) {
+        xSemaphoreTake(_mutex, portMAX_DELAY);
+        _testActive = true;
+        _testDeviceId = id;
+        _testGpio = gpio;
+        _testMode = mode;
+        _testPrevState = prevState;
+        _testPrevValue = prevValue;
+        _testTimer.start(durationMs);
+
         pinMode(gpio, OUTPUT);
         digitalWrite(gpio, HIGH);
-        delay(durationMs);
-        digitalWrite(gpio, prevState ? HIGH : LOW);
+        xSemaphoreGive(_mutex);
+
         res.rawValue = 1;
         res.voltageValue = 3.3f;
-        res.message = "Impulsion validée : Relais activé puis restauré.";
+        res.message = "Impulsion 3s lancée : Relais activé.";
     } else if (mode == MODE_OUTPUT_PWM) {
+        xSemaphoreTake(_mutex, portMAX_DELAY);
+        _testActive = true;
+        _testDeviceId = id;
+        _testGpio = gpio;
+        _testMode = mode;
+        _testPrevState = prevState;
+        _testPrevValue = prevValue;
+        _testTimer.start(durationMs);
+
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
         ledcAttach(gpio, 5000, 8);
         ledcWrite(gpio, 128); // 50%
-        delay(durationMs);
-        ledcWrite(gpio, prevValue);
 #else
         if (pwmChannel >= 0) {
             ledcWrite(pwmChannel, 128); // 50%
-            delay(durationMs);
-            ledcWrite(pwmChannel, prevValue);
         } else {
             ledcSetup(15, 5000, 8);
             ledcAttachPin(gpio, 15);
             ledcWrite(15, 128);
-            delay(durationMs);
-            ledcWrite(15, 0);
-            ledcDetachPin(gpio);
-            pinMode(gpio, OUTPUT);
-            digitalWrite(gpio, LOW);
         }
 #endif
+        xSemaphoreGive(_mutex);
+
         res.rawValue = 128;
         res.voltageValue = 1.65f;
+        res.message = "Signal PWM 50% envoyé pendant 3s avec succès.";
     } else if (mode == MODE_INPUT_ONEWIRE) {
         // Déterminer l'index de cette sonde sur son bus GPIO
         uint8_t busIndex = 0;

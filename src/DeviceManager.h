@@ -5,6 +5,8 @@
 #include <LittleFS.h>
 #include <vector>
 #include <map>
+#include "TimerUtil.h"
+#include "ActuatorOutput.h"
 
 /**
  * @enum DeviceCategory
@@ -140,7 +142,16 @@ private:
     String _configPath;
     std::vector<Device> _devices;
     SemaphoreHandle_t _mutex;
-    unsigned long _lastSensorReadTime;
+    NonBlockingTimer _sensorTimer;
+
+    // Gestion des tests matériels temporaires non-bloquants
+    bool _testActive;
+    uint8_t _testDeviceId;
+    uint8_t _testGpio;
+    SignalMode _testMode;
+    uint8_t _testPrevState;
+    uint8_t _testPrevValue;
+    NonBlockingTimer _testTimer;
 
     bool _pwmChannelsInUse[16];
 
@@ -159,6 +170,7 @@ private:
     void setupHardware(Device& dev);
     void releaseHardware(Device& dev);
     void applyHardwareState(const Device& dev);
+    void updateHardwareTests();
 
     int8_t allocatePwmChannel();
     void freePwmChannel(int8_t channel);

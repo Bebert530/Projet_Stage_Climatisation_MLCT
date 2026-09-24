@@ -2,7 +2,7 @@
 #include <cmath>
 
 AutomationManager::AutomationManager() 
-    : _rulesPath("/automations.json"), _lastEvalTime(0) {
+    : _rulesPath("/automations.json"), _evalTimer(500) {
     _mutex = xSemaphoreCreateMutex();
 }
 
@@ -16,6 +16,7 @@ bool AutomationManager::begin(const char* rulesPath) {
     if (rulesPath && strlen(rulesPath) > 0) {
         _rulesPath = rulesPath;
     }
+    _evalTimer.start(500);
     return loadRules();
 }
 
@@ -116,11 +117,9 @@ String AutomationManager::getRulesJson() {
 #include <map>
 
 void AutomationManager::update(DeviceManager& devManager, ClimateManager* climManager) {
-    unsigned long now = millis();
-    if (now - _lastEvalTime < 500) {
+    if (!_evalTimer.checkAndReset()) {
         return; // Évaluation toutes les 500ms
     }
-    _lastEvalTime = now;
 
     xSemaphoreTake(_mutex, portMAX_DELAY);
     std::vector<AutomationRule> rulesCopy = _rules;

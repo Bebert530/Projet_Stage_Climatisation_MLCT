@@ -13,9 +13,9 @@ WiFiManager::WiFiManager() :
     _isConfigured(true),
     _isScanning(false),
     _pendingConnect(false),
-    _pendingConnectTime(0),
-    _lastReconnectAttempt(0),
-    _connectingStartTime(0),
+    _pendingConnectTimer(500),
+    _connectTimeoutTimer(20000),
+    _reconnectTimer(30000),
     _reconnectAttempts(0) {
     _mutex = xSemaphoreCreateMutex();
 }
@@ -55,7 +55,7 @@ bool WiFiManager::begin(const char* configPath) {
 
     Serial.printf("[WiFiManager] Connexion automatique au réseau station '%s'...\n", _staSSID.c_str());
     _staState = STA_STATE_CONNECTING;
-    _connectingStartTime = millis();
+    _connectTimeoutTimer.start(20000);
     WiFi.begin(_staSSID.c_str(), _staPass.c_str());
 
     return true;
@@ -136,12 +136,11 @@ void WiFiManager::onWiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 }
 
 void WiFiManager::update() {
-    unsigned long now = millis();
-
     // 0. Lancement différé de la connexion pour laisser le temps à la réponse HTTP 200 de partir
     xSemaphoreTake(_mutex, portMAX_DELAY);
-    if (_pendingConnect && (long)(now - _pendingConnectTime) >= 0) {
+    if (_pendingConnect && _pendingConnectTimer.hasExpired()) {
         _pendingConnect = false;
+        _pendingConnectTimer.stop();
         String ssid = _staSSID;
         String pass = _staPass;
         xSemaphoreGive(_mutex);
@@ -156,21 +155,22 @@ void WiFiManager::update() {
     // 1. Timeout de tentative de connexion station (20 secondes)
     xSemaphoreTake(_mutex, portMAX_DELAY);
     if (_staState == STA_STATE_CONNECTING) {
-        if (now - _connectingStartTime > 20000) {
+        if (_connectTimeoutTimer.hasExpired()) {
             Serial.println("[WiFiManager] Délai de connexion station dépassé.");
             _staState = STA_STATE_FAILED;
-            _lastReconnectAttempt = now;
+            _connectTimeoutTimer.stop();
+            _reconnectTimer.start(30000);
         }
     }
 
     // 2. Reconnexion automatique non-bloquante si configuré et déconnecté (toutes les 30 secondes)
     if (_isConfigured && !_pendingConnect && _staSSID.length() > 0 && (_staState == STA_STATE_DISCONNECTED || _staState == STA_STATE_FAILED)) {
-        if (now - _lastReconnectAttempt > 30000) {
-            _lastReconnectAttempt = now;
+        if (!_reconnectTimer.isRunning() || _reconnectTimer.hasExpired()) {
+            _reconnectTimer.start(30000);
             _reconnectAttempts++;
             Serial.printf("[WiFiManager] Tentative de reconnexion station #%d à '%s'...\n", _reconnectAttempts, _staSSID.c_str());
             _staState = STA_STATE_CONNECTING;
-            _connectingStartTime = now;
+            _connectTimeoutTimer.start(20000);
             WiFi.begin(_staSSID.c_str(), _staPass.c_str());
         }
     }
@@ -185,10 +185,10 @@ bool WiFiManager::connectSTA(const String& ssid, const String& pass) {
     _staPass = pass;
     _isConfigured = true;
     _staState = STA_STATE_CONNECTING;
-    _connectingStartTime = millis();
+    _connectTimeoutTimer.start(20000);
     _reconnectAttempts = 0;
     _pendingConnect = true;
-    _pendingConnectTime = millis() + 500; // 500ms de répit pour vider la réponse HTTP 200 vers le client
+    _pendingConnectTimer.start(500); // 500ms de répit pour vider la réponse HTTP 200 vers le client
     xSemaphoreGive(_mutex);
 
     // Sauvegarde persistante dans LittleFS

@@ -14,7 +14,7 @@ ClimateManager::ClimateManager()
       _probeWatchdogAlert(false),
       _lastSensorReadTime(0),
       _systemOn(false),
-      _targetEnabled(true),
+      _targetEnabled(false),
       _targetTemp(21.0f),
       _hysteresis(0.5f),
       _mode("NORMAL"),
@@ -38,7 +38,15 @@ ClimateManager::ClimateManager()
       _totalRuntimeSec(0),
       _lastRegulTime(0),
       _lastBroadcastTime(0),
-      _lastStatsTick(0) {
+      _lastStatsTick(0),
+      _compressorRunTimer(COMPRESSOR_MAX_RUN_MS),
+      _compressorRestTimer(COMPRESSOR_REST_MS),
+      _antiCycleTimer(ANTI_CYCLE_DELAY_MS),
+      _minRunTimer(MIN_RUN_TIME_MS),
+      _regulTimer(500),
+      _statsTimer(1000),
+      _broadcastTimer(1500),
+      _sensorReadTimer(1500) {
     _mutex = xSemaphoreCreateMutex();
 }
 
@@ -54,10 +62,10 @@ bool ClimateManager::begin(const char* configPath) {
     if (configPath && strlen(configPath) > 0) {
         _configPath = configPath;
     }
-    _lastRegulTime = millis();
-    _lastBroadcastTime = millis();
-    _lastStatsTick = millis();
-    _lastSensorReadTime = 0;
+    _regulTimer.start(500);
+    _broadcastTimer.start(1500);
+    _statsTimer.start(1000);
+    _sensorReadTimer.start(1500);
 
     Serial.println("[ClimateManager] Démarrage du moteur de régulation sur matériel réel (ESP32)...");
 
@@ -199,12 +207,6 @@ void ClimateManager::setPower(bool on) {
                 _timerRemainingSec = _timerDurationSec;
             }
         } else {
-            if (_compressorActive) {
-                _compressorActive = false;
-                _lastCompressorStopTime = millis();
-                _antiCycleActive = true;
-                _antiCycleRemainingSec = ANTI_CYCLE_DELAY_MS / 1000;
-            }
             _timerRemainingSec = _timerDurationSec;
         }
     }
@@ -281,9 +283,10 @@ void ClimateManager::setChiller(bool enabled) {
         _chillerEnabled = enabled;
         if (!_chillerEnabled && _compressorActive) {
             _compressorActive = false;
-            _lastCompressorStopTime = millis();
+            _compressorRunTimer.stop();
+            _compressorRestTimer.start(COMPRESSOR_REST_MS);
             _antiCycleActive = true;
-            _antiCycleRemainingSec = ANTI_CYCLE_DELAY_MS / 1000;
+            _antiCycleRemainingSec = COMPRESSOR_REST_MS / 1000;
         }
     }
     xSemaphoreGive(_mutex);
@@ -307,6 +310,13 @@ void ClimateManager::setCompressorMode(const String& mode) {
         _compressorMode = COMP_MODE_FORCE_ON;
     } else if (mode.equalsIgnoreCase("off") || mode.equalsIgnoreCase("force_off") || mode.equalsIgnoreCase("0")) {
         _compressorMode = COMP_MODE_FORCE_OFF;
+        if (_compressorActive) {
+            _compressorActive = false;
+            _compressorRunTimer.stop();
+            _compressorRestTimer.start(COMPRESSOR_REST_MS);
+            _antiCycleActive = true;
+            _antiCycleRemainingSec = COMPRESSOR_REST_MS / 1000;
+        }
     } else {
         _compressorMode = COMP_MODE_AUTO;
     }
@@ -448,21 +458,19 @@ void ClimateManager::readPhysicalSensors(DeviceManager& devManager, SystemManage
 }
 
 void ClimateManager::update(DeviceManager& devManager, SystemManager& sysManager) {
-    unsigned long now = millis();
-    if (now - _lastRegulTime < 500) {
+    if (!_regulTimer.checkAndReset()) {
         return; // Boucle de régulation à 2 Hz (500 ms)
     }
 
-    float dtSec = (now - _lastRegulTime) / 1000.0f;
-    _lastRegulTime = now;
+    float dtSec = 0.5f;
 
-    // 1. Évaluation et mise à jour de la sécurité anti-court-cycle compresseur
-    if (_lastCompressorStopTime > 0) {
-        unsigned long elapsed = now - _lastCompressorStopTime;
-        if (elapsed < ANTI_CYCLE_DELAY_MS) {
+    // 1. Évaluation et mise à jour de la sécurité anti-court-cycle compresseur via NonBlockingTimer
+    if (_antiCycleTimer.isRunning()) {
+        if (!_antiCycleTimer.hasExpired()) {
             _antiCycleActive = true;
-            _antiCycleRemainingSec = (uint16_t)((ANTI_CYCLE_DELAY_MS - elapsed) / 1000);
+            _antiCycleRemainingSec = _antiCycleTimer.getRemainingSec();
         } else {
+            _antiCycleTimer.stop();
             _antiCycleActive = false;
             _antiCycleRemainingSec = 0;
         }
@@ -478,8 +486,7 @@ void ClimateManager::update(DeviceManager& devManager, SystemManager& sysManager
     evaluateRegulation(devManager, sysManager, dtSec);
 
     // 4. Statistiques réelles d'énergie, temps de fonctionnement et décompte minuterie
-    if (now - _lastStatsTick >= 1000) {
-        _lastStatsTick = now;
+    if (_statsTimer.checkAndReset()) {
         if (_systemOn && _systemOperational) {
             _totalRuntimeSec++;
             float kw = 0.60f;
@@ -508,29 +515,27 @@ void ClimateManager::update(DeviceManager& devManager, SystemManager& sysManager
     }
 
     // 5. Diffusion WebSocket périodique (toutes les 1500 ms)
-    if (now - _lastBroadcastTime >= 1500) {
-        _lastBroadcastTime = now;
+    if (_broadcastTimer.checkAndReset()) {
         broadcastState();
     }
 }
 
 void ClimateManager::update(DeviceManager& devManager) {
     // Surcharge de compatibilité si appelée sans SystemManager
-    // Utilisera les périphériques 1 et 2 par défaut
 }
 
 void ClimateManager::evaluateRegulation(DeviceManager& devManager, SystemManager& sysManager, float dtSec) {
     bool stateChanged = false;
     xSemaphoreTake(_mutex, portMAX_DELAY);
-    unsigned long now = millis();
 
     SystemConfig* climSys = sysManager.getPrimaryClimateSystem();
     if (!climSys || !_systemOperational) {
         if (_compressorActive) {
             _compressorActive = false;
-            _lastCompressorStopTime = now;
+            _compressorRunTimer.stop();
+            _compressorRestTimer.start(COMPRESSOR_REST_MS);
             _antiCycleActive = true;
-            _antiCycleRemainingSec = ANTI_CYCLE_DELAY_MS / 1000;
+            _antiCycleRemainingSec = COMPRESSOR_REST_MS / 1000;
         }
         _compressorState = COMP_STATE_OFF;
         xSemaphoreGive(_mutex);
@@ -541,117 +546,116 @@ void ClimateManager::evaluateRegulation(DeviceManager& devManager, SystemManager
     uint8_t pumpRelayId = climSys->bindings.pumpRelayId;
     uint8_t compressorRelayId = climSys->bindings.compressorRelayId;
 
-    // SÉCURITÉ WATCHDOG : Si les sondes sont débranchées, coupure d'urgence de sécurité !
+    // SÉCURITÉ WATCHDOG : Si la sonde d'air est débranchée, coupure de la climatisation habitacle
     if (_probeWatchdogAlert && _systemOn) {
-        if (_compressorActive) {
-            _compressorActive = false;
-            _lastCompressorStopTime = now;
-            _antiCycleActive = true;
-            _antiCycleRemainingSec = ANTI_CYCLE_DELAY_MS / 1000;
-        }
-        _compressorState = COMP_STATE_OFF;
-        if (compressorRelayId > 0) devManager.setDeviceState(compressorRelayId, 0, 0); // Couper compresseur
-        if (pumpRelayId > 0) devManager.setDeviceState(pumpRelayId, 0, 0);             // Couper pompe
-        if (fanPwmId > 0) devManager.setDeviceState(fanPwmId, 0, 0);                   // Couper ventilation
-        xSemaphoreGive(_mutex);
-        return;
+        _systemOn = false;
+        stateChanged = true;
+        if (pumpRelayId > 0) devManager.setDeviceState(pumpRelayId, 0, 0);
+        if (fanPwmId > 0) devManager.setDeviceState(fanPwmId, 0, 0);
     }
 
-    // 1. VÉRIFICATION DU THERMOSTAT D'AIR : Passage en OFF direct dès que la température cible est atteinte !
+    // 1. THERMOSTAT D'AIR HABITACLE : Passage en OFF dès que la température cible d'air est atteinte
     if (_systemOn && _targetEnabled && !isnan(_currentAmbientTemp) && _currentAmbientTemp <= _targetTemp) {
-        Serial.printf("[ClimateManager] Consigne d'air atteinte (%.1f°C <= %.1f°C) -> Passage en OFF.\n", _currentAmbientTemp, _targetTemp);
+        Serial.printf("[ClimateManager] Consigne d'air atteinte (%.1f°C <= %.1f°C) -> Arrêt ventilation.\n", _currentAmbientTemp, _targetTemp);
         _systemOn = false;
         stateChanged = true;
         _timerRemainingSec = _timerDurationSec;
     }
 
-    // 2. ÉVALUATION DE LA DEMANDE FRIGORIFIQUE
+    // 2. DEMANDE DE VENTILATION / CLIMATISATION HABITACLE (Indépendante du compresseur)
     bool airNeedsCooling = false;
-    bool waterNeedsCooling = false;
-
     if (_systemOn) {
         if (_targetEnabled) {
             airNeedsCooling = (!isnan(_currentAmbientTemp) && _currentAmbientTemp > _targetTemp);
         } else {
-            airNeedsCooling = true; // Mode continu / manuel
-        }
-
-        if (_chillerEnabled) {
-            waterNeedsCooling = (!isnan(_currentWaterTemp) && _currentWaterTemp > _targetWaterTemp);
-        } else {
-            waterNeedsCooling = airNeedsCooling;
+            airNeedsCooling = true; // Mode manuel / continu
         }
     }
-
-    // Demande effective pour le compresseur
-    bool compressorDemand = false;
-    if (_systemOn) {
-        if (_compressorMode == COMP_MODE_FORCE_ON) {
-            compressorDemand = true;
-        } else if (_compressorMode == COMP_MODE_FORCE_OFF) {
-            compressorDemand = false;
-        } else {
-            // Mode AUTO : le compresseur s'active si l'eau (ou l'air en direct) a besoin d'être refroidie
-            compressorDemand = waterNeedsCooling;
-        }
-    } else {
-        compressorDemand = false;
-    }
-
     _coolingDemand = airNeedsCooling;
 
-    // Protection frigorifique compresseur :
-    // 1. Délai minimal de repos de 180s (3 minutes) avant redémarrage (Anti-court-cycle)
-    // 2. Temps de fonctionnement minimal de 60s avant extinction (Anti-microcycle)
-    if (compressorDemand) {
+    // 3. GESTION AUTOMATIQUE & AUTONOME DU REFROIDISSEMENT D'EAU (COMPRESSEUR)
+    // Règle :
+    // - Si T_eau > 15°C : Démarrage du compresseur pour 2h max
+    // - Si T_eau < 10°C OU 2h écoulées : Arrêt du compresseur pendant 30min de repos obligatoire
+    // - Après 30min : Revérification automatique de T_eau
+    if (!_chillerEnabled || _compressorMode == COMP_MODE_FORCE_OFF) {
         if (_compressorActive) {
-            _compressorState = COMP_STATE_RUNNING;
-            _antiCycleActive = false;
-            _antiCycleRemainingSec = 0;
-        } else {
-            // Tentative de démarrage du compresseur
-            if (_lastCompressorStopTime > 0 && (now - _lastCompressorStopTime < ANTI_CYCLE_DELAY_MS)) {
-                // Temporisation de sécurité active
+            _compressorActive = false;
+            _compressorRunTimer.stop();
+            _compressorRestTimer.start(COMPRESSOR_REST_MS);
+        }
+        _compressorState = COMP_STATE_OFF;
+        _antiCycleActive = (_compressorRestTimer.isRunning() && !_compressorRestTimer.hasExpired());
+        _antiCycleRemainingSec = _antiCycleActive ? _compressorRestTimer.getRemainingSec() : 0;
+    } else {
+        if (_compressorActive) {
+            // Compresseur en marche : surveiller les critères d'arrêt
+            bool stopComp = false;
+            if (isnan(_currentWaterTemp)) {
+                stopComp = true; // Sécurité sonde d'eau
+            } else if (_currentWaterTemp < WATER_STOP_TEMP_THRESHOLD) {
+                Serial.printf("[ClimateManager] T_eau = %.1f°C (< %.1f°C) -> Eau froide atteinte. Arrêt compresseur (repos 30min).\n",
+                              _currentWaterTemp, WATER_STOP_TEMP_THRESHOLD);
+                stopComp = true;
+            } else if (_compressorRunTimer.hasExpired()) {
+                Serial.println("[ClimateManager] 2h de marche continue atteintes -> Arrêt compresseur (repos 30min).");
+                stopComp = true;
+            }
+
+            if (stopComp) {
                 _compressorActive = false;
+                _compressorRunTimer.stop();
+                _compressorRestTimer.start(COMPRESSOR_REST_MS);
                 _compressorState = COMP_STATE_WAITING_DELAY;
                 _antiCycleActive = true;
-                _antiCycleRemainingSec = (uint16_t)((ANTI_CYCLE_DELAY_MS - (now - _lastCompressorStopTime)) / 1000);
+                _antiCycleRemainingSec = COMPRESSOR_REST_MS / 1000;
             } else {
-                // Démarrage autorisé
-                _compressorActive = true;
                 _compressorState = COMP_STATE_RUNNING;
-                _lastCompressorStartTime = now;
                 _antiCycleActive = false;
                 _antiCycleRemainingSec = 0;
             }
-        }
-    } else {
-        // Pas de demande pour le compresseur (soit eau à température cible atteinte, soit système OFF)
-        if (_compressorActive) {
-            // Vérification du temps de fonctionnement minimum (60 secondes)
-            if (_lastCompressorStartTime > 0 && (now - _lastCompressorStartTime < MIN_RUN_TIME_MS) && _systemOn && _compressorMode != COMP_MODE_FORCE_OFF) {
-                // Maintenir en marche jusqu'à la fin des 60s pour préserver le compresseur
-                _compressorState = COMP_STATE_RUNNING;
-            } else {
-                // Extinction du compresseur et armement immédiat du délai de repos de 180s !
-                _compressorActive = false;
-                _compressorState = COMP_STATE_OFF;
-                _lastCompressorStopTime = now;
-                _antiCycleActive = true;
-                _antiCycleRemainingSec = ANTI_CYCLE_DELAY_MS / 1000;
-            }
         } else {
-            _compressorState = (_antiCycleActive && _antiCycleRemainingSec > 0 && _chillerEnabled)
-                ? COMP_STATE_WAITING_DELAY
-                : COMP_STATE_OFF;
+            // Compresseur à l'arrêt
+            if (_compressorRestTimer.isRunning() && !_compressorRestTimer.hasExpired()) {
+                // Période de repos obligatoire de 30min en cours
+                _compressorActive = false;
+                _compressorState = COMP_STATE_WAITING_DELAY;
+                _antiCycleActive = true;
+                _antiCycleRemainingSec = _compressorRestTimer.getRemainingSec();
+            } else {
+                // Repos de 30min terminé (ou initialisation) -> Revérification de la température d'eau
+                _compressorRestTimer.stop();
+                _antiCycleActive = false;
+                _antiCycleRemainingSec = 0;
+
+                bool startComp = false;
+                if (_compressorMode == COMP_MODE_FORCE_ON) {
+                    startComp = true;
+                } else {
+                    // Mode AUTO : Démarrer si T_eau > 15°C
+                    if (!isnan(_currentWaterTemp) && _currentWaterTemp > WATER_START_TEMP_THRESHOLD) {
+                        startComp = true;
+                    }
+                }
+
+                if (startComp) {
+                    Serial.printf("[ClimateManager] T_eau = %.1f°C (> %.1f°C) -> Démarrage compresseur pour 2h max.\n",
+                                  _currentWaterTemp, WATER_START_TEMP_THRESHOLD);
+                    _compressorActive = true;
+                    _compressorRunTimer.start(COMPRESSOR_MAX_RUN_MS);
+                    _compressorState = COMP_STATE_RUNNING;
+                } else {
+                    _compressorActive = false;
+                    _compressorState = COMP_STATE_OFF;
+                }
+            }
         }
     }
 
-    // Pilotage des périphériques physiques dynamiquement liés via SystemManager
-    // Slot 5 : Compresseur Glacière (Relais Tout-ou-Rien)
+    // 4. PILOTAGE DIRECT DES ACTIONNEURS
+    // Slot 5 : Compresseur (Relais)
     if (compressorRelayId > 0) {
-        uint8_t compState = _compressorActive ? 1 : 0;
-        devManager.setDeviceState(compressorRelayId, compState, 0);
+        devManager.setDeviceState(compressorRelayId, _compressorActive ? 1 : 0, 0);
     }
 
     // Slot 4 : Pompe boucle froide (Relais)
@@ -660,13 +664,12 @@ void ClimateManager::evaluateRegulation(DeviceManager& devManager, SystemManager
         devManager.setDeviceState(pumpRelayId, pumpState, 0);
     }
 
-    // Slot 3 : Ventilateur / Pulseur d'air (PWM)
+    // Slot 3 : Ventilateur Habitacle (PWM)
     if (fanPwmId > 0) {
         if (_systemOn && airNeedsCooling && _fanSpeed > 0) {
             uint8_t fanPwm = (uint8_t)round((_fanSpeed / 100.0f) * 255.0f);
             devManager.setDeviceState(fanPwmId, 1, fanPwm);
         } else {
-            // Coupure franche du ventilateur à 0% / 0V dès que la consigne est atteinte ou système OFF
             devManager.setDeviceState(fanPwmId, 0, 0);
         }
     }
@@ -713,7 +716,7 @@ String ClimateManager::getTelemetryJson(SystemManager* sysManager, DeviceManager
     doc["timer_enabled"] = _timerEnabled;
     doc["timer_duration_sec"] = _timerDurationSec;
     doc["timer_remaining_sec"] = _timerRemainingSec;
-    doc["water_ready"] = (!isnan(_currentWaterTemp) && _currentWaterTemp <= (_targetWaterTemp + 1.0f));
+    doc["water_ready"] = (!isnan(_currentWaterTemp) && _currentWaterTemp <= 10.0f);
     doc["probes_count"] = _probesConnectedCount;
     doc["probe_alert"] = _probeWatchdogAlert;
 
@@ -751,9 +754,9 @@ String ClimateManager::getTelemetryJson(SystemManager* sysManager, DeviceManager
         doc["est_time"] = 0;
     }
 
-    doc["est_water"] = (_currentWaterTemp <= (_targetWaterTemp + 0.5f)) ? "Prete" : "15min";
+    doc["est_water"] = (!isnan(_currentWaterTemp) && _currentWaterTemp <= 10.0f) ? "Prete" : "En cours";
 
-    // Statut précis du compresseur et alertes de sécurité
+    // Statut précis du compresseur (discret)
     if (!_systemOperational) {
         doc["compressor_status"] = "Systeme Incomplet";
         doc["anti_cycle"] = false;
@@ -766,18 +769,16 @@ String ClimateManager::getTelemetryJson(SystemManager* sysManager, DeviceManager
         int m = _antiCycleRemainingSec / 60;
         int s = _antiCycleRemainingSec % 60;
         char buf[64];
-        snprintf(buf, sizeof(buf), "Securite anti-redemarrage (%dm%02ds)", m, s);
+        snprintf(buf, sizeof(buf), "Repos compresseur (%dm%02ds)", m, s);
         doc["compressor_status"] = String(buf);
         doc["anti_cycle"] = true;
         doc["anti_cycle_sec"] = _antiCycleRemainingSec;
     } else if (_compressorActive) {
-        char buf[64];
-        snprintf(buf, sizeof(buf), "Actif (Cible eau: %.1f°C)", _targetWaterTemp);
-        doc["compressor_status"] = String(buf);
+        doc["compressor_status"] = "Refroidissement eau actif (2h max)";
         doc["anti_cycle"] = false;
         doc["anti_cycle_sec"] = 0;
     } else if (!_chillerEnabled) {
-        doc["compressor_status"] = "Coupe (Mode ventilation seule)";
+        doc["compressor_status"] = "Coupe";
         doc["anti_cycle"] = false;
         doc["anti_cycle_sec"] = 0;
     } else {

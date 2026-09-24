@@ -1166,6 +1166,37 @@ function showToast(message, type = 'info') {
   }, 3500);
 }
 
+// --- CLIENT API UNIFIÉ (DRY) ---
+async function fetchApi(endpoint, method = 'GET', data = null) {
+  const options = { method, headers: {} };
+  if (data !== null && data !== undefined) {
+    if (typeof data === 'object') {
+      options.headers['Content-Type'] = 'application/json';
+      options.body = JSON.stringify(data);
+    } else {
+      options.body = data;
+    }
+  }
+
+  const res = await fetch(endpoint, options);
+  const contentType = res.headers.get('content-type') || '';
+  let result = null;
+  if (contentType.includes('application/json')) {
+    result = await res.json();
+  } else {
+    result = await res.text();
+  }
+
+  if (!res.ok) {
+    const errorMsg = (result && typeof result === 'object' && result.error) ? result.error : `HTTP ${res.status}`;
+    const err = new Error(errorMsg);
+    err.status = res.status;
+    err.data = result;
+    throw err;
+  }
+  return result;
+}
+
 // =========================================================================
 // GESTIONNAIRE DE MATÉRIEL & DIDACTICIEL GUIDÉ (WIRING WIZARD)
 // =========================================================================
@@ -2006,13 +2037,8 @@ async function handleSystemFormSubmit(e) {
   };
 
   try {
-    const res = await fetch('/api/systems/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newSys)
-    });
-    const result = await res.json();
-    if (!res.ok || !result.success) throw new Error(result.error || "Erreur de création");
+    const result = await fetchApi('/api/systems/save', 'POST', newSys);
+    if (!result.success) throw new Error(result.error || "Erreur de création");
     showToast(t('toast_system_created', "Système créé avec succès."), "success");
   } catch (err) {
     systemsList.push(newSys);
@@ -2026,9 +2052,7 @@ async function handleSystemFormSubmit(e) {
 
 async function loadSystems() {
   try {
-    const res = await fetch('/api/systems');
-    if (!res.ok) throw new Error('Erreur réseau systems');
-    const data = await res.json();
+    const data = await fetchApi('/api/systems');
     systemsList = data.systems || [];
     try { localStorage.setItem('climate_pro_sim_systems', JSON.stringify(systemsList)); } catch(e){}
   } catch (err) {
@@ -2242,13 +2266,8 @@ function renderSystemsCards(systems) {
 async function bindSlot(systemId, slot, devId) {
   const numId = parseInt(devId, 10) || 0;
   try {
-    const res = await fetch('/api/systems/bind', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ system_id: systemId, slot: slot, device_id: numId })
-    });
-    const result = await res.json();
-    if (!res.ok || !result.success) throw new Error(result.error || "Erreur d'assignation");
+    const result = await fetchApi('/api/systems/bind', 'POST', { system_id: systemId, slot: slot, device_id: numId });
+    if (!result.success) throw new Error(result.error || "Erreur d'assignation");
     showToast(numId > 0 ? t('toast_slot_bound', "Équipement assigné au slot.") : t('toast_slot_unbound', "Slot détaché."), "success");
   } catch (err) {
     const sys = systemsList.find(s => s.id === systemId);
@@ -2319,13 +2338,8 @@ async function deleteSystem(id) {
   if (!confirm(t('toast_delete_confirm', "Êtes-vous sûr de vouloir supprimer définitivement ce système ?"))) return;
 
   try {
-    const res = await fetch('/api/systems/delete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: id })
-    });
-    const result = await res.json();
-    if (!res.ok || !result.success) throw new Error(result.error || "Erreur");
+    const result = await fetchApi('/api/systems/delete', 'POST', { id: id });
+    if (!result.success) throw new Error(result.error || "Erreur");
     showToast(t('toast_system_deleted', "Système supprimé."), "success");
   } catch (err) {
     systemsList = systemsList.filter(s => s.id !== id);
@@ -2346,12 +2360,7 @@ async function setCompressorMode(mode) {
   });
 
   try {
-    const res = await fetch('/api/systems/climatisation/compressor', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ state: mode })
-    });
-    const data = await res.json();
+    await fetchApi('/api/systems/climatisation/compressor', 'POST', { state: mode });
     showToast(t('toast_comp_mode', 'Mode compresseur : {mode}').replace('{mode}', mode.toUpperCase()), 'info');
   } catch (err) {
     console.warn("Mode simulation / fallback compresseur:", err);
@@ -2364,9 +2373,7 @@ async function setCompressorMode(mode) {
  */
 async function loadDeviceManager() {
   try {
-    const res = await fetch('/api/devices');
-    if (!res.ok) throw new Error('Erreur réseau');
-    const data = await res.json();
+    const data = await fetchApi('/api/devices');
     devicesList = data.devices || [];
     try { localStorage.setItem('climate_pro_sim_devices', JSON.stringify(devicesList)); } catch(e){}
   } catch (err) {
@@ -2386,10 +2393,11 @@ async function loadDeviceManager() {
     if (!loadedFromStorage && devicesList.length === 0) {
       devicesList = [
         {"id": 1, "name": "Pompe boucle froide", "category": "ACTUATOR", "voltage": "12V", "mode": "OUTPUT_RELAY", "type": "RELAY", "gpio": 4, "state": 0, "value": 0, "isCore": false},
-        {"id": 2, "name": "Ventilateur Habitacle", "category": "ACTUATOR", "voltage": "12V", "mode": "OUTPUT_PWM", "type": "PWM", "gpio": 14, "state": 0, "value": 128, "isCore": false},
+        {"id": 2, "name": "Ventilateur Habitacle", "category": "ACTUATOR", "voltage": "12V", "mode": "OUTPUT_PWM", "type": "PWM", "gpio": 21, "state": 0, "value": 128, "isCore": false},
         {"id": 3, "name": "Spot Salon", "category": "ACTUATOR", "voltage": "12V", "mode": "OUTPUT_RELAY", "type": "RELAY", "gpio": 23, "state": 0, "value": 0, "isCore": false},
-        {"id": 4, "name": "Sonde Température Air", "category": "SENSOR", "voltage": "3.3V", "mode": "INPUT_ONEWIRE", "type": "RELAY", "gpio": 27, "state": 0, "value": 0, "isCore": false},
-        {"id": 5, "name": "Compresseur Glacière", "category": "ACTUATOR", "voltage": "12V", "mode": "OUTPUT_RELAY", "type": "RELAY", "gpio": 22, "state": 0, "value": 0, "isCore": false}
+        {"id": 4, "name": "Sonde Température Air", "category": "SENSOR", "voltage": "3.3V", "mode": "INPUT_ONEWIRE", "type": "RELAY", "gpio": 19, "state": 0, "value": 0, "isCore": false},
+        {"id": 5, "name": "Compresseur Glacière", "category": "ACTUATOR", "voltage": "12V", "mode": "OUTPUT_RELAY", "type": "RELAY", "gpio": 22, "state": 0, "value": 0, "isCore": false},
+        {"id": 6, "name": "Sonde Température Eau", "category": "SENSOR", "voltage": "3.3V", "mode": "INPUT_ONEWIRE", "type": "RELAY", "gpio": 5, "state": 0, "value": 0, "isCore": false}
       ];
       try { localStorage.setItem('climate_pro_sim_devices', JSON.stringify(devicesList)); } catch(e){}
     }
@@ -2580,11 +2588,7 @@ async function toggleAuxDevice(id, isChecked) {
   if (dev) dev.state = isChecked ? 1 : 0;
 
   try {
-    await fetch('/api/devices/set-state', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: id, state: isChecked ? 1 : 0, value: dev ? dev.value : 0 })
-    });
+    await fetchApi('/api/devices/set-state', 'POST', { id: id, state: isChecked ? 1 : 0, value: dev ? dev.value : 0 });
     const devName = dev ? dev.name : t('label_device_fallback', 'Équipement');
     showToast(t('toast_dev_state', '{name} : {state}').replace('{name}', devName).replace('{state}', isChecked ? 'ON' : 'OFF'), 'success');
   } catch (err) {
@@ -2608,11 +2612,7 @@ function updateAuxPwm(id, percent) {
   clearTimeout(pwmDebounceTimers[id]);
   pwmDebounceTimers[id] = setTimeout(async () => {
     try {
-      await fetch('/api/devices/set-state', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: id, state: rawPwm > 0 ? 1 : 0, value: rawPwm })
-      });
+      await fetchApi('/api/devices/set-state', 'POST', { id: id, state: rawPwm > 0 ? 1 : 0, value: rawPwm });
     } catch (e) {
       try { localStorage.setItem('climate_pro_sim_devices', JSON.stringify(devicesList)); } catch(err){}
     }
@@ -2676,11 +2676,8 @@ async function populatePinSelect(currentPin = null) {
 
   let availablePins = [];
   try {
-    const res = await fetch('/api/available-pins');
-    if (res.ok) {
-      const data = await res.json();
-      availablePins = data.pins || [];
-    }
+    const data = await fetchApi('/api/available-pins');
+    availablePins = (data && data.pins) || [];
   } catch (e) {
     const usedPins = devicesList.map(d => d.gpio);
     const safeList = [4, 5, 13, 14, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33];
@@ -2763,13 +2760,12 @@ async function openWizardModal() {
   if (!wizardState.gpio) {
     pinDisplay.innerText = "...";
     try {
-      const res = await fetch(`/api/pins/suggest?type=${wizardState.mode}`);
-      const data = await res.json();
-      if (data.success && data.gpio) {
+      const data = await fetchApi(`/api/pins/suggest?type=${wizardState.mode}`);
+      if (data && data.success && data.gpio) {
         wizardState.gpio = data.gpio;
         pinReason.innerText = data.message || t('wizard_pin_reserved', "Sélectionnée et réservée par l'ESP32");
       } else {
-        throw new Error(data.error || "Aucune broche disponible");
+        throw new Error((data && data.error) || "Aucune broche disponible");
       }
     } catch (err) {
       // Fallback local
@@ -2905,15 +2901,11 @@ async function runWizardTest() {
         statusBox.innerHTML = t('test_pulse_active_html', 'Impulsion active sur GPIO {gpio} ({sec}s)...').replace('{gpio}', wizardState.gpio).replace('{sec}', actSec);
 
         // Déclenchement matériel sur l'ESP32
-        fetch('/api/devices/test', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            id: wizardState.id, 
-            gpio: wizardState.gpio, 
-            mode: wizardState.mode, 
-            duration: 3000 
-          })
+        fetchApi('/api/devices/test', 'POST', { 
+          id: wizardState.id, 
+          gpio: wizardState.gpio, 
+          mode: wizardState.mode, 
+          duration: 3000 
         }).catch(e => console.warn("Erreur test matériel", e));
 
         wizardActTimer = setInterval(() => {
@@ -2942,29 +2934,24 @@ async function runWizardTest() {
     statusBox.innerText = t('test_reading_gpio', 'Lecture de la broche GPIO {gpio}...').replace('{gpio}', wizardState.gpio);
 
     try {
-      const res = await fetch('/api/devices/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          id: wizardState.id, 
-          gpio: wizardState.gpio, 
-          mode: wizardState.mode, 
-          duration: 100 
-        })
+      const data = await fetchApi('/api/devices/test', 'POST', { 
+        id: wizardState.id, 
+        gpio: wizardState.gpio, 
+        mode: wizardState.mode, 
+        duration: 100 
       });
-      const data = await res.json();
-      statusBox.className = data.success ? "wizard-test-status success" : "wizard-test-status warning";
+      statusBox.className = (data && data.success) ? "wizard-test-status success" : "wizard-test-status warning";
       if (wizardState.mode === 'INPUT_ONEWIRE') {
-        const msg = data.message || (data.reading !== undefined ? `${(data.reading / 100).toFixed(1)} °C` : '--');
+        const msg = (data && data.message) || (data && data.reading !== undefined ? `${(data.reading / 100).toFixed(1)} °C` : '--');
         statusBox.innerHTML = t('test_sensor_onewire_html', 'Sonde 1-Wire : <strong>{val}</strong>').replace('{val}', escapeHtml(msg));
-        showToast(t('toast_onewire_read', 'Lecture 1-Wire : {msg}').replace('{msg}', msg), data.success ? "success" : "warning");
+        showToast(t('toast_onewire_read', 'Lecture 1-Wire : {msg}').replace('{msg}', msg), (data && data.success) ? "success" : "warning");
       } else if (wizardState.mode === 'INPUT_ADC' || wizardState.mode === 'INPUT_ADC_NTC') {
-        const volts = (data.voltage !== undefined) ? data.voltage : ((data.reading / 4095) * 3.3);
-        statusBox.innerHTML = t('test_measured_volts_html', 'Valeur mesurée : <strong>{volts} V</strong> (ADC : {raw} / 4095)').replace('{volts}', volts.toFixed(2)).replace('{raw}', data.reading);
+        const volts = (data && data.voltage !== undefined) ? data.voltage : (((data ? data.reading : 0) / 4095) * 3.3);
+        statusBox.innerHTML = t('test_measured_volts_html', 'Valeur mesurée : <strong>{volts} V</strong> (ADC : {raw} / 4095)').replace('{volts}', volts.toFixed(2)).replace('{raw}', data ? data.reading : 0);
         showToast(t('toast_sensor_val', 'Valeur capteur : {val}').replace('{val}', volts.toFixed(2) + ' V'), "success");
       } else {
         // Digital / contact sec / tout ou rien (0 = fermé = ON, 1 = ouvert = OFF)
-        const isOn = (data.reading === 0);
+        const isOn = (data && data.reading === 0);
         const stateStr = isOn ? 'ON' : 'OFF';
         const descStr = isOn ? t('test_contact_closed', 'Contact fermé') : t('test_contact_open', 'Contact ouvert');
         statusBox.innerHTML = t('test_sensor_state_html', 'Valeur du capteur : <strong style="font-size:16px; color:var(--cyan-light);">{state}</strong> ({desc})').replace('{state}', stateStr).replace('{desc}', descStr);
@@ -2998,14 +2985,9 @@ async function finishAndActivateWizard() {
   let savedId = wizardState.id;
 
   try {
-    const res = await fetch('/api/devices/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const result = await res.json();
-    if (!res.ok || !result.success) {
-      throw new Error(result.error || "Erreur de sauvegarde");
+    const result = await fetchApi('/api/devices/save', 'POST', payload);
+    if (!result || !result.success) {
+      throw new Error((result && result.error) || "Erreur de sauvegarde");
     }
     if (result.id) savedId = result.id;
     else if (savedId === 0 && result.device && result.device.id) savedId = result.device.id;
@@ -3052,15 +3034,9 @@ async function deleteDevice(id, name) {
   }
 
   try {
-    const res = await fetch('/api/devices/delete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: id })
-    });
-
-    const result = await res.json();
-    if (!res.ok || !result.success) {
-      throw new Error(result.error || "Impossible de supprimer");
+    const result = await fetchApi('/api/devices/delete', 'POST', { id: id });
+    if (!result || !result.success) {
+      throw new Error((result && result.error) || "Impossible de supprimer");
     }
 
     showToast(`"${name}" : ${t('toast_dev_deleted', 'Équipement supprimé avec succès.')}`, "success");
@@ -3104,12 +3080,7 @@ async function testDevice(id, btnElement) {
     btnElement.innerHTML = t('test_reading_signal', "Lecture...");
 
     try {
-      const res = await fetch('/api/devices/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: dev.id, duration: 100 })
-      });
-      const data = await res.json();
+      const data = await fetchApi('/api/devices/test', 'POST', { id: dev.id, duration: 100 });
       let displayVal = '';
       if (dev.mode === 'INPUT_ONEWIRE') {
         const tempC = (data.reading !== undefined && data.reading !== -127) ? (data.reading / 100).toFixed(1) : ((data.voltage !== undefined) ? data.voltage.toFixed(1) : '--');
@@ -3167,11 +3138,7 @@ async function testDevice(id, btnElement) {
         if (curBtn) curBtn.innerHTML = t('test_running_sec', 'En marche ({sec}s)...').replace('{sec}', actSec);
 
         // Déclenchement matériel sur l'ESP32
-        fetch('/api/devices/test', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: dev.id, duration: 3000 })
-        }).catch(e => console.warn("Erreur test actionneur", e));
+        fetchApi('/api/devices/test', 'POST', { id: dev.id, duration: 3000 }).catch(e => console.warn("Erreur test actionneur", e));
 
         tableTestTimers[id].act = setInterval(() => {
           actSec--;
@@ -3215,13 +3182,10 @@ async function loadAutomations() {
   }
 
   try {
-    const res = await fetch('/api/automations');
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data.rules)) {
-        automationRules = data.rules;
-        try { localStorage.setItem('climate_pro_automations', JSON.stringify(automationRules)); } catch (e) {}
-      }
+    const data = await fetchApi('/api/automations');
+    if (data && Array.isArray(data.rules)) {
+      automationRules = data.rules;
+      try { localStorage.setItem('climate_pro_automations', JSON.stringify(automationRules)); } catch (e) {}
     } else {
       throw new Error("Erreur serveur automations");
     }
@@ -3272,11 +3236,7 @@ async function saveAutomations() {
   } catch (e) {}
 
   try {
-    await fetch('/api/automations', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rules: automationRules })
-    });
+    await fetchApi('/api/automations', 'POST', { rules: automationRules });
   } catch (err) {
     console.warn("Sauvegarde automations en mode simulation locale.");
   }
@@ -3705,22 +3665,22 @@ function sendWsCommand(cmdObj) {
   } else {
     // Fallback HTTP si le WebSocket est en cours de reconnexion
     if (cmdObj.cmd === 'setPower' || cmdObj.cmd === 'togglePower') {
-      fetch('/action?power=' + (cmdObj.power ? '1' : '0')).catch(() => {});
+      fetchApi('/action?power=' + (cmdObj.power ? '1' : '0')).catch(() => {});
     } else if (cmdObj.cmd === 'setTarget') {
-      if (cmdObj.temp !== undefined) fetch('/action?temp=' + cmdObj.temp).catch(() => {});
-      if (cmdObj.enabled !== undefined) fetch('/action?target_enabled=' + (cmdObj.enabled ? '1' : '0')).catch(() => {});
+      if (cmdObj.temp !== undefined) fetchApi('/action?temp=' + cmdObj.temp).catch(() => {});
+      if (cmdObj.enabled !== undefined) fetchApi('/action?target_enabled=' + (cmdObj.enabled ? '1' : '0')).catch(() => {});
     } else if (cmdObj.cmd === 'setMode') {
-      fetch('/action?mode=' + encodeURIComponent(cmdObj.mode)).catch(() => {});
+      fetchApi('/action?mode=' + encodeURIComponent(cmdObj.mode)).catch(() => {});
     } else if (cmdObj.cmd === 'setFan') {
-      fetch('/action?fan=' + cmdObj.speed).catch(() => {});
+      fetchApi('/action?fan=' + cmdObj.speed).catch(() => {});
     } else if (cmdObj.cmd === 'setHyst') {
-      fetch('/action?hyst=' + cmdObj.hyst).catch(() => {});
+      fetchApi('/action?hyst=' + cmdObj.hyst).catch(() => {});
     } else if (cmdObj.cmd === 'setChiller') {
-      fetch('/action?chiller=' + (cmdObj.enabled ? '1' : '0')).catch(() => {});
+      fetchApi('/action?chiller=' + (cmdObj.enabled ? '1' : '0')).catch(() => {});
     } else if (cmdObj.cmd === 'setWaterTemp') {
-      fetch('/action?water_temp=' + cmdObj.temp).catch(() => {});
+      fetchApi('/action?water_temp=' + cmdObj.temp).catch(() => {});
     } else if (cmdObj.cmd === 'setTimer') {
-      fetch('/action?timer_enabled=' + (cmdObj.enabled ? '1' : '0') + '&timer_sec=' + (cmdObj.durationSec || 1800)).catch(() => {});
+      fetchApi('/action?timer_enabled=' + (cmdObj.enabled ? '1' : '0') + '&timer_sec=' + (cmdObj.durationSec || 1800)).catch(() => {});
     }
   }
 }
@@ -3760,24 +3720,11 @@ function handleIncomingTelemetry(data) {
   if (data.est_water) estimatedTimeToReady = data.est_water;
   if (typeof data.water_ready !== 'undefined') isWaterReady = data.water_ready;
 
-  // Statut du compresseur & sécurité anti-court-cycle (Ancienne bannière + Nouvelle carte dédiée)
+  // Statut du compresseur (Carte dédiée #card-compressor)
   const compState = document.getElementById('compressor-state');
   if (compState && data.compressor_status) {
     compState.innerText = data.compressor_status;
     compState.style.color = data.anti_cycle ? 'var(--orange-alert)' : (data.power ? 'var(--cyan-light)' : 'var(--text-muted)');
-  }
-
-  const antiCycleBanner = document.getElementById('anti-cycle-banner');
-  const antiCycleTimer = document.getElementById('anti-cycle-timer');
-  if (data.anti_cycle && data.anti_cycle_sec > 0) {
-    if (antiCycleBanner) antiCycleBanner.style.display = 'block';
-    if (antiCycleTimer) {
-      const m = Math.floor(data.anti_cycle_sec / 60);
-      const s = data.anti_cycle_sec % 60;
-      antiCycleTimer.innerText = `${m}m${s < 10 ? '0' : ''}${s}s`;
-    }
-  } else {
-    if (antiCycleBanner) antiCycleBanner.style.display = 'none';
   }
 
   // Mise à jour de la carte dédiée Compresseur (#card-compressor)
@@ -3796,7 +3743,7 @@ function handleIncomingTelemetry(data) {
   } else if (data.anti_cycle && data.anti_cycle_sec > 0) {
     compStateStr = 'waiting';
     remainingSec = data.anti_cycle_sec;
-  } else if (data.compressor_status && data.compressor_status.includes('En marche')) {
+  } else if (data.compressor_status && (data.compressor_status.includes('En marche') || data.compressor_status.includes('Actif'))) {
     compStateStr = 'running';
   }
 
@@ -3804,23 +3751,23 @@ function handleIncomingTelemetry(data) {
     compIconWrap.classList.remove('running', 'waiting');
     compBadge.classList.remove('running', 'waiting', 'off');
 
-    if (compStateStr === 'running') {
+    if (compStateStr === 'running' || compStateStr === 'RUNNING') {
       compIconWrap.classList.add('running');
       compBadge.classList.add('running');
-      compBadge.innerText = t('comp_status_running', 'En marche');
-      compSubText.innerText = (compModeStr === 'on') ? 'Marche forcée active' : 'Régulation thermique active';
-    } else if (compStateStr === 'waiting') {
+      compBadge.innerText = t('comp_status_running', 'En marche (2h max)');
+      compSubText.innerText = (compModeStr === 'on') ? 'Marche forcée active' : 'Refroidissement eau actif (>15°C -> 10°C)';
+    } else if (compStateStr === 'waiting' || compStateStr === 'WAITING_DELAY') {
       compIconWrap.classList.add('waiting');
       compBadge.classList.add('waiting');
-      compBadge.innerText = t('comp_status_waiting', 'Temporisation de sécurité');
+      compBadge.innerText = t('comp_status_waiting', 'Repos 30 min');
       const m = Math.floor(remainingSec / 60);
       const s = remainingSec % 60;
       const timeStr = `${m > 0 ? m + 'm ' : ''}${s}s`;
-      compSubText.innerText = `${t('comp_delay_prefix', 'Sécurité compresseur : reprise dans')} ${timeStr}`;
+      compSubText.innerText = `Repos compresseur : reprise dans ${timeStr}`;
     } else {
       compBadge.classList.add('off');
-      compBadge.innerText = t('comp_status_off', 'Éteint');
-      compSubText.innerText = (compModeStr === 'off') ? 'Compresseur coupé manuellement' : 'Compresseur en veille';
+      compBadge.innerText = t('comp_status_off', 'En veille');
+      compSubText.innerText = (compModeStr === 'off') ? 'Compresseur coupé manuellement' : 'En veille (Déclenchement auto si T_eau > 15°C)';
     }
   }
 
@@ -4470,22 +4417,19 @@ function startDeviceAutoRefresh() {
   // Polling immédiat puis toutes les 3 secondes
   const poll = async () => {
     try {
-      const res = await fetch('/api/devices');
-      if (res.ok) {
-        const data = await res.json();
-        if (data && Array.isArray(data.devices)) {
-          devicesList = data.devices;
-          devicesList.forEach(d => { d.isCore = false; });
-          
-          const devView = document.getElementById('view-devices');
-          const isDevTab = devView && devView.classList.contains('active');
-          const isModalOpen = document.querySelector('.modal-backdrop.active');
-          
-          if (isDevTab && !isModalOpen) {
-            renderDeviceTable(devicesList);
-          }
-          renderDashboardAuxDevices(devicesList);
+      const data = await fetchApi('/api/devices');
+      if (data && Array.isArray(data.devices)) {
+        devicesList = data.devices;
+        devicesList.forEach(d => { d.isCore = false; });
+        
+        const devView = document.getElementById('view-devices');
+        const isDevTab = devView && devView.classList.contains('active');
+        const isModalOpen = document.querySelector('.modal-backdrop.active');
+        
+        if (isDevTab && !isModalOpen) {
+          renderDeviceTable(devicesList);
         }
+        renderDashboardAuxDevices(devicesList);
       }
     } catch (e) {
       // Polling discret
@@ -4501,8 +4445,7 @@ function startTelemetry() {
   // Polling de secours si le WebSocket est temporairement déconnecté
   setInterval(function() {
     if (!isWsConnected) {
-      fetch('/data')
-        .then(response => response.json())
+      fetchApi('/data')
         .then(data => handleIncomingTelemetry(data))
         .catch(err => {
           try { evaluateAutomations(); } catch (e) {}
@@ -4573,11 +4516,7 @@ async function recordCompletedCycle(status = "Terminé") {
   try { localStorage.setItem('climate_pro_cycles', JSON.stringify(cyclesList)); } catch(e){}
   
   // Sauvegarde sur l'ESP32 dans LittleFS
-  fetch('/api/cycles', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ cycles: cyclesList })
-  }).catch(err => console.warn("Erreur sauvegarde cycle:", err));
+  fetchApi('/api/cycles', 'POST', { cycles: cyclesList }).catch(err => console.warn("Erreur sauvegarde cycle:", err));
   
   const toastMsg = t('toast_cycle_recorded', 'Cycle {id} enregistré ({dur}, {energy} kWh)')
     .replace('{id}', newCycle.id)
@@ -4592,9 +4531,7 @@ async function recordCompletedCycle(status = "Terminé") {
  */
 async function loadCyclesHistory(forceRefresh = false) {
   try {
-    const res = await fetch('/api/cycles');
-    if (!res.ok) throw new Error('Erreur API');
-    const data = await res.json();
+    const data = await fetchApi('/api/cycles');
     if (data && Array.isArray(data.cycles) && data.cycles.length > 0) {
       cyclesList = data.cycles;
       try { localStorage.setItem('climate_pro_cycles', JSON.stringify(cyclesList)); } catch(e){}
@@ -4778,9 +4715,7 @@ let wifiScanPollingTimer = null;
  */
 async function loadWifiStatus() {
   try {
-    const res = await fetch('/api/wifi/status');
-    if (!res.ok) throw new Error('Erreur API Wi-Fi');
-    const data = await res.json();
+    const data = await fetchApi('/api/wifi/status');
     lastWifiData = data;
     renderWifiStatus(data);
   } catch (err) {
@@ -4880,11 +4815,9 @@ async function scanWifiNetworks() {
   const pollScan = async () => {
     attempts++;
     try {
-      const res = await fetch('/api/wifi/scan');
-      if (!res.ok) throw new Error('Erreur scan');
-      const data = await res.json();
+      const data = await fetchApi('/api/wifi/scan');
 
-      if (data.status === 'complete') {
+      if (data && data.status === 'complete') {
         if (wifiScanPollingTimer) {
           clearInterval(wifiScanPollingTimer);
           wifiScanPollingTimer = null;
@@ -4972,14 +4905,9 @@ async function submitWifiConnect() {
   if (btnText) btnText.innerText = t('wifi_btn_connecting', 'Connexion en cours...');
 
   try {
-    const res = await fetch('/api/wifi/connect', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ssid: ssid, pass: pass })
-    });
-    const result = await res.json();
-    if (!res.ok || !result.success) {
-      throw new Error(result.error || 'Erreur connexion');
+    const result = await fetchApi('/api/wifi/connect', 'POST', { ssid: ssid, pass: pass });
+    if (!result || !result.success) {
+      throw new Error((result && result.error) || 'Erreur connexion');
     }
 
     showToast(t('toast_wifi_connecting', 'Connexion à "{ssid}" en cours. L\'AP local reste actif.').replace('{ssid}', ssid), 'info');
@@ -5010,8 +4938,7 @@ async function forgetWifiNetwork() {
   }
 
   try {
-    const res = await fetch('/api/wifi/reset', { method: 'POST' });
-    const result = await res.json();
+    await fetchApi('/api/wifi/reset', 'POST');
 
     const inputSsid = document.getElementById('wifi-input-ssid');
     const inputPass = document.getElementById('wifi-input-pass');

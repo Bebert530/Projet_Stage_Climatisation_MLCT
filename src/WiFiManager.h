@@ -5,6 +5,7 @@
 #include <ESPmDNS.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
+#include "TimerUtil.h"
 
 enum WiFiStaState {
     STA_STATE_IDLE,
@@ -53,9 +54,9 @@ private:
     bool _isConfigured;
     bool _isScanning;
     bool _pendingConnect;
-    unsigned long _pendingConnectTime;
-    unsigned long _lastReconnectAttempt;
-    unsigned long _connectingStartTime;
+    NonBlockingTimer _pendingConnectTimer;
+    NonBlockingTimer _connectTimeoutTimer;
+    NonBlockingTimer _reconnectTimer;
     uint8_t _reconnectAttempts;
 
     SemaphoreHandle_t _mutex;

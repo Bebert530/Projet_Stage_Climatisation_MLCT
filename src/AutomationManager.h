@@ -4,6 +4,7 @@
 #include <ArduinoJson.h>
 #include <LittleFS.h>
 #include <vector>
+#include "TimerUtil.h"
 #include "DeviceManager.h"
 
 class ClimateManager; // Déclaration anticipée
@@ -49,7 +50,7 @@ private:
     String _rulesPath;
     std::vector<AutomationRule> _rules;
     SemaphoreHandle_t _mutex;
-    unsigned long _lastEvalTime;
+    NonBlockingTimer _evalTimer;
 };
 
 

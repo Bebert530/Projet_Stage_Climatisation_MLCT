@@ -6,6 +6,7 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <functional>
+#include "TimerUtil.h"
 #include "DeviceManager.h"
 #include "SystemManager.h"
 
@@ -91,9 +92,13 @@ public:
     uint32_t getTimerRemainingSec() const { return _timerRemainingSec; }
     bool isCoolingDemand() const { return _coolingDemand; }
 
-    // Constantes de sécurité frigorifique
-    static const uint32_t ANTI_CYCLE_DELAY_MS = 180000; // 180 s (3 minutes) délai de repos minimal
-    static const uint32_t MIN_RUN_TIME_MS = 60000;       // 60 s temps de fonctionnement minimal
+    // Constantes thermiques et frigorifiques pour la boucle d'eau
+    static constexpr float WATER_START_TEMP_THRESHOLD = 15.0f; // Démarrage automatique si T_eau > 15°C
+    static constexpr float WATER_STOP_TEMP_THRESHOLD  = 10.0f; // Arrêt automatique si T_eau < 10°C
+    static const uint32_t COMPRESSOR_MAX_RUN_MS = 2UL * 3600UL * 1000UL; // 2 heures de fonctionnement continu max
+    static const uint32_t COMPRESSOR_REST_MS    = 30UL * 60UL * 1000UL;  // 30 minutes de repos obligatoire avant revérification
+    static const uint32_t ANTI_CYCLE_DELAY_MS   = COMPRESSOR_REST_MS;
+    static const uint32_t MIN_RUN_TIME_MS       = 60000; // 60s
 
 private:
     String _configPath;
@@ -129,7 +134,7 @@ private:
     uint32_t _timerDurationSec;
     uint32_t _timerRemainingSec;
 
-    // Protection compresseur (Anti-court-cycle & Anti-microcycle)
+    // Protection et automatisme compresseur boucle d'eau
     bool _compressorActive;
     CompressorState _compressorState;
     CompressorMode _compressorMode;
@@ -148,6 +153,16 @@ private:
     unsigned long _lastRegulTime;
     unsigned long _lastBroadcastTime;
     unsigned long _lastStatsTick;
+
+    // Temporisations non-bloquantes centralisées
+    NonBlockingTimer _compressorRunTimer;
+    NonBlockingTimer _compressorRestTimer;
+    NonBlockingTimer _antiCycleTimer;
+    NonBlockingTimer _minRunTimer;
+    NonBlockingTimer _regulTimer;
+    NonBlockingTimer _statsTimer;
+    NonBlockingTimer _broadcastTimer;
+    NonBlockingTimer _sensorReadTimer;
 
     void initOrUpdate1Wire(uint8_t gpio);
     void readPhysicalSensors(DeviceManager& devManager, SystemManager& sysManager);

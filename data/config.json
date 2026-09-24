@@ -19,7 +19,7 @@
       "voltage": "12V",
       "mode": "OUTPUT_PWM",
       "type": "PWM",
-      "gpio": 14,
+      "gpio": 21,
       "state": 0,
       "value": 0,
       "isCore": false
@@ -43,7 +43,7 @@
       "voltage": "3.3V",
       "mode": "INPUT_ONEWIRE",
       "type": "RELAY",
-      "gpio": 27,
+      "gpio": 19,
       "state": 0,
       "value": 0,
       "isCore": false
@@ -56,6 +56,18 @@
       "mode": "OUTPUT_RELAY",
       "type": "RELAY",
       "gpio": 22,
+      "state": 0,
+      "value": 0,
+      "isCore": false
+    },
+    {
+      "id": 6,
+      "name": "Sonde Température Eau",
+      "category": "SENSOR",
+      "voltage": "3.3V",
+      "mode": "INPUT_ONEWIRE",
+      "type": "RELAY",
+      "gpio": 5,
       "state": 0,
       "value": 0,
       "isCore": false

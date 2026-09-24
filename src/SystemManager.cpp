@@ -36,9 +36,9 @@ void SystemManager::createDefaultConfig() {
     clim.mode = "NORMAL";
     
     // Bindings par défaut vers les périphériques initiaux
-    clim.bindings.tempAirId = 4;        // Sonde Température Air (1-Wire GPIO 27)
-    clim.bindings.tempWaterId = 0;      // Non assignée par défaut
-    clim.bindings.fanPwmId = 2;         // Ventilateur Habitacle (PWM GPIO 14)
+    clim.bindings.tempAirId = 4;        // Sonde Température Air (1-Wire GPIO 19)
+    clim.bindings.tempWaterId = 6;      // Sonde Température Eau (1-Wire GPIO 5)
+    clim.bindings.fanPwmId = 2;         // Ventilateur Habitacle (PWM GPIO 21)
     clim.bindings.pumpRelayId = 1;      // Pompe boucle froide (Relais GPIO 4)
     clim.bindings.compressorRelayId = 5;// Compresseur Glacière (Relais GPIO 22)
 
