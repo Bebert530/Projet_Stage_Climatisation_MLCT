@@ -8,6 +8,7 @@
 #include "AutomationManager.h"
 #include "ClimateManager.h"
 #include "WiFiManager.h"
+#include "DiagnosticManager.h"
 #include "WebServerRoutes.h"
 
 // Instances globales
@@ -17,6 +18,7 @@ SystemManager sysManager;
 AutomationManager autoManager;
 ClimateManager climManager;
 WiFiManager wifiManager;
+DiagnosticManager diagManager;
 
 void setup() {
     Serial.begin(115200);
@@ -24,6 +26,9 @@ void setup() {
     Serial.println("\n==================================================");
     Serial.println("   CLIMATE PRO - ESP32 DYNAMIC DEVICE MANAGER     ");
     Serial.println("==================================================");
+
+    // 0. Initialisation du Gestionnaire de Diagnostic & Watchdog matériel (10s)
+    diagManager.begin(10);
 
     // 1. Initialisation du Gestionnaire de matériel (LittleFS + GPIO + /config.json)
     if (!devManager.begin("/config.json")) {
@@ -57,7 +62,7 @@ void setup() {
     wifiManager.begin("/wifi.json");
 
     // 6. Configuration des endpoints API REST, WebSockets et distribution des fichiers LittleFS
-    setupWebServerRoutes(server, devManager, sysManager, autoManager, climManager, wifiManager);
+    setupWebServerRoutes(server, devManager, sysManager, autoManager, climManager, wifiManager, diagManager);
 
     // 7. Lancement du serveur Web asynchrone
     server.begin();
@@ -66,6 +71,9 @@ void setup() {
 }
 
 void loop() {
+    // 0. Réarmement du Watchdog matériel (Auto-Recovery)
+    diagManager.feedWatchdog();
+
     // 1. Surveillance & reconnexion non-bloquante du Wi-Fi
     wifiManager.update();
 
@@ -81,3 +89,4 @@ void loop() {
     // 5. Délai FreeRTOS coopératif (50ms)
     vTaskDelay(pdMS_TO_TICKS(50));
 }
+

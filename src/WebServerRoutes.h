@@ -7,6 +7,7 @@
 #include "AutomationManager.h"
 #include "ClimateManager.h"
 #include "WiFiManager.h"
+#include "DiagnosticManager.h"
 
 /**
  * @brief Configure l'ensemble des routes REST, WebSockets et statiques pour le serveur web embarqué
@@ -16,5 +17,7 @@
  * @param autoManager Référence vers le gestionnaire d'automatisation
  * @param climManager Référence vers le gestionnaire de climatisation 24/24
  * @param wifiManager Référence vers le gestionnaire de Wi-Fi hybride
+ * @param diagManager Référence vers le gestionnaire de diagnostic et watchdog
  */
 void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager, SystemManager& sysManager, AutomationManager& autoManager, ClimateManager& climManager, WiFiManager& wifiManager);
+void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager, SystemManager& sysManager, AutomationManager& autoManager, ClimateManager& climManager, WiFiManager& wifiManager, DiagnosticManager& diagManager);

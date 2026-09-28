@@ -1828,5 +1828,164 @@ input:checked + .slider:before { transform: translateX(19px); }
   border-color: rgba(251, 146, 60, 0.3);
 }
 
+/* ==========================================================================
+   MODULE DIAGNOSTIC & SANTÉ SYSTÈME (ZÉRO SAV)
+   ========================================================================== */
+.diag-banner-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 14px;
+  margin-bottom: 24px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  transition: all 0.3s ease;
+}
+.diag-banner-card.optimal {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+.diag-banner-card.warning {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+.diag-banner-card.critical {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+.diag-banner-icon {
+  font-size: 32px;
+  line-height: 1;
+}
+.diag-banner-info {
+  flex: 1;
+}
+.diag-banner-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+.diag-banner-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.diag-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+.diag-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+}
+.diag-card.full {
+  grid-column: 1 / -1;
+}
+.diag-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+.diag-card-icon {
+  font-size: 18px;
+}
+.diag-card-header h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+.diag-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+.diag-metric-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-main);
+  padding: 4px 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+}
+.diag-metric-row:last-child {
+  border-bottom: none;
+}
+.diag-metric-row span:first-child {
+  color: var(--text-muted);
+}
+.diag-status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+.diag-status-badge.badge-green {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.diag-status-badge.badge-orange {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+.diag-status-badge.badge-red {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+.diag-logs-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.diag-log-item {
+  font-size: 13px;
+  padding: 8px 12px;
+  background: var(--bg-main);
+  border-radius: 8px;
+  border-left: 3px solid var(--border-color);
+  color: var(--text-main);
+}
+.diag-actions-footer {
+  margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
+}
+.btn-danger-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-danger-outline:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--danger);
+}
+
+
 
 

@@ -66,6 +66,10 @@
           <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M22,21H2V3H4V19H6V10H10V19H12V6H16V19H18V14H22V21Z"/></svg></span>
           <span data-i18n="nav_stats">Statistiques</span>
         </button>
+        <button class="nav-btn" id="nav-btn-diag" data-tab="diag" onclick="switchTab('diag', this)">
+          <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M10.5,13H8L13,3V11H15.5L10.5,21V13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/></svg></span>
+          <span data-i18n="nav_diag">Diagnostic</span>
+        </button>
         <button class="nav-btn" id="nav-btn-settings" data-tab="settings" onclick="switchTab('settings', this)">
           <span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/></svg></span>
           <span data-i18n="nav_settings">Paramètres</span>
@@ -534,6 +538,136 @@
             </div>
             <button style="width:100%; margin-top: 20px; padding: 12px; background: var(--bg-surface); color: var(--danger); border: 1px solid var(--danger); border-radius: 8px; font-weight:bold; cursor: pointer;" onclick="logout()" data-i18n="account_logout">Se déconnecter</button>
           </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VUE 6 : DIAGNOSTIC & SANTÉ SYSTÈME (ZÉRO SAV) -->
+        <!-- ========================================== -->
+        <div id="view-diag" class="view">
+          <div class="view-header">
+            <h2 data-i18n="diag_title">🩺 Diagnostic & Santé Système</h2>
+            <div class="view-subtitle" data-i18n="diag_subtitle">Surveillance matérielle temps réel, Watchdog matériel et auto-recovery</div>
+          </div>
+
+          <!-- BANNIÈRE SANTÉ GLOBALE -->
+          <div id="diag-overall-card" class="diag-banner-card optimal">
+            <div class="diag-banner-icon" id="diag-overall-icon">✅</div>
+            <div class="diag-banner-info">
+              <div class="diag-banner-title" id="diag-overall-title">Système 100% Opérationnel</div>
+              <div class="diag-banner-desc" id="diag-overall-desc">Tous les capteurs, actionneurs et mémoires fonctionnent dans les tolérances nominales.</div>
+            </div>
+            <div class="diag-banner-action">
+              <button class="btn-primary" onclick="fetchDiagnostics(true)" data-i18n="diag_btn_refresh">
+                <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor;margin-right:6px;"><path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/></svg>
+                <span data-i18n="diag_btn_selftest">Auto-Test Matériel</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- GRILLE DE DIAGNOSTIC -->
+          <div class="diag-grid">
+            
+            <!-- 1. CARTE WATCHDOG & CPU -->
+            <div class="diag-card">
+              <div class="diag-card-header">
+                <div class="diag-card-icon" style="color:var(--cyan-light);">⚡</div>
+                <h3 data-i18n="diag_cpu_title">Watchdog & Microcontrôleur</h3>
+              </div>
+              <div class="diag-card-body">
+                <div class="diag-metric-row">
+                  <span data-i18n="diag_lbl_wdt">Task Watchdog ESP32</span>
+                  <span class="diag-status-badge badge-green" id="diag-wdt-badge">Actif (10s auto-reboot)</span>
+                </div>
+                <div class="diag-metric-row">
+                  <span data-i18n="diag_lbl_uptime">Temps de fonctionnement</span>
+                  <strong id="diag-uptime">--</strong>
+                </div>
+                <div class="diag-metric-row">
+                  <span data-i18n="diag_lbl_reset_reason">Dernier démarrage</span>
+                  <span id="diag-reset-reason" style="font-size:12px; color:var(--text-muted);">--</span>
+                </div>
+                <div class="diag-metric-row">
+                  <span data-i18n="diag_lbl_heap">Mémoire RAM libre</span>
+                  <span id="diag-heap">--</span>
+                </div>
+                <div class="diag-metric-row">
+                  <span data-i18n="diag_lbl_cpu">Fréquence CPU / Puce</span>
+                  <span id="diag-cpu">--</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. CARTE CAPTEURS PHYSIQUES -->
+            <div class="diag-card">
+              <div class="diag-card-header">
+                <div class="diag-card-icon" style="color:#10b981;">🌡️</div>
+                <h3 data-i18n="diag_sensors_title">Capteurs Physiques (1-Wire / ADC)</h3>
+              </div>
+              <div class="diag-card-body" id="diag-sensors-list">
+                <!-- Rempli dynamiquement -->
+              </div>
+            </div>
+
+            <!-- 3. CARTE ACTIONNEURS & SÉCURITÉS FRIGORIFIQUES -->
+            <div class="diag-card">
+              <div class="diag-card-header">
+                <div class="diag-card-icon" style="color:#f59e0b;">🛡️</div>
+                <h3 data-i18n="diag_safety_title">Actionneurs & Sécurités Frigorifiques</h3>
+              </div>
+              <div class="diag-card-body" id="diag-actuators-list">
+                <!-- Rempli dynamiquement -->
+              </div>
+            </div>
+
+            <!-- 4. CARTE STOCKAGE FLASH & RÉSEAU -->
+            <div class="diag-card">
+              <div class="diag-card-header">
+                <div class="diag-card-icon" style="color:#8b5cf6;">💾</div>
+                <h3 data-i18n="diag_storage_title">Stockage Flash & Réseau</h3>
+              </div>
+              <div class="diag-card-body">
+                <div class="diag-metric-row">
+                  <span data-i18n="diag_lbl_littlefs">Système LittleFS</span>
+                  <span id="diag-littlefs-usage">--</span>
+                </div>
+                <div class="diag-metric-row">
+                  <span data-i18n="diag_lbl_files">Fichiers système intègres</span>
+                  <span id="diag-files-badge">--</span>
+                </div>
+                <div class="diag-metric-row">
+                  <span data-i18n="diag_lbl_ap">Point d'accès Local</span>
+                  <span id="diag-ap-status">--</span>
+                </div>
+                <div class="diag-metric-row">
+                  <span data-i18n="diag_lbl_sta">Connexion Station</span>
+                  <span id="diag-sta-status">--</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- MESSAGES ET CONSEILS DE SANTÉ -->
+          <div class="diag-card full" style="margin-top:20px;">
+            <div class="diag-card-header">
+              <div class="diag-card-icon">📋</div>
+              <h3 data-i18n="diag_logs_title">Journal d'Auto-Diagnostic & Détection d'Erreurs</h3>
+            </div>
+            <div class="diag-card-body">
+              <div id="diag-messages-list" class="diag-logs-container">
+                <!-- Rempli dynamiquement -->
+              </div>
+            </div>
+          </div>
+
+          <!-- ACTIONS SYSTÈME CRITIQUES -->
+          <div class="diag-actions-footer">
+            <button class="btn-danger-outline" onclick="confirmSystemRestart()">
+              <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor;margin-right:6px;"><path d="M12,4C14.1,4 16.1,4.8 17.6,6.3C20.7,9.4 20.7,14.5 17.6,17.6C15.8,19.5 13.3,20.2 10.9,19.9L11.4,17.9C13.1,18.1 14.9,17.5 16.2,16.2C18.5,13.9 18.5,10.1 16.2,7.7C15.1,6.6 13.5,6 12,6V9L8,5L12,1V4M4.4,6.4L5.8,7.8C4.6,9.1 4,10.5 4,12C4,14.3 4.9,16.4 6.4,17.6L4.9,19C3.1,17.4 2,14.8 2,12C2,9.9 2.9,7.9 4.4,6.4M7.8,9.8L9.2,11.2C9.1,11.5 9,11.7 9,12C9,12.8 9.3,13.6 9.8,14.2L8.4,15.6C7.5,14.7 7,13.4 7,12C7,11.2 7.3,10.4 7.8,9.8Z"/></svg>
+              <span data-i18n="diag_btn_restart_text">Redémarrer l'ESP32</span>
+            </button>
+          </div>
+
         </div>
 
       </main>
