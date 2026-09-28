@@ -64,7 +64,7 @@ static bool parseJsonBody(AsyncWebServerRequest *request, JsonDocument& doc) {
 
 static AsyncWebSocket ws("/ws");
 
-void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager, SystemManager& sysManager, AutomationManager& autoManager, ClimateManager& climManager, WiFiManager& wifiManager) {
+void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager, SystemManager& sysManager, AutomationManager& autoManager, ClimateManager& climManager, WiFiManager& wifiManager, DiagnosticManager& diagManager) {
     // -------------------------------------------------------------
     // WEBSOCKET TEMPS RÉEL (/ws)
     // -------------------------------------------------------------
@@ -511,7 +511,21 @@ void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager, Sys
     });
 
     // -------------------------------------------------------------
-    // 14. Fichiers statiques LittleFS (no-cache)
+    // 14. DIAGNOSTIC & SANTÉ DU SYSTÈME (/api/diagnostics & /api/system/restart)
+    // -------------------------------------------------------------
+    server.on("/api/diagnostics", HTTP_GET, [&devManager, &sysManager, &climManager, &wifiManager, &diagManager](AsyncWebServerRequest *request) {
+        sendJsonResponse(request, 200, diagManager.getDiagnosticsJson(devManager, sysManager, climManager, wifiManager));
+    });
+
+    server.on("/api/system/restart", HTTP_POST, [&diagManager](AsyncWebServerRequest *request) {
+        sendSuccess(request, "Redémarrage de l'ESP32 en cours...");
+        // Exécution différée du reboot pour laisser le temps à la réponse HTTP de partir
+        vTaskDelay(pdMS_TO_TICKS(300));
+        diagManager.restartSystem();
+    });
+
+    // -------------------------------------------------------------
+    // 15. Fichiers statiques LittleFS (no-cache)
     // -------------------------------------------------------------
     server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html").setCacheControl("no-cache, no-store, must-revalidate");
 

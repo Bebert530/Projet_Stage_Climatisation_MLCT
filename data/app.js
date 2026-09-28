@@ -63,8 +63,39 @@ const TRANSLATIONS = {
     nav_devices: "Matériel",
     nav_automation: "Automatisation",
     nav_stats: "Statistiques",
+    nav_diag: "Diagnostic",
     nav_settings: "Paramètres",
     nav_account: "Compte",
+    diag_title: "🩺 Diagnostic & Santé Système",
+    diag_subtitle: "Surveillance matérielle temps réel, Watchdog matériel et auto-recovery",
+    diag_btn_refresh: "Actualiser",
+    diag_btn_selftest: "Auto-Test Matériel",
+    diag_cpu_title: "Watchdog & Microcontrôleur",
+    diag_lbl_wdt: "Task Watchdog ESP32",
+    diag_lbl_uptime: "Temps de fonctionnement",
+    diag_lbl_reset_reason: "Dernier démarrage",
+    diag_lbl_heap: "Mémoire RAM libre",
+    diag_lbl_cpu: "Fréquence CPU / Puce",
+    diag_sensors_title: "Capteurs Physiques (1-Wire / ADC)",
+    diag_safety_title: "Actionneurs & Sécurités Frigorifiques",
+    diag_storage_title: "Stockage Flash & Réseau",
+    diag_lbl_littlefs: "Système LittleFS",
+    diag_lbl_files: "Fichiers système intègres",
+    diag_lbl_ap: "Point d'accès Local",
+    diag_lbl_sta: "Connexion Station",
+    diag_logs_title: "Journal d'Auto-Diagnostic & Détection d'Erreurs",
+    diag_btn_restart_text: "Redémarrer l'ESP32",
+    diag_overall_optimal: "Système 100% Opérationnel",
+    diag_overall_optimal_desc: "Tous les capteurs, actionneurs et mémoires fonctionnent dans les tolérances nominales.",
+    diag_overall_warning: "Avertissement Matériel Détecté",
+    diag_overall_warning_desc: "Une sonde ou un équipement nécessite votre attention. Vérifiez le journal ci-dessous.",
+    diag_overall_critical: "Alerte Critique",
+    diag_overall_critical_desc: "Défaillance critique détectée (mémoire vive faible ou anomalie matérielle).",
+    diag_wdt_active: "Actif",
+    diag_wdt_disabled: "Inactif",
+    toast_diag_refreshed: "Diagnostic matériel actualisé avec succès.",
+    toast_restart_confirm: "Confirmez-vous le redémarrage immédiat de l'ESP32 ?",
+    toast_restarting: "Redémarrage de l'ESP32 en cours... Reconnexion dans 5 secondes.",
     mode_manual: "MANUEL",
     label_ventilation: "Ventilation",
     ring_est_ready_default: "Temps estimé avant disponibilité : 1h30",
@@ -379,8 +410,39 @@ const TRANSLATIONS = {
     nav_devices: "Hardware",
     nav_automation: "Automation",
     nav_stats: "Statistics",
+    nav_diag: "Diagnostics",
     nav_settings: "Settings",
     nav_account: "Account",
+    diag_title: "🩺 System Health & Diagnostics",
+    diag_subtitle: "Real-time hardware monitoring, Hardware Watchdog and auto-recovery",
+    diag_btn_refresh: "Refresh",
+    diag_btn_selftest: "Hardware Self-Test",
+    diag_cpu_title: "Watchdog & Microcontroller",
+    diag_lbl_wdt: "ESP32 Task Watchdog",
+    diag_lbl_uptime: "Uptime",
+    diag_lbl_reset_reason: "Last Boot Reason",
+    diag_lbl_heap: "Free RAM",
+    diag_lbl_cpu: "CPU Freq / Chip",
+    diag_sensors_title: "Physical Sensors (1-Wire / ADC)",
+    diag_safety_title: "Actuators & Refrigeration Safety",
+    diag_storage_title: "Flash Storage & Network",
+    diag_lbl_littlefs: "LittleFS Filesystem",
+    diag_lbl_files: "System files integrity",
+    diag_lbl_ap: "Local Access Point",
+    diag_lbl_sta: "Station Connection",
+    diag_logs_title: "Self-Diagnostic Log & Error Detection",
+    diag_btn_restart_text: "Restart ESP32",
+    diag_overall_optimal: "System 100% Operational",
+    diag_overall_optimal_desc: "All sensors, actuators and memory buffers are working within nominal tolerances.",
+    diag_overall_warning: "Hardware Warning Detected",
+    diag_overall_warning_desc: "A probe or device requires your attention. Check the log below.",
+    diag_overall_critical: "Critical Alert",
+    diag_overall_critical_desc: "Critical failure detected (low RAM or sensor anomaly).",
+    diag_wdt_active: "Active",
+    diag_wdt_disabled: "Inactive",
+    toast_diag_refreshed: "Hardware diagnostic refreshed successfully.",
+    toast_restart_confirm: "Do you confirm immediate restart of the ESP32?",
+    toast_restarting: "Restarting ESP32... Reconnecting in 5 seconds.",
     mode_manual: "MANUAL",
     label_ventilation: "Ventilation",
     ring_est_ready_default: "Estimated time until ready: 1h30",
@@ -695,8 +757,39 @@ const TRANSLATIONS = {
     nav_devices: "Hardware",
     nav_automation: "Automatización",
     nav_stats: "Estadísticas",
+    nav_diag: "Diagnóstico",
     nav_settings: "Configuración",
     nav_account: "Cuenta",
+    diag_title: "🩺 Diagnóstico y Salud del Sistema",
+    diag_subtitle: "Monitoreo de hardware en tiempo real, Watchdog e integridad del sistema",
+    diag_btn_refresh: "Actualizar",
+    diag_btn_selftest: "Auto-Prueba de Hardware",
+    diag_cpu_title: "Watchdog y Microcontrolador",
+    diag_lbl_wdt: "Task Watchdog ESP32",
+    diag_lbl_uptime: "Tiempo de funcionamiento",
+    diag_lbl_reset_reason: "Último arranque",
+    diag_lbl_heap: "Memoria RAM libre",
+    diag_lbl_cpu: "Frecuencia CPU / Chip",
+    diag_sensors_title: "Sensores Físicos (1-Wire / ADC)",
+    diag_safety_title: "Actuadores y Seguridad Frigorífica",
+    diag_storage_title: "Almacenamiento Flash y Red",
+    diag_lbl_littlefs: "Sistema LittleFS",
+    diag_lbl_files: "Integridad de archivos",
+    diag_lbl_ap: "Punto de acceso local",
+    diag_lbl_sta: "Conexión Estación",
+    diag_logs_title: "Registro de Auto-Diagnóstico y Errores",
+    diag_btn_restart_text: "Reiniciar ESP32",
+    diag_overall_optimal: "Sistema 100% Operativo",
+    diag_overall_optimal_desc: "Todos los sensores, actuadores y memoria funcionan dentro de tolerancias nominales.",
+    diag_overall_warning: "Advertencia de Hardware Detectada",
+    diag_overall_warning_desc: "Una sonda o dispositivo requiere atención. Revise el registro a continuación.",
+    diag_overall_critical: "Alerta Crítica",
+    diag_overall_critical_desc: "Falla crítica detectada (poca RAM o anomalía de sensor).",
+    diag_wdt_active: "Activo",
+    diag_wdt_disabled: "Inactivo",
+    toast_diag_refreshed: "Diagnóstico de hardware actualizado con éxito.",
+    toast_restart_confirm: "¿Confirma el reinicio inmediato del ESP32?",
+    toast_restarting: "Reiniciando ESP32... Reconexión en 5 segundos.",
     mode_manual: "MANUAL",
     label_ventilation: "Ventilación",
     ring_est_ready_default: "Tiempo estimado antes de disponibilidad: 1h30",
@@ -1145,6 +1238,8 @@ function switchTab(tabId, btn) {
     loadAutomations();
   } else if (tabId === 'settings') {
     loadWifiStatus();
+  } else if (tabId === 'diag') {
+    fetchDiagnostics();
   }
 }
 
@@ -4955,6 +5050,200 @@ async function forgetWifiNetwork() {
   }
 }
 
+// =========================================================================
+// GESTION DU DIAGNOSTIC MATÉRIEL & SANTÉ SYSTÈME (ZÉRO SAV)
+// =========================================================================
+
+/**
+ * Récupère le rapport de diagnostic complet depuis /api/diagnostics
+ */
+async function fetchDiagnostics(showToastFeedback = false) {
+  try {
+    const data = await fetchApi('/api/diagnostics');
+    if (!data) throw new Error("Rapport de diagnostic vide");
+
+    // 1. Bannière de santé globale
+    const overallCard = document.getElementById('diag-overall-card');
+    const overallIcon = document.getElementById('diag-overall-icon');
+    const overallTitle = document.getElementById('diag-overall-title');
+    const overallDesc = document.getElementById('diag-overall-desc');
+
+    if (overallCard && overallTitle && overallDesc && overallIcon) {
+      overallCard.classList.remove('optimal', 'warning', 'critical');
+      if (data.overall_health === 'OPTIMAL') {
+        overallCard.classList.add('optimal');
+        overallIcon.innerText = '✅';
+        overallTitle.innerText = t('diag_overall_optimal', 'Système 100% Opérationnel');
+        overallDesc.innerText = t('diag_overall_optimal_desc', 'Tous les capteurs, actionneurs et mémoires fonctionnent dans les tolérances nominales.');
+      } else if (data.overall_health === 'WARNING') {
+        overallCard.classList.add('warning');
+        overallIcon.innerText = '⚠️';
+        overallTitle.innerText = t('diag_overall_warning', 'Avertissement Matériel Détecté');
+        overallDesc.innerText = t('diag_overall_warning_desc', 'Une sonde ou un équipement nécessite votre attention. Vérifiez le journal ci-dessous.');
+      } else {
+        overallCard.classList.add('critical');
+        overallIcon.innerText = '🛑';
+        overallTitle.innerText = t('diag_overall_critical', 'Alerte Critique');
+        overallDesc.innerText = t('diag_overall_critical_desc', 'Défaillance critique détectée (mémoire vive faible ou anomalie matérielle).');
+      }
+    }
+
+    // 2. Watchdog & CPU
+    const uptimeEl = document.getElementById('diag-uptime');
+    if (uptimeEl) uptimeEl.innerText = (data.system && data.system.uptime_human) ? data.system.uptime_human : '--';
+
+    const resetEl = document.getElementById('diag-reset-reason');
+    if (resetEl) resetEl.innerText = (data.system && data.system.reset_reason) ? data.system.reset_reason : '--';
+
+    const heapEl = document.getElementById('diag-heap');
+    if (heapEl && data.system) {
+      const freeKb = Math.round((data.system.free_heap || 0) / 1024);
+      const minKb = Math.round((data.system.min_free_heap || 0) / 1024);
+      heapEl.innerHTML = `<strong>${freeKb} KB</strong> <span style="font-size:11px; color:var(--text-muted);">(min: ${minKb} KB)</span>`;
+    }
+
+    const cpuEl = document.getElementById('diag-cpu');
+    if (cpuEl && data.system) {
+      cpuEl.innerText = `${data.system.chip_model || 'ESP32'} @ ${data.system.cpu_freq_mhz || 240} MHz (rev ${data.system.chip_revision || 0})`;
+    }
+
+    const wdtBadge = document.getElementById('diag-wdt-badge');
+    if (wdtBadge && data.system) {
+      if (data.system.wdt_enabled) {
+        wdtBadge.className = 'diag-status-badge badge-green';
+        wdtBadge.innerText = `${t('diag_wdt_active', 'Actif')} (${data.system.wdt_timeout_sec || 10}s auto-reboot)`;
+      } else {
+        wdtBadge.className = 'diag-status-badge badge-red';
+        wdtBadge.innerText = t('diag_wdt_disabled', 'Inactif');
+      }
+    }
+
+    // 3. Capteurs physiques
+    const sensorsList = document.getElementById('diag-sensors-list');
+    if (sensorsList) {
+      if (Array.isArray(data.sensors) && data.sensors.length > 0) {
+        sensorsList.innerHTML = data.sensors.map(s => {
+          const isOk = (s.status === 'OK');
+          const badgeClass = isOk ? 'badge-green' : 'badge-red';
+          const badgeText = isOk ? `${s.value} °C (OK)` : `DÉBRANCHÉ (GPIO ${s.gpio})`;
+          return `
+            <div class="diag-metric-row">
+              <span>${escapeHtml(s.name)} (GPIO ${s.gpio})</span>
+              <span class="diag-status-badge ${badgeClass}">${badgeText}</span>
+            </div>
+          `;
+        }).join('');
+      } else {
+        sensorsList.innerHTML = `<div style="color:var(--text-muted); font-size:13px;">Aucun capteur physique configuré.</div>`;
+      }
+    }
+
+    // 4. Actionneurs & Sécurités
+    const actuatorsList = document.getElementById('diag-actuators-list');
+    if (actuatorsList) {
+      let actHtml = '';
+      if (Array.isArray(data.actuators) && data.actuators.length > 0) {
+        actHtml = data.actuators.map(a => {
+          const stateStr = a.state ? 'ON' : 'OFF';
+          const badgeClass = a.state ? 'badge-green' : '';
+          const pwmStr = a.mode === 'OUTPUT_PWM' ? ` (${Math.round((a.value/255)*100)}%)` : '';
+          return `
+            <div class="diag-metric-row">
+              <span>${escapeHtml(a.name)} (GPIO ${a.gpio})</span>
+              <span class="diag-status-badge ${badgeClass}" style="${!a.state ? 'background:rgba(255,255,255,0.05); color:var(--text-muted); border:1px solid var(--border-color);' : ''}">
+                ${stateStr}${pwmStr}
+              </span>
+            </div>
+          `;
+        }).join('');
+      }
+      
+      if (data.climate && data.climate.anti_short_cycle_active) {
+        actHtml += `
+          <div class="diag-metric-row" style="background:rgba(245,158,11,0.08); padding:6px 8px; border-radius:6px;">
+            <span style="color:#fbbf24;">🛡️ Sécurité Compresseur</span>
+            <span class="diag-status-badge badge-orange">Repos actif (${data.climate.anti_short_cycle_remaining_sec}s)</span>
+          </div>
+        `;
+      }
+
+      actuatorsList.innerHTML = actHtml || `<div style="color:var(--text-muted); font-size:13px;">Aucun actionneur configuré.</div>`;
+    }
+
+    // 5. Stockage & Réseau
+    const fsUsage = document.getElementById('diag-littlefs-usage');
+    if (fsUsage && data.storage) {
+      const usedKb = Math.round((data.storage.used_bytes || 0) / 1024);
+      const totalKb = Math.round((data.storage.total_bytes || 0) / 1024);
+      const pct = data.storage.used_percent || 0;
+      fsUsage.innerHTML = `<strong>${usedKb} KB</strong> / ${totalKb} KB <span class="diag-status-badge badge-green" style="margin-left:6px;">${pct}%</span>`;
+    }
+
+    const filesBadge = document.getElementById('diag-files-badge');
+    if (filesBadge && data.storage) {
+      const allOk = data.storage.files && Object.values(data.storage.files).every(v => v === true);
+      filesBadge.className = allOk ? 'diag-status-badge badge-green' : 'diag-status-badge badge-orange';
+      filesBadge.innerText = allOk ? '100% Intègres (5/5)' : 'Fichiers créés par défaut';
+    }
+
+    const apStatus = document.getElementById('diag-ap-status');
+    if (apStatus && data.network) {
+      apStatus.innerText = `${data.network.ap_ssid || 'Van-Clim-Local'} (${data.network.ap_clients || 0} client(s))`;
+    }
+
+    const staStatus = document.getElementById('diag-sta-status');
+    if (staStatus && data.network) {
+      if (data.network.sta_connected) {
+        staStatus.innerHTML = `<span class="diag-status-badge badge-green">Connecté (${data.network.sta_ssid} - ${data.network.sta_ip})</span>`;
+      } else {
+        staStatus.innerHTML = `<span class="diag-status-badge" style="background:rgba(255,255,255,0.05); color:var(--text-muted); border:1px solid var(--border-color);">Non connecté (AP seul)</span>`;
+      }
+    }
+
+    // 6. Journal de bord & alertes
+    const msgsList = document.getElementById('diag-messages-list');
+    if (msgsList) {
+      if (Array.isArray(data.health_messages) && data.health_messages.length > 0) {
+        msgsList.innerHTML = data.health_messages.map(m => `
+          <div class="diag-log-item">${escapeHtml(m)}</div>
+        `).join('');
+      } else {
+        msgsList.innerHTML = `<div class="diag-log-item">✅ Aucun défaut ni anomalie détectée dans le système.</div>`;
+      }
+    }
+
+    if (showToastFeedback) {
+      showToast(t('toast_diag_refreshed', 'Diagnostic matériel actualisé avec succès.'), 'success');
+    }
+  } catch (err) {
+    console.error("fetchDiagnostics error:", err);
+    if (showToastFeedback) {
+      showToast(`Erreur diagnostic : ${err.message}`, 'error');
+    }
+  }
+}
+
+/**
+ * Déclenche un redémarrage logiciel propre de l'ESP32
+ */
+async function confirmSystemRestart() {
+  if (!confirm(t('toast_restart_confirm', "Confirmez-vous le redémarrage immédiat de l'ESP32 ?"))) {
+    return;
+  }
+
+  showToast(t('toast_restarting', "Redémarrage de l'ESP32 en cours... Reconnexion dans 5 secondes."), 'info');
+
+  try {
+    await fetchApi('/api/system/restart', 'POST');
+  } catch (e) {
+    // La coupure de communication est attendue lors du reboot
+  }
+
+  setTimeout(() => {
+    location.reload();
+  }, 5000);
+}
+
 // --- INITIALISATION AU CHARGEMENT DU DOCUMENT ---
 function initApp() {
   setLanguage(currentLang);
@@ -4963,6 +5252,7 @@ function initApp() {
   try { startDeviceAutoRefresh(); } catch (e) {}
   try { loadDeviceManager(); } catch (e) {}
   try { updateTimerDisplay(); } catch (e) {}
+  try { fetchDiagnostics(); } catch (e) {}
 }
 
 if (document.readyState === 'loading') {
@@ -4970,4 +5260,5 @@ if (document.readyState === 'loading') {
 } else {
   initApp();
 }
+
 
