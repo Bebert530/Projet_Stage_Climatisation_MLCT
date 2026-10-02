@@ -32,6 +32,7 @@ public:
 
     // Getters
     bool isStaConnected() const;
+    bool isApActive() const;
     String getStaSSID() const;
     String getStaIP() const;
     int8_t getStaRSSI() const;
@@ -53,6 +54,10 @@ private:
     WiFiStaState _staState;
     bool _isConfigured;
     bool _isScanning;
+    bool _apActive;
+    bool _needsDisableAP;
+    bool _needsEnableAP;
+    bool _needsMdnsRestart;
     bool _pendingConnect;
     NonBlockingTimer _pendingConnectTimer;
     NonBlockingTimer _connectTimeoutTimer;
@@ -61,7 +66,8 @@ private:
 
     SemaphoreHandle_t _mutex;
 
-    void setupAP();
+    void enableAP();
+    void disableAP();
     void setupMDNS();
     void setupEvents();
     bool loadConfig();

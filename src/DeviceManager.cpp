@@ -600,8 +600,9 @@ bool DeviceManager::setDeviceState(uint8_t id, uint8_t state, int16_t value) {
     dev->state = state ? 1 : 0;
     dev->value = value;
 
-    // Si un test matériel actif cible cet équipement, ne pas écraser l'état du GPIO
-    if (!_testActive || _testDeviceId != id) {
+    // Si un test matériel actif cible cet équipement ou ce GPIO, ne pas écraser l'état du GPIO
+    bool isBeingTested = _testActive && (_testDeviceId == id || _testGpio == dev->gpio);
+    if (!isBeingTested) {
         applyHardwareState(*dev);
     }
 

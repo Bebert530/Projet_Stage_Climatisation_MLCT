@@ -333,6 +333,20 @@ body {
   flex: 1; text-align: center; 
 }
 .preset-btn.active { color: var(--cyan-light); border-color: var(--cyan-light); }
+
+/* Chart Time Presets */
+.chart-time-btn { 
+  background: transparent; border: none; 
+  color: var(--text-muted); border-radius: 4px; padding: 3px 8px; 
+  font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; 
+}
+.chart-time-btn:hover { 
+  color: var(--text-main); background: rgba(255, 255, 255, 0.06); 
+}
+.chart-time-btn.active { 
+  background: var(--cyan-light); color: #0d131f; font-weight: bold; 
+}
+
 .timer-custom-inputs { 
   display: flex; align-items: center; gap: 5px; margin-top: 8px; 
   visibility: hidden; height: 0; overflow: hidden; transition: height 0.2s ease; 
@@ -449,12 +463,16 @@ input:checked + .slider:before { transform: translateX(19px); }
   font-weight: 700;
   letter-spacing: 0.5px;
 }
-.badge-relay { background: rgba(14, 165, 233, 0.15); color: var(--cyan-dark); border: 1px solid rgba(14, 165, 233, 0.3); }
-.badge-pwm { background: rgba(168, 85, 247, 0.15); color: var(--purple-pwm); border: 1px solid rgba(168, 85, 247, 0.3); }
-.badge-digital { background: rgba(45, 212, 191, 0.15); color: var(--cyan-light); border: 1px solid rgba(45, 212, 191, 0.3); }
-.badge-adc { background: rgba(251, 146, 60, 0.15); color: var(--orange-alert); border: 1px solid rgba(251, 146, 60, 0.3); }
-.badge-ntc { background: rgba(20, 184, 166, 0.15); color: #2dd4bf; border: 1px solid rgba(45, 212, 191, 0.3); }
-.badge-onewire { background: rgba(236, 72, 153, 0.15); color: #ec4899; border: 1px solid rgba(236, 72, 153, 0.3); }
+.badge-relay,
+.badge-pwm,
+.badge-digital,
+.badge-adc,
+.badge-ntc,
+.badge-onewire { 
+  background: rgba(255, 255, 255, 0.05); 
+  color: var(--text-main); 
+  border: 1px solid var(--border-color); 
+}
 .badge-actuator { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
 .badge-sensor { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
 .badge-volt { background: rgba(255, 255, 255, 0.08); color: var(--text-main); font-family: monospace; font-size: 11px; padding: 2px 7px; border-radius: 5px; border: 1px solid var(--border-color); }
@@ -1856,8 +1874,29 @@ input:checked + .slider:before { transform: translateX(19px); }
   border-color: rgba(239, 68, 68, 0.3);
 }
 .diag-banner-icon {
-  font-size: 32px;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+.diag-banner-card.optimal .diag-banner-icon {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+.diag-banner-card.warning .diag-banner-icon {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+.diag-banner-card.critical .diag-banner-icon {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+.diag-banner-icon svg {
+  width: 26px;
+  height: 26px;
+  fill: currentColor;
 }
 .diag-banner-info {
   flex: 1;
@@ -1897,7 +1936,18 @@ input:checked + .slider:before { transform: translateX(19px); }
   border-bottom: 1px solid var(--border-color);
 }
 .diag-card-icon {
-  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.diag-card-icon svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
 }
 .diag-card-header h3 {
   font-size: 15px;
@@ -1955,12 +2005,37 @@ input:checked + .slider:before { transform: translateX(19px); }
   overflow-y: auto;
 }
 .diag-log-item {
-  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
   padding: 8px 12px;
   background: var(--bg-main);
   border-radius: 8px;
   border-left: 3px solid var(--border-color);
   color: var(--text-main);
+}
+.diag-log-item.level-ALERTE {
+  border-left-color: #f59e0b;
+}
+.diag-log-item.level-CRITIQUE {
+  border-left-color: #ef4444;
+}
+.diag-log-item.level-RECOUVREMENT {
+  border-left-color: #10b981;
+}
+.diag-log-item.level-INFO {
+  border-left-color: #38bdf8;
+}
+.diag-log-time {
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.diag-log-msg {
+  flex: 1;
+  word-break: break-word;
 }
 .diag-actions-footer {
   margin-top: 24px;

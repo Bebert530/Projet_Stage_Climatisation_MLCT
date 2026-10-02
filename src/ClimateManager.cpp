@@ -28,6 +28,8 @@ ClimateManager::ClimateManager()
       _compressorActive(false),
       _compressorState(COMP_STATE_OFF),
       _compressorMode(COMP_MODE_AUTO),
+      _compressorMaxRunMin(120),
+      _compressorRestMin(30),
       _antiCycleActive(false),
       _antiCycleRemainingSec(0),
       _lastCompressorStartTime(0),
@@ -39,9 +41,9 @@ ClimateManager::ClimateManager()
       _lastRegulTime(0),
       _lastBroadcastTime(0),
       _lastStatsTick(0),
-      _compressorRunTimer(COMPRESSOR_MAX_RUN_MS),
-      _compressorRestTimer(COMPRESSOR_REST_MS),
-      _antiCycleTimer(ANTI_CYCLE_DELAY_MS),
+      _compressorRunTimer(120UL * 60UL * 1000UL),
+      _compressorRestTimer(30UL * 60UL * 1000UL),
+      _antiCycleTimer(30UL * 60UL * 1000UL),
       _minRunTimer(MIN_RUN_TIME_MS),
       _regulTimer(500),
       _statsTimer(1000),
@@ -140,6 +142,13 @@ bool ClimateManager::loadConfig() {
     _timerRemainingSec = _timerDurationSec;
     _totalEnergyKwh = doc["totalEnergyKwh"] | 0.0f;
     _totalRuntimeSec = doc["totalRuntimeSec"] | 0UL;
+    _compressorMaxRunMin = doc["compressorMaxRunMin"] | 120UL;
+    _compressorRestMin = doc["compressorRestMin"] | 30UL;
+
+    if (_compressorMaxRunMin < 5) _compressorMaxRunMin = 5;
+    if (_compressorMaxRunMin > 720) _compressorMaxRunMin = 720;
+    if (_compressorRestMin < 1) _compressorRestMin = 1;
+    if (_compressorRestMin > 240) _compressorRestMin = 240;
 
     String cMode = doc["compressorMode"] | "auto";
     if (cMode == "on") _compressorMode = COMP_MODE_FORCE_ON;
@@ -147,8 +156,8 @@ bool ClimateManager::loadConfig() {
     else _compressorMode = COMP_MODE_AUTO;
 
     xSemaphoreGive(_mutex);
-    Serial.printf("[ClimateManager] Configuration chargée : Consigne=%.1f°C, Consigne Eau=%.1f°C, Mode=%s, Chiller=%d, CompMode=%s, Timer=%d (%lu s)\n",
-                  _targetTemp, _targetWaterTemp, _mode.c_str(), _chillerEnabled, cMode.c_str(), _timerEnabled, (unsigned long)_timerDurationSec);
+    Serial.printf("[ClimateManager] Configuration chargée : Consigne=%.1f°C, Consigne Eau=%.1f°C, Mode=%s, Chiller=%d, CompMaxRun=%lu min, CompRest=%lu min, Timer=%d (%lu s)\n",
+                  _targetTemp, _targetWaterTemp, _mode.c_str(), _chillerEnabled, (unsigned long)_compressorMaxRunMin, (unsigned long)_compressorRestMin, _timerEnabled, (unsigned long)_timerDurationSec);
     return true;
 }
 
@@ -174,6 +183,8 @@ bool ClimateManager::saveConfig() {
     doc["totalEnergyKwh"] = _totalEnergyKwh;
     doc["totalRuntimeSec"] = _totalRuntimeSec;
     doc["compressorMode"] = getCompressorModeString();
+    doc["compressorMaxRunMin"] = _compressorMaxRunMin;
+    doc["compressorRestMin"] = _compressorRestMin;
 
     File f = LittleFS.open(_configPath, "w");
     if (!f) {
@@ -284,9 +295,10 @@ void ClimateManager::setChiller(bool enabled) {
         if (!_chillerEnabled && _compressorActive) {
             _compressorActive = false;
             _compressorRunTimer.stop();
-            _compressorRestTimer.start(COMPRESSOR_REST_MS);
+            uint32_t restMs = _compressorRestMin * 60UL * 1000UL;
+            _compressorRestTimer.start(restMs);
             _antiCycleActive = true;
-            _antiCycleRemainingSec = COMPRESSOR_REST_MS / 1000;
+            _antiCycleRemainingSec = restMs / 1000;
         }
     }
     xSemaphoreGive(_mutex);
@@ -304,6 +316,19 @@ void ClimateManager::setWaterTargetTemp(float temp) {
     broadcastState();
 }
 
+void ClimateManager::setCompressorTimings(uint32_t maxRunMin, uint32_t restMin) {
+    xSemaphoreTake(_mutex, portMAX_DELAY);
+    if (maxRunMin >= 5 && maxRunMin <= 720) {
+        _compressorMaxRunMin = maxRunMin;
+    }
+    if (restMin >= 1 && restMin <= 240) {
+        _compressorRestMin = restMin;
+    }
+    xSemaphoreGive(_mutex);
+    saveConfig();
+    broadcastState();
+}
+
 void ClimateManager::setCompressorMode(const String& mode) {
     xSemaphoreTake(_mutex, portMAX_DELAY);
     if (mode.equalsIgnoreCase("on") || mode.equalsIgnoreCase("force_on") || mode.equalsIgnoreCase("1")) {
@@ -313,9 +338,10 @@ void ClimateManager::setCompressorMode(const String& mode) {
         if (_compressorActive) {
             _compressorActive = false;
             _compressorRunTimer.stop();
-            _compressorRestTimer.start(COMPRESSOR_REST_MS);
+            uint32_t restMs = _compressorRestMin * 60UL * 1000UL;
+            _compressorRestTimer.start(restMs);
             _antiCycleActive = true;
-            _antiCycleRemainingSec = COMPRESSOR_REST_MS / 1000;
+            _antiCycleRemainingSec = restMs / 1000;
         }
     } else {
         _compressorMode = COMP_MODE_AUTO;
@@ -370,6 +396,10 @@ bool ClimateManager::handleJsonCommand(const String& jsonStr) {
     } else if (cmd == "setCompressor" || cmd == "setCompressorMode") {
         String cm = doc["mode"] | (doc["state"] | "auto");
         setCompressorMode(cm);
+    } else if (cmd == "setCompressorTimings" || cmd == "setCompressorConfig") {
+        uint32_t maxRun = doc["maxRunMin"].is<uint32_t>() ? (uint32_t)doc["maxRunMin"] : (doc["maxRun"].is<uint32_t>() ? (uint32_t)doc["maxRun"] : _compressorMaxRunMin);
+        uint32_t rest = doc["restMin"].is<uint32_t>() ? (uint32_t)doc["restMin"] : (doc["rest"].is<uint32_t>() ? (uint32_t)doc["rest"] : _compressorRestMin);
+        setCompressorTimings(maxRun, rest);
     } else if (cmd == "setMode") {
         String m = doc["mode"] | "NORMAL";
         setMode(m);
@@ -533,9 +563,10 @@ void ClimateManager::evaluateRegulation(DeviceManager& devManager, SystemManager
         if (_compressorActive) {
             _compressorActive = false;
             _compressorRunTimer.stop();
-            _compressorRestTimer.start(COMPRESSOR_REST_MS);
+            uint32_t restMs = _compressorRestMin * 60UL * 1000UL;
+            _compressorRestTimer.start(restMs);
             _antiCycleActive = true;
-            _antiCycleRemainingSec = COMPRESSOR_REST_MS / 1000;
+            _antiCycleRemainingSec = restMs / 1000;
         }
         _compressorState = COMP_STATE_OFF;
         xSemaphoreGive(_mutex);
@@ -575,14 +606,17 @@ void ClimateManager::evaluateRegulation(DeviceManager& devManager, SystemManager
 
     // 3. GESTION AUTOMATIQUE & AUTONOME DU REFROIDISSEMENT D'EAU (COMPRESSEUR)
     // Règle :
-    // - Si T_eau > 15°C : Démarrage du compresseur pour 2h max
-    // - Si T_eau < 10°C OU 2h écoulées : Arrêt du compresseur pendant 30min de repos obligatoire
-    // - Après 30min : Revérification automatique de T_eau
+    // - Si T_eau > 15°C : Démarrage du compresseur pour _compressorMaxRunMin max (défaut : 2h)
+    // - Si T_eau < 10°C OU temps max écoulé : Arrêt du compresseur pendant _compressorRestMin de repos obligatoire (défaut : 30min)
+    // - Après le repos : Revérification automatique de T_eau
+    uint32_t maxRunMs = _compressorMaxRunMin * 60UL * 1000UL;
+    uint32_t restMs = _compressorRestMin * 60UL * 1000UL;
+
     if (!_chillerEnabled || _compressorMode == COMP_MODE_FORCE_OFF) {
         if (_compressorActive) {
             _compressorActive = false;
             _compressorRunTimer.stop();
-            _compressorRestTimer.start(COMPRESSOR_REST_MS);
+            _compressorRestTimer.start(restMs);
         }
         _compressorState = COMP_STATE_OFF;
         _antiCycleActive = (_compressorRestTimer.isRunning() && !_compressorRestTimer.hasExpired());
@@ -594,21 +628,22 @@ void ClimateManager::evaluateRegulation(DeviceManager& devManager, SystemManager
             if (isnan(_currentWaterTemp)) {
                 stopComp = true; // Sécurité sonde d'eau
             } else if (_currentWaterTemp < WATER_STOP_TEMP_THRESHOLD) {
-                Serial.printf("[ClimateManager] T_eau = %.1f°C (< %.1f°C) -> Eau froide atteinte. Arrêt compresseur (repos 30min).\n",
-                              _currentWaterTemp, WATER_STOP_TEMP_THRESHOLD);
+                Serial.printf("[ClimateManager] T_eau = %.1f°C (< %.1f°C) -> Eau froide atteinte. Arrêt compresseur (repos %lu min).\n",
+                              _currentWaterTemp, WATER_STOP_TEMP_THRESHOLD, (unsigned long)_compressorRestMin);
                 stopComp = true;
             } else if (_compressorRunTimer.hasExpired()) {
-                Serial.println("[ClimateManager] 2h de marche continue atteintes -> Arrêt compresseur (repos 30min).");
+                Serial.printf("[ClimateManager] %lu min de marche continue atteintes -> Arrêt compresseur (repos %lu min).\n",
+                              (unsigned long)_compressorMaxRunMin, (unsigned long)_compressorRestMin);
                 stopComp = true;
             }
 
             if (stopComp) {
                 _compressorActive = false;
                 _compressorRunTimer.stop();
-                _compressorRestTimer.start(COMPRESSOR_REST_MS);
+                _compressorRestTimer.start(restMs);
                 _compressorState = COMP_STATE_WAITING_DELAY;
                 _antiCycleActive = true;
-                _antiCycleRemainingSec = COMPRESSOR_REST_MS / 1000;
+                _antiCycleRemainingSec = restMs / 1000;
             } else {
                 _compressorState = COMP_STATE_RUNNING;
                 _antiCycleActive = false;
@@ -617,13 +652,13 @@ void ClimateManager::evaluateRegulation(DeviceManager& devManager, SystemManager
         } else {
             // Compresseur à l'arrêt
             if (_compressorRestTimer.isRunning() && !_compressorRestTimer.hasExpired()) {
-                // Période de repos obligatoire de 30min en cours
+                // Période de repos obligatoire en cours
                 _compressorActive = false;
                 _compressorState = COMP_STATE_WAITING_DELAY;
                 _antiCycleActive = true;
                 _antiCycleRemainingSec = _compressorRestTimer.getRemainingSec();
             } else {
-                // Repos de 30min terminé (ou initialisation) -> Revérification de la température d'eau
+                // Repos terminé -> Revérification de la température d'eau
                 _compressorRestTimer.stop();
                 _antiCycleActive = false;
                 _antiCycleRemainingSec = 0;
@@ -639,10 +674,10 @@ void ClimateManager::evaluateRegulation(DeviceManager& devManager, SystemManager
                 }
 
                 if (startComp) {
-                    Serial.printf("[ClimateManager] T_eau = %.1f°C (> %.1f°C) -> Démarrage compresseur pour 2h max.\n",
-                                  _currentWaterTemp, WATER_START_TEMP_THRESHOLD);
+                    Serial.printf("[ClimateManager] T_eau = %.1f°C (> %.1f°C) -> Démarrage compresseur pour %lu min max.\n",
+                                  _currentWaterTemp, WATER_START_TEMP_THRESHOLD, (unsigned long)_compressorMaxRunMin);
                     _compressorActive = true;
-                    _compressorRunTimer.start(COMPRESSOR_MAX_RUN_MS);
+                    _compressorRunTimer.start(maxRunMs);
                     _compressorState = COMP_STATE_RUNNING;
                 } else {
                     _compressorActive = false;
@@ -716,6 +751,8 @@ String ClimateManager::getTelemetryJson(SystemManager* sysManager, DeviceManager
     doc["timer_enabled"] = _timerEnabled;
     doc["timer_duration_sec"] = _timerDurationSec;
     doc["timer_remaining_sec"] = _timerRemainingSec;
+    doc["comp_max_run_min"] = _compressorMaxRunMin;
+    doc["comp_rest_min"] = _compressorRestMin;
     doc["water_ready"] = (!isnan(_currentWaterTemp) && _currentWaterTemp <= 10.0f);
     doc["probes_count"] = _probesConnectedCount;
     doc["probe_alert"] = _probeWatchdogAlert;
@@ -729,7 +766,10 @@ String ClimateManager::getTelemetryJson(SystemManager* sysManager, DeviceManager
     JsonObject compJson = doc["compressor"].to<JsonObject>();
     compJson["state"] = getCompressorStateString();
     compJson["mode"] = getCompressorModeString();
+    compJson["max_run_min"] = _compressorMaxRunMin;
+    compJson["rest_min"] = _compressorRestMin;
     compJson["remaining_delay_sec"] = _antiCycleRemainingSec;
+    compJson["run_remaining_sec"] = (_compressorActive && _compressorRunTimer.isRunning()) ? _compressorRunTimer.getRemainingSec() : 0;
 
     if (sysManager && devManager) {
         SystemConfig* climSys = sysManager->getPrimaryClimateSystem();
@@ -774,7 +814,13 @@ String ClimateManager::getTelemetryJson(SystemManager* sysManager, DeviceManager
         doc["anti_cycle"] = true;
         doc["anti_cycle_sec"] = _antiCycleRemainingSec;
     } else if (_compressorActive) {
-        doc["compressor_status"] = "Refroidissement eau actif (2h max)";
+        uint32_t remSec = _compressorRunTimer.isRunning() ? _compressorRunTimer.getRemainingSec() : (_compressorMaxRunMin * 60);
+        int h = remSec / 3600;
+        int m = (remSec % 3600) / 60;
+        char buf[64];
+        if (h > 0) snprintf(buf, sizeof(buf), "Refroidissement eau actif (%dh%02d restant)", h, m);
+        else snprintf(buf, sizeof(buf), "Refroidissement eau actif (%d min restant)", m);
+        doc["compressor_status"] = String(buf);
         doc["anti_cycle"] = false;
         doc["anti_cycle_sec"] = 0;
     } else if (!_chillerEnabled) {
