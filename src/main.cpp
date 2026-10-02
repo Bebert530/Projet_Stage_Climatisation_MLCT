@@ -86,7 +86,10 @@ void loop() {
     // 4. Évaluation et exécution autonome des règles d'automatisation
     autoManager.update(devManager, &climManager);
 
-    // 5. Délai FreeRTOS coopératif (50ms)
+    // 5. Surveillance continue de diagnostic matériel et enregistrement d'événements 48h
+    diagManager.update(devManager, sysManager, climManager, wifiManager);
+
+    // 6. Délai FreeRTOS coopératif (50ms)
     vTaskDelay(pdMS_TO_TICKS(50));
 }
 

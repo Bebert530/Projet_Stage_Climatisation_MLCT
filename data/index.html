@@ -206,31 +206,6 @@
                   </div>
                 </div>
 
-                <!-- COMPRESSEUR DE FROID GLACIÈRE -->
-                <div class="ui-card compressor-card" id="card-compressor">
-                  <div class="card-header" style="justify-content:space-between;">
-                    <div style="display:flex; align-items:center; gap:8px;">
-                      <div class="comp-icon-wrap" id="comp-icon-wrap">
-                        <svg viewBox="0 0 24 24" id="comp-svg-icon"><path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,6V11H7V13H11V18H13V13H17V11H13V6H11Z"/></svg>
-                      </div>
-                      <span data-i18n="card_comp_title">COMPRESSEUR GLACIÈRE</span>
-                    </div>
-                    <span class="badge badge-comp-state off" id="comp-state-badge" data-i18n="comp_status_off">Éteint</span>
-                  </div>
-                  
-                  <div class="comp-controls-row">
-                    <div class="comp-mode-selector">
-                      <button class="comp-mode-btn active" id="btn-comp-auto" onclick="setCompressorMode('auto')" data-i18n="comp_mode_auto">AUTO</button>
-                      <button class="comp-mode-btn" id="btn-comp-on" onclick="setCompressorMode('on')" data-i18n="comp_mode_force_on">FORCÉ</button>
-                      <button class="comp-mode-btn" id="btn-comp-off" onclick="setCompressorMode('off')" data-i18n="comp_mode_force_off">COUPÉ</button>
-                    </div>
-                  </div>
-
-                  <div class="tile-sub" id="comp-sub-label" style="display:flex; align-items:center; gap:6px;">
-                    <span id="comp-sub-text">Protection active (repos 180s)</span>
-                  </div>
-                </div>
-
               </div>
             </div>
 
@@ -260,22 +235,24 @@
             </div>
             
             <div class="mini-card full">
-              <div class="mini-label" data-i18n="stats_chart_curves">Courbes thermiques & Consigne</div>
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+                <div class="mini-label" style="margin-bottom:0;" data-i18n="stats_chart_curves">Courbes thermiques & Consigne</div>
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                  <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 500;" data-i18n="stats_chart_start_label">Affichage depuis :</span>
+                  <div class="chart-time-presets" style="display: inline-flex; background: rgba(0,0,0,0.3); padding: 2px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08); gap: 2px;">
+                    <button type="button" class="chart-time-btn" onclick="setChartTimeWindow('15m', this)">15m</button>
+                    <button type="button" class="chart-time-btn active" onclick="setChartTimeWindow('30m', this)">30m</button>
+                    <button type="button" class="chart-time-btn" onclick="setChartTimeWindow('1h', this)">1h</button>
+                    <button type="button" class="chart-time-btn" onclick="setChartTimeWindow('2h', this)">2h</button>
+                    <button type="button" class="chart-time-btn" onclick="setChartTimeWindow('6h', this)">6h</button>
+                    <button type="button" class="chart-time-btn" onclick="setChartTimeWindow('12h', this)">12h</button>
+                    <button type="button" class="chart-time-btn" onclick="setChartTimeWindow('24h', this)">24h</button>
+                    <button type="button" class="chart-time-btn" onclick="setChartTimeWindow('48h', this)">48h</button>
+                    <button type="button" class="chart-time-btn" onclick="setChartTimeWindow('all', this)" data-i18n="chart_btn_all">Tout</button>
+                  </div>
+                </div>
+              </div>
               <div class="chart-container"><canvas id="tempChart"></canvas></div>
-            </div>
-
-            <div class="mini-card full" style="display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-evenly; gap: 20px;">
-              <div style="flex: 1; min-width: 200px; text-align: center;">
-                <div class="mini-label" style="margin-bottom: 15px;" data-i18n="stats_chart_modes">Répartition des modes</div>
-                <div class="doughnut-container"><canvas id="modeChart"></canvas></div>
-              </div>
-              <div style="flex: 1; min-width: 200px; font-size: 14px; color: var(--text-muted); line-height: 2;">
-                <ul style="list-style:none; padding:0; margin: 0;">
-                  <li><span style="color:#0ea5e9; font-size:18px; vertical-align: middle;">■</span> NORMAL : 60%</li>
-                  <li><span style="color:#34d399; font-size:18px; vertical-align: middle;">■</span> ECO : 30%</li>
-                  <li><span style="color:#fb923c; font-size:18px; vertical-align: middle;">■</span> BOOST : 10%</li>
-                </ul>
-              </div>
             </div>
           </div>
         </div>
@@ -318,10 +295,31 @@
                 <button class="temp-adjust-btn" style="width:30px; height:30px; font-size:16px;" onclick="changeHyst(0.1)">+</button>
               </div>
             </div>
-            <div class="settings-row"><span style="font-size: 14px;" data-i18n="settings_compressor">Compresseur (Chiller)</span><span id="compressor-state" style="color: var(--cyan-light); font-weight: bold; font-size: 14px;">Cible : -16.0°C</span></div>
-            <div class="settings-row"><span style="font-size: 14px;" data-i18n="settings_probes">Sondes DS18B20</span><span style="color: var(--success); font-weight: bold; font-size: 14px;" id="probes-status" data-i18n="settings_probes_ok">OK (5/5 connectées)</span></div>
-            <div class="settings-row"><span style="font-size: 14px;" data-i18n="settings_watchdog_test">Test Watchdog Sécurité</span><button class="settings-btn btn-outline" onclick="triggerWatchdogTest()" data-i18n="settings_btn_simulate">Simuler Perte</button></div>
-            <div class="settings-row"><span style="font-size: 14px;" data-i18n="settings_reboot">Redémarrage ESP32</span><button class="settings-btn btn-danger" onclick="triggerRebootConfirm()" data-i18n="settings_btn_reboot">Redémarrer</button></div>
+
+            <!-- NOUVEAUX PARAMÈTRES CYCLE COMPRESSEUR -->
+            <div class="mini-card full" style="display:flex; justify-content: space-between; align-items:center; flex-direction:row; flex-wrap: wrap; gap: 15px;">
+              <div>
+                <div style="font-weight:bold;" data-i18n="settings_comp_max_run_title">Temps de marche max compresseur</div>
+                <div style="font-size:12px; color:var(--text-muted)" data-i18n="settings_comp_max_run_sub">Durée maximale de fonctionnement continu avant pause (défaut : 2h00)</div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <button class="temp-adjust-btn" style="width:30px; height:30px; font-size:16px;" onclick="changeCompressorMaxRun(-15)">-</button>
+                <div id="comp_max_run_val" style="font-weight:bold; font-size:16px; color:var(--cyan-light);">2h00</div>
+                <button class="temp-adjust-btn" style="width:30px; height:30px; font-size:16px;" onclick="changeCompressorMaxRun(15)">+</button>
+              </div>
+            </div>
+
+            <div class="mini-card full" style="display:flex; justify-content: space-between; align-items:center; flex-direction:row; flex-wrap: wrap; gap: 15px;">
+              <div>
+                <div style="font-weight:bold;" data-i18n="settings_comp_rest_title">Durée de pause / repos compresseur</div>
+                <div style="font-size:12px; color:var(--text-muted)" data-i18n="settings_comp_rest_sub">Temps de repos obligatoire avant reprise du cycle (défaut : 30min)</div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <button class="temp-adjust-btn" style="width:30px; height:30px; font-size:16px;" onclick="changeCompressorRest(-5)">-</button>
+                <div id="comp_rest_val" style="font-weight:bold; font-size:16px; color:var(--cyan-light);">30min</div>
+                <button class="temp-adjust-btn" style="width:30px; height:30px; font-size:16px;" onclick="changeCompressorRest(5)">+</button>
+              </div>
+            </div>
 
             <!-- SECTION GESTION WI-FI HYBRIDE & RÉSILIENCE -->
             <div class="mini-card full" style="margin-top: 15px; border-left: 4px solid var(--cyan-light); background: rgba(21, 30, 50, 0.7);">
@@ -405,7 +403,7 @@
             </div>
             <button class="btn-primary" onclick="openUnifiedAddModal()">
               <svg viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
-              <span data-i18n="btn_unified_add">+ Ajouter</span>
+              <span data-i18n="btn_unified_add">Ajouter</span>
             </button>
           </div>
 
@@ -541,25 +539,27 @@
         </div>
 
         <!-- ========================================== -->
-        <!-- VUE 6 : DIAGNOSTIC & SANTÉ SYSTÈME (ZÉRO SAV) -->
+        <!-- VUE 6 : DIAGNOSTIC TECHNIQUE               -->
         <!-- ========================================== -->
         <div id="view-diag" class="view">
           <div class="view-header">
-            <h2 data-i18n="diag_title">🩺 Diagnostic & Santé Système</h2>
+            <h2 data-i18n="diag_title">Diagnostic & Santé Système</h2>
             <div class="view-subtitle" data-i18n="diag_subtitle">Surveillance matérielle temps réel, Watchdog matériel et auto-recovery</div>
           </div>
 
           <!-- BANNIÈRE SANTÉ GLOBALE -->
           <div id="diag-overall-card" class="diag-banner-card optimal">
-            <div class="diag-banner-icon" id="diag-overall-icon">✅</div>
+            <div class="diag-banner-icon" id="diag-overall-icon">
+              <svg viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M11,16.5L18,9.5L16.59,8.09L11,13.67L7.91,10.59L6.5,12L11,16.5Z"/></svg>
+            </div>
             <div class="diag-banner-info">
               <div class="diag-banner-title" id="diag-overall-title">Système 100% Opérationnel</div>
-              <div class="diag-banner-desc" id="diag-overall-desc">Tous les capteurs, actionneurs et mémoires fonctionnent dans les tolérances nominales.</div>
+              <div class="diag-banner-desc" id="diag-overall-desc">Tous les modules, mémoires et régulations fonctionnent dans les tolérances nominales.</div>
             </div>
             <div class="diag-banner-action">
               <button class="btn-primary" onclick="fetchDiagnostics(true)" data-i18n="diag_btn_refresh">
                 <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor;margin-right:6px;"><path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/></svg>
-                <span data-i18n="diag_btn_selftest">Auto-Test Matériel</span>
+                <span data-i18n="diag_btn_selftest">Actualiser</span>
               </button>
             </div>
           </div>
@@ -570,8 +570,10 @@
             <!-- 1. CARTE WATCHDOG & CPU -->
             <div class="diag-card">
               <div class="diag-card-header">
-                <div class="diag-card-icon" style="color:var(--cyan-light);">⚡</div>
-                <h3 data-i18n="diag_cpu_title">Watchdog & Microcontrôleur</h3>
+                <div class="diag-card-icon" style="color:var(--cyan-light);">
+                  <svg viewBox="0 0 24 24"><path d="M6,2H18A2,2 0 0,1 20,4V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V4A2,2 0 0,1 6,2M8,4V6H16V4H8M6,8V18H18V8H6M9,10H15V12H9V10M9,14H15V16H9V14Z"/></svg>
+                </div>
+                <h3 data-i18n="diag_cpu_title">Microcontrôleur & Watchdog</h3>
               </div>
               <div class="diag-card-body">
                 <div class="diag-metric-row">
@@ -591,67 +593,78 @@
                   <span id="diag-heap">--</span>
                 </div>
                 <div class="diag-metric-row">
-                  <span data-i18n="diag_lbl_cpu">Fréquence CPU / Puce</span>
+                  <span data-i18n="diag_lbl_cpu">Fréquence / Puce</span>
                   <span id="diag-cpu">--</span>
                 </div>
               </div>
             </div>
 
-            <!-- 2. CARTE CAPTEURS PHYSIQUES -->
+            <!-- 2. CARTE RÉGULATION & SÉCURITÉS FRIGORIFIQUES -->
             <div class="diag-card">
               <div class="diag-card-header">
-                <div class="diag-card-icon" style="color:#10b981;">🌡️</div>
-                <h3 data-i18n="diag_sensors_title">Capteurs Physiques (1-Wire / ADC)</h3>
-              </div>
-              <div class="diag-card-body" id="diag-sensors-list">
-                <!-- Rempli dynamiquement -->
-              </div>
-            </div>
-
-            <!-- 3. CARTE ACTIONNEURS & SÉCURITÉS FRIGORIFIQUES -->
-            <div class="diag-card">
-              <div class="diag-card-header">
-                <div class="diag-card-icon" style="color:#f59e0b;">🛡️</div>
-                <h3 data-i18n="diag_safety_title">Actionneurs & Sécurités Frigorifiques</h3>
-              </div>
-              <div class="diag-card-body" id="diag-actuators-list">
-                <!-- Rempli dynamiquement -->
-              </div>
-            </div>
-
-            <!-- 4. CARTE STOCKAGE FLASH & RÉSEAU -->
-            <div class="diag-card">
-              <div class="diag-card-header">
-                <div class="diag-card-icon" style="color:#8b5cf6;">💾</div>
-                <h3 data-i18n="diag_storage_title">Stockage Flash & Réseau</h3>
+                <div class="diag-card-icon" style="color:#38bdf8;">
+                  <svg viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,6V11H7V13H11V18H13V13H17V11H13V6H11Z"/></svg>
+                </div>
+                <h3 data-i18n="diag_safety_title">Régulation & Sécurités Froid</h3>
               </div>
               <div class="diag-card-body">
                 <div class="diag-metric-row">
-                  <span data-i18n="diag_lbl_littlefs">Système LittleFS</span>
-                  <span id="diag-littlefs-usage">--</span>
+                  <span>État Climatisation</span>
+                  <span class="diag-status-badge badge-green" id="diag-clim-state">--</span>
                 </div>
                 <div class="diag-metric-row">
-                  <span data-i18n="diag_lbl_files">Fichiers système intègres</span>
-                  <span id="diag-files-badge">--</span>
+                  <span>Mode Compresseur</span>
+                  <span id="diag-comp-mode" style="font-weight:700;">AUTO</span>
                 </div>
                 <div class="diag-metric-row">
-                  <span data-i18n="diag_lbl_ap">Point d'accès Local</span>
+                  <span>Sécurité Anti-Court-Cycle</span>
+                  <span class="diag-status-badge badge-green" id="diag-anticycle-badge">Prêt (Nominal)</span>
+                </div>
+                <div class="diag-metric-row">
+                  <span>Demande de Froid</span>
+                  <span id="diag-cooling-demand">--</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. CARTE CONNECTIVITÉ & RÉSEAU -->
+            <div class="diag-card">
+              <div class="diag-card-header">
+                <div class="diag-card-icon" style="color:#10b981;">
+                  <svg viewBox="0 0 24 24"><path d="M12,3C7.79,3 3.7,4.41 0.38,7C4.41,12.06 7.89,16.37 12,21.5C16.08,16.42 20.24,11.24 23.65,7C20.32,4.41 16.22,3 12,3M12,5C15.07,5 18.09,5.86 20.71,7.45L12,18.3L3.27,7.44C5.9,5.85 8.92,5 12,5Z"/></svg>
+                </div>
+                <h3 data-i18n="diag_net_title">Connectivité & Réseau</h3>
+              </div>
+              <div class="diag-card-body">
+                <div class="diag-metric-row">
+                  <span data-i18n="diag_lbl_ap">Point d'accès Local (AP)</span>
                   <span id="diag-ap-status">--</span>
                 </div>
                 <div class="diag-metric-row">
-                  <span data-i18n="diag_lbl_sta">Connexion Station</span>
+                  <span data-i18n="diag_lbl_sta">Connexion Station (Wi-Fi)</span>
                   <span id="diag-sta-status">--</span>
+                </div>
+                <div class="diag-metric-row">
+                  <span>Serveur Web & WebSocket</span>
+                  <span class="diag-status-badge badge-green">Port 80 (Actif)</span>
                 </div>
               </div>
             </div>
 
           </div>
 
-          <!-- MESSAGES ET CONSEILS DE SANTÉ -->
+          <!-- JOURNAL D'ALERTES ET ANOMALIES TECHNIQUES -->
           <div class="diag-card full" style="margin-top:20px;">
-            <div class="diag-card-header">
-              <div class="diag-card-icon">📋</div>
-              <h3 data-i18n="diag_logs_title">Journal d'Auto-Diagnostic & Détection d'Erreurs</h3>
+            <div class="diag-card-header" style="justify-content:space-between;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div class="diag-card-icon" style="color:var(--text-muted);">
+                  <svg viewBox="0 0 24 24"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M8,12V14H16V12H8M8,16V18H13V16H8Z"/></svg>
+                </div>
+                <h3 data-i18n="diag_logs_title">Journal des Événements & Alertes (Rétention 48h)</h3>
+              </div>
+              <button class="btn-outline" style="padding:6px 8px; font-size:12px; display:inline-flex; align-items:center; justify-content:center; border-radius:6px; cursor:pointer;" onclick="clearDiagnosticLogs()" title="Effacer le journal" aria-label="Effacer le journal" data-i18n-title="diag_btn_clear_title">
+                <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor;"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
+              </button>
             </div>
             <div class="diag-card-body">
               <div id="diag-messages-list" class="diag-logs-container">
@@ -660,7 +673,7 @@
             </div>
           </div>
 
-          <!-- ACTIONS SYSTÈME CRITIQUES -->
+          <!-- ACTIONS SYSTÈME -->
           <div class="diag-actions-footer">
             <button class="btn-danger-outline" onclick="confirmSystemRestart()">
               <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor;margin-right:6px;"><path d="M12,4C14.1,4 16.1,4.8 17.6,6.3C20.7,9.4 20.7,14.5 17.6,17.6C15.8,19.5 13.3,20.2 10.9,19.9L11.4,17.9C13.1,18.1 14.9,17.5 16.2,16.2C18.5,13.9 18.5,10.1 16.2,7.7C15.1,6.6 13.5,6 12,6V9L8,5L12,1V4M4.4,6.4L5.8,7.8C4.6,9.1 4,10.5 4,12C4,14.3 4.9,16.4 6.4,17.6L4.9,19C3.1,17.4 2,14.8 2,12C2,9.9 2.9,7.9 4.4,6.4M7.8,9.8L9.2,11.2C9.1,11.5 9,11.7 9,12C9,12.8 9.3,13.6 9.8,14.2L8.4,15.6C7.5,14.7 7,13.4 7,12C7,11.2 7.3,10.4 7.8,9.8Z"/></svg>
@@ -800,12 +813,22 @@
 
           <div class="input-group" id="device-voltage-group">
             <label for="device-voltage" data-i18n="label_dev_voltage">Tension d'alimentation</label> 
-            <select id="device-voltage">
+            <select id="device-voltage" onchange="updateVoltageOptions()">
               <option value="12V">12V (Batterie van / puissance)</option>
               <option value="5V">5V (Alimentation USB / Rail 5V)</option>
               <option value="3.3V">3.3V (Natif ESP32)</option>
             </select>
             <div id="device-voltage-hint" style="font-size:11px; color:var(--text-muted); margin-top:4px;"></div>
+          </div>
+
+          <!-- QUESTION TYPE DE CÂBLAGE PWM (3.3V / 5V / 12V) -->
+          <div class="input-group" id="device-pwm-wiring-group" style="display:none;">
+            <label for="device-pwm-wiring-type" data-i18n="label_pwm_wiring_type">Raccordement du signal PWM</label>
+            <select id="device-pwm-wiring-type" onchange="onPwmWiringChange()">
+              <option value="DEDICATED_SIGNAL" data-i18n="opt_pwm_dedicated">3 ou 4 fils : Fil "SIGNAL / PWM" dédié (Commande directe sur GPIO)</option>
+              <option value="MOSFET_POWER" data-i18n="opt_pwm_mosfet">2 fils : Le signal PWM alimente l'appareil (Module MOSFET requis)</option>
+            </select>
+            <div id="device-pwm-wiring-hint" style="font-size:11px; color:var(--text-muted); margin-top:4px;"></div>
           </div>
 
           <div class="input-group" id="manual-gpio-group">

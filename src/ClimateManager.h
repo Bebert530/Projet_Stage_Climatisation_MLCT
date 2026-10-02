@@ -57,7 +57,8 @@ public:
     void setHysteresis(float hyst);
     void setChiller(bool enabled);
     void setWaterTargetTemp(float temp);
-    void setCompressorMode(const String& mode); // "auto", "on", "off"
+    void setCompressorMode(const String& mode); // Maintenu pour compatibilité
+    void setCompressorTimings(uint32_t maxRunMin, uint32_t restMin);
     void setTimer(bool enabled, uint32_t durationSec);
 
     // Traitement des commandes JSON (WebSocket ou REST)
@@ -81,6 +82,8 @@ public:
     String getCompressorStateString() const;
     CompressorMode getCompressorMode() const { return _compressorMode; }
     String getCompressorModeString() const;
+    uint32_t getCompressorMaxRunMin() const { return _compressorMaxRunMin; }
+    uint32_t getCompressorRestMin() const { return _compressorRestMin; }
     bool isAntiCycleActive() const { return _antiCycleActive; }
     uint16_t getAntiCycleRemainingSec() const { return _antiCycleRemainingSec; }
     uint8_t getProbesCount() const { return _probesConnectedCount; }
@@ -95,9 +98,6 @@ public:
     // Constantes thermiques et frigorifiques pour la boucle d'eau
     static constexpr float WATER_START_TEMP_THRESHOLD = 15.0f; // Démarrage automatique si T_eau > 15°C
     static constexpr float WATER_STOP_TEMP_THRESHOLD  = 10.0f; // Arrêt automatique si T_eau < 10°C
-    static const uint32_t COMPRESSOR_MAX_RUN_MS = 2UL * 3600UL * 1000UL; // 2 heures de fonctionnement continu max
-    static const uint32_t COMPRESSOR_REST_MS    = 30UL * 60UL * 1000UL;  // 30 minutes de repos obligatoire avant revérification
-    static const uint32_t ANTI_CYCLE_DELAY_MS   = COMPRESSOR_REST_MS;
     static const uint32_t MIN_RUN_TIME_MS       = 60000; // 60s
 
 private:
@@ -138,6 +138,8 @@ private:
     bool _compressorActive;
     CompressorState _compressorState;
     CompressorMode _compressorMode;
+    uint32_t _compressorMaxRunMin; // Temps de marche max en minutes (défaut : 120 = 2h)
+    uint32_t _compressorRestMin;   // Durée de pause/repos en minutes (défaut : 30 = 30min)
     bool _antiCycleActive;
     uint16_t _antiCycleRemainingSec;
     unsigned long _lastCompressorStartTime;

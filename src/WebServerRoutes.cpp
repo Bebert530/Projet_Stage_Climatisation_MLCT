@@ -514,7 +514,18 @@ void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager, Sys
     // 14. DIAGNOSTIC & SANTÉ DU SYSTÈME (/api/diagnostics & /api/system/restart)
     // -------------------------------------------------------------
     server.on("/api/diagnostics", HTTP_GET, [&devManager, &sysManager, &climManager, &wifiManager, &diagManager](AsyncWebServerRequest *request) {
+        if (request->hasParam("ts")) {
+            uint32_t clientTs = request->getParam("ts")->value().toInt();
+            if (clientTs > 1600000000) {
+                diagManager.syncTime(clientTs);
+            }
+        }
         sendJsonResponse(request, 200, diagManager.getDiagnosticsJson(devManager, sysManager, climManager, wifiManager));
+    });
+
+    server.on("/api/diagnostics/clear", HTTP_POST, [&diagManager](AsyncWebServerRequest *request) {
+        diagManager.clearLogs();
+        sendSuccess(request, "Historique de diagnostic effacé avec succès.");
     });
 
     server.on("/api/system/restart", HTTP_POST, [&diagManager](AsyncWebServerRequest *request) {
