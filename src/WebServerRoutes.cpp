@@ -103,7 +103,6 @@ void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager, Sys
     // 1. GET /api/devices : Retourne la liste complète des périphériques
     // -------------------------------------------------------------
     server.on("/api/devices", HTTP_GET, [&devManager](AsyncWebServerRequest *request) {
-        devManager.updateSensors();
         sendJsonResponse(request, 200, devManager.getDevicesJson());
     });
 
@@ -536,9 +535,9 @@ void setupWebServerRoutes(AsyncWebServer& server, DeviceManager& devManager, Sys
     });
 
     // -------------------------------------------------------------
-    // 15. Fichiers statiques LittleFS (no-cache)
+    // 15. Fichiers statiques LittleFS (Compression gzip automatique & Cache navigateur)
     // -------------------------------------------------------------
-    server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html").setCacheControl("no-cache, no-store, must-revalidate");
+    server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html").setCacheControl("public, max-age=86400");
 
     // -------------------------------------------------------------
     // Gestionnaire 404 & OPTIONS

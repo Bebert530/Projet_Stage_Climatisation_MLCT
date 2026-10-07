@@ -401,10 +401,16 @@
               <h2 data-i18n="devices_title">Gestionnaire de Matériel & Systèmes</h2>
               <p data-i18n="devices_desc">Déclarez vos équipements et associez-les aux systèmes applicatifs du van.</p>
             </div>
-            <button class="btn-primary" onclick="openUnifiedAddModal()">
-              <svg viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
-              <span data-i18n="btn_unified_add">Ajouter</span>
-            </button>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <button class="btn-secondary" onclick="openWiringTutorialDirectory()" style="display:flex; align-items:center; gap:6px;">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19,2L14,6.5V17.5L19,13V2M6.5,5C4.55,5 2.45,5.4 1,6.5V21.16C1,21.41 1.25,21.66 1.5,21.66C1.6,21.66 1.65,21.61 1.75,21.61C3.1,20.95 5.05,20.5 6.5,20.5C8.45,20.5 10.55,20.95 12,22C13.35,21.05 15.8,20.5 17.5,20.5C19.15,20.5 20.85,20.8 22.25,21.56C22.35,21.61 22.4,21.66 22.5,21.66C22.75,21.66 23,21.41 23,21.16V6.5C22.4,6.05 21.75,5.75 21,5.5V19C19.9,18.65 18.7,18.5 17.5,18.5C15.8,18.5 13.35,19.05 12,20V6.5C10.55,5.4 8.45,5 6.5,5Z"/></svg>
+                <span data-i18n="btn_view_tutorials">Tutoriels de Câblage</span>
+              </button>
+              <button class="btn-primary" onclick="openUnifiedAddModal()">
+                <svg viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
+                <span data-i18n="btn_unified_add">Ajouter</span>
+              </button>
+            </div>
           </div>
 
           <!-- SECTION 1 : SYSTÈMES COMPOSITES (CLIMATISATION, ETC.) -->
@@ -732,6 +738,16 @@
             <span class="choice-badge badge-system" data-i18n="badge_system">Système</span>
           </div>
 
+          <!-- CHOIX 4 : TUTORIELS & DIDACTICIELS DE CÂBLAGE -->
+          <div class="add-choice-card" onclick="openWiringTutorialDirectory()">
+            <div class="choice-icon" style="background:rgba(45,212,191,0.15); color:var(--cyan-light);">
+              <svg viewBox="0 0 24 24"><path d="M19,2L14,6.5V17.5L19,13V2M6.5,5C4.55,5 2.45,5.4 1,6.5V21.16C1,21.41 1.25,21.66 1.5,21.66C1.6,21.66 1.65,21.61 1.75,21.61C3.1,20.95 5.05,20.5 6.5,20.5C8.45,20.5 10.55,20.95 12,22C13.35,21.05 15.8,20.5 17.5,20.5C19.15,20.5 20.85,20.8 22.25,21.56C22.35,21.61 22.4,21.66 22.5,21.66C22.75,21.66 23,21.41 23,21.16V6.5C22.4,6.05 21.75,5.75 21,5.5V19C19.9,18.65 18.7,18.5 17.5,18.5C15.8,18.5 13.35,19.05 12,20V6.5C10.55,5.4 8.45,5 6.5,5Z"/></svg>
+            </div>
+            <div class="choice-title" data-i18n="choice_tuto_title">Tutoriels de Câblage</div>
+            <div class="choice-desc" data-i18n="choice_tuto_desc">Consultez les schémas électriques pas-à-pas : Relais 12V/230V, MOSFET 2 fils, PWM direct 3/4 fils, Sonde NTC 10k, Sonde 1-Wire DS18B20, Contact sec.</div>
+            <span class="choice-badge" style="background:rgba(45,212,191,0.18); color:var(--cyan-light);" data-i18n="badge_guide">Guide</span>
+          </div>
+
         </div>
       </div>
       <div class="modal-footer">
@@ -840,6 +856,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-secondary" onclick="closeDeviceModal()" data-i18n="btn_cancel">Annuler</button>
+          <button type="button" class="btn-primary" id="btn-save-direct" onclick="saveDeviceFromModal()" style="display:none;" data-i18n="btn_save_changes">Enregistrer</button>
           <button type="submit" class="btn-primary" id="btn-submit-step1" data-i18n="btn_next_wire">Suivant : Câbler sur la carte</button>
         </div>
       </form>
@@ -858,6 +875,20 @@
       </div>
       <div class="modal-body wizard-body">
         
+        <!-- Sélecteur rapide de tutoriel -->
+        <div class="wizard-tutorial-select-row" style="margin-bottom:15px; display:flex; align-items:center; gap:10px;">
+          <label style="font-size:12px; font-weight:600; color:var(--text-muted); white-space:nowrap;" data-i18n="lbl_switch_tutorial">Tutoriel :</label>
+          <select id="wizard-tuto-quick-select" class="rule-select" style="flex:1; font-size:12px;" onchange="openWiringTutorialDirectory(this.value)">
+            <option value="ACTUATOR_OUTPUT_RELAY">Actionneur : Relais Tout-ou-Rien (12V / 5V / 3.3V)</option>
+            <option value="ACTUATOR_OUTPUT_PWM_MOSFET">Actionneur : Variateur PWM via MOSFET (2 fils - Moteur DC, LED)</option>
+            <option value="ACTUATOR_OUTPUT_PWM_DIRECT">Actionneur : PWM avec Signal Dédié (3/4 fils - Ventilateur PC, Servo)</option>
+            <option value="SENSOR_INPUT_ONEWIRE">Capteur : Sonde Numérique 1-Wire (DS18B20)</option>
+            <option value="SENSOR_INPUT_ADC_NTC">Capteur : Sonde Température Résistive (NTC 10k + Pont 10kΩ)</option>
+            <option value="SENSOR_INPUT_DIGITAL">Capteur : Contact Sec / Flotteur (Passif Pull-up)</option>
+            <option value="SENSOR_INPUT_ADC">Capteur : Analogique Actif 3 fils (0-3.3V)</option>
+          </select>
+        </div>
+
         <!-- En-tête avec broche physique réservée -->
         <div class="wizard-pin-banner">
           <div class="pin-badge-box">

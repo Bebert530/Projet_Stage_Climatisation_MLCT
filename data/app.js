@@ -388,7 +388,7 @@ const TRANSLATIONS = {
     test_measured_sim_volts_html: "Valeur mesurée (Simulation) : <strong>2.15 V</strong>",
     test_sensor_sim_state_html: "Valeur du capteur (Simulation) : <strong style=\"font-size:16px; color:var(--cyan-light);\">ON</strong> (Contact fermé)",
     test_btn_caution_sec: "Attention ({sec}s)...",
-    probe_alert_disconnected: "⚠️ ALERTE : Sonde de température déconnectée (-127°C). Sécurité compresseur active.",
+    probe_alert_disconnected: "ALERTE : Sonde de température déconnectée (-127°C). Sécurité compresseur active.",
     probes_status_alert: "ALERTE (-127°C Déconnexion)",
     probes_status_active: "OK ({count} sonde(s) active(s))",
     probes_status_none: "Aucune sonde détectée",
@@ -398,6 +398,12 @@ const TRANSLATIONS = {
     toast_hardware_test_error: "Erreur de test matériel",
     toast_device_comm_error: "{name} : Erreur de communication avec l'ESP32",
     toast_sensor_test_success: "Test capteur réussi.",
+    btn_view_tutorials: "Tutoriels de Câblage",
+    choice_tuto_title: "Tutoriels de Câblage",
+    choice_tuto_desc: "Consultez les schémas électriques pas-à-pas : Relais 12V/230V, MOSFET 2 fils, PWM direct 3/4 fils, Sonde NTC 10k, Sonde 1-Wire DS18B20, Contact sec.",
+    badge_guide: "Guide",
+    btn_save_changes: "Enregistrer",
+    btn_see_wiring: "Voir le Schéma",
     wifi_section_title: "Paramètres Réseau Wi-Fi Hybride",
     wifi_section_sub: "Connectez l'ESP32 à la box ou au partage 4G de votre van sans jamais perdre l'accès au réseau local de secours.",
     wifi_ap_label: "Point d'accès de secours (AP)",
@@ -575,7 +581,7 @@ const TRANSLATIONS = {
     slot_unassigned: "Unassigned",
     slot_select_placeholder: "-- Select a device --",
     btn_assign: "Assign",
-    btn_wire_assign: "⚡ Assign & Wire",
+    btn_wire_assign: "Assign & Wire",
     btn_unbind: "Detach",
     clim_incomplete_title: "Climate System Incomplete",
     clim_incomplete_desc: "To start autonomous thermal regulation, all required system equipment must be assigned and wired.",
@@ -754,7 +760,7 @@ const TRANSLATIONS = {
     test_measured_sim_volts_html: "Measured value (Simulation): <strong>2.15 V</strong>",
     test_sensor_sim_state_html: "Sensor value (Simulation): <strong style=\"font-size:16px; color:var(--cyan-light);\">ON</strong> (Contact closed)",
     test_btn_caution_sec: "Caution ({sec}s)...",
-    probe_alert_disconnected: "⚠️ ALERT: Temperature probe disconnected (-127°C). Compressor safety active.",
+    probe_alert_disconnected: "ALERT: Temperature probe disconnected (-127°C). Compressor safety active.",
     probes_status_alert: "ALERT (-127°C Disconnected)",
     probes_status_active: "OK ({count} probe(s) active)",
     probes_status_none: "No probes detected",
@@ -764,6 +770,12 @@ const TRANSLATIONS = {
     toast_hardware_test_error: "Hardware test error",
     toast_device_comm_error: "{name}: Communication error with ESP32",
     toast_sensor_test_success: "Sensor test successful.",
+    btn_view_tutorials: "Wiring Tutorials",
+    choice_tuto_title: "Wiring Tutorials",
+    choice_tuto_desc: "View step-by-step wiring diagrams: Relays, MOSFETs, PWM 3/4 wires, NTC probes, 1-Wire DS18B20, dry contacts.",
+    badge_guide: "Guide",
+    btn_save_changes: "Save Changes",
+    btn_see_wiring: "View Wiring",
     wifi_section_title: "Hybrid Wi-Fi Network Settings",
     wifi_section_sub: "Connect ESP32 to your van router or 4G hotspot without ever losing access to the local fallback AP.",
     wifi_ap_label: "Fallback Access Point (AP)",
@@ -941,7 +953,7 @@ const TRANSLATIONS = {
     slot_unassigned: "Sin asignar",
     slot_select_placeholder: "-- Seleccionar un dispositivo --",
     btn_assign: "Asignar",
-    btn_wire_assign: "⚡ Asignar y Cablear",
+    btn_wire_assign: "Asignar y Cablear",
     btn_unbind: "Desvincular",
     clim_incomplete_title: "Sistema Climatización Incompleto",
     clim_incomplete_desc: "Para iniciar la regulación térmica autónoma, todos los equipos requeridos deben estar asignados y cableados.",
@@ -1120,7 +1132,7 @@ const TRANSLATIONS = {
     test_measured_sim_volts_html: "Valor medido (Simulación): <strong>2.15 V</strong>",
     test_sensor_sim_state_html: "Valor del sensor (Simulación): <strong style=\"font-size:16px; color:var(--cyan-light);\">ON</strong> (Contacto cerrado)",
     test_btn_caution_sec: "Atención ({sec}s)...",
-    probe_alert_disconnected: "⚠️ ALERTA: Sonda de temperatura desconectada (-127°C). Seguridad compresor activa.",
+    probe_alert_disconnected: "ALERTA: Sonda de temperatura desconectada (-127°C). Seguridad compresor activa.",
     probes_status_alert: "ALERTA (-127°C Desconectada)",
     probes_status_active: "OK ({count} sonda(s) activa(s))",
     probes_status_none: "Ninguna sonda detectada",
@@ -1130,6 +1142,12 @@ const TRANSLATIONS = {
     toast_hardware_test_error: "Error de prueba de hardware",
     toast_device_comm_error: "{name}: Error de comunicación con el ESP32",
     toast_sensor_test_success: "Prueba de sensor exitosa.",
+    btn_view_tutorials: "Tutoriales de Cableado",
+    choice_tuto_title: "Tutoriales de Cableado",
+    choice_tuto_desc: "Consulte los esquemas de cableado paso a paso: Relés, MOSFETs, PWM 3/4 hilos, sondas NTC, 1-Wire DS18B20, contacto seco.",
+    badge_guide: "Guía",
+    btn_save_changes: "Guardar Cambios",
+    btn_see_wiring: "Ver Esquema",
     wifi_section_title: "Configuración de Red Wi-Fi Híbrida",
     wifi_section_sub: "Conecte el ESP32 al router o compartir 4G de su camper sin perder nunca el acceso al AP local de respaldo.",
     wifi_ap_label: "Punto de acceso de respaldo (AP)",
@@ -1226,7 +1244,7 @@ function setLanguage(lang) {
 
   const watchdogBanner = document.getElementById('watchdog-banner');
   if (watchdogBanner && watchdogBanner.style.display !== 'none' && !watchdogInterval) {
-    watchdogBanner.innerHTML = t('probe_alert_disconnected', "⚠️ ALERTE : Sonde de température déconnectée (-127°C). Sécurité compresseur active.");
+    watchdogBanner.innerHTML = t('probe_alert_disconnected', "ALERTE : Sonde de température déconnectée (-127°C). Sécurité compresseur active.");
   }
 
   const wizModal = document.getElementById('wizard-modal');
@@ -1265,12 +1283,9 @@ function checkLogin() {
       if (sidebar) sidebar.classList.remove('collapsed');
     }
 
-    try { initCharts(); } catch (e) { console.warn("Erreur charts:", e); }
-    try { startTelemetry(); } catch (e) { console.warn("Erreur télémétrie:", e); }
-    try { loadDeviceManager(); } catch (e) { console.warn("Erreur loadDeviceManager:", e); }
-    try { loadAutomations(); } catch (e) { console.warn("Erreur loadAutomations:", e); }
-    try { loadCyclesHistory(); } catch (e) { console.warn("Erreur loadCyclesHistory:", e); }
-    try { loadWifiStatus(); } catch (e) { console.warn("Erreur loadWifiStatus:", e); }
+    try { initCharts(); } catch (e) {}
+    try { startTelemetry(); } catch (e) {}
+    try { loadDeviceManager(); } catch (e) {}
   } else { 
     const errEl = document.getElementById('login-error');
     if (errEl) errEl.style.display = 'block'; 
@@ -1386,106 +1401,137 @@ const WIRING_TUTORIALS = {
     subtitle: (volt) => {
       if (currentLang === 'en') return `On/off control for ${volt} equipment (pump, valve, lighting)`;
       if (currentLang === 'es') return `Control de encendido/apagado para equipo ${volt} (bomba, válvula, iluminación)`;
-      return `Commande marche/arrêt pour équipement ${volt} (pompe, vanne, éclairage)`;
+      return `Commande marche/arrêt pour équipement ${volt} (pompe, vanne, compresseur, éclairage)`;
     },
     warning: (volt) => {
       if (currentLang === 'en') {
         return (volt === '12V')
-          ? `<strong>12V DANGER:</strong> NEVER connect +12V directly to the ESP32! The ESP32 operates exclusively at 3.3V. The relay module provides galvanic isolation and protects your microcontroller.`
-          : `<strong>RELAY ISOLATION (${volt}):</strong> The relay module isolates the ESP32 from the ${volt} power circuit. Ensure relay ground (GND) is connected to ESP32 ground.`;
+          ? `<strong>12V DANGER:</strong> NEVER connect +12V directly to the ESP32! The ESP32 operates exclusively at 3.3V. The relay module provides galvanic isolation. Power the relay board VCC with 5V (VIN) or 3.3V.`
+          : `<strong>RELAY ISOLATION (${volt}):</strong> The relay module isolates the ESP32 from the ${volt} power load. Power the relay VCC with 5V (VIN) or 3.3V and connect relay GND to ESP32 GND.`;
       }
       if (currentLang === 'es') {
         return (volt === '12V')
-          ? `<strong>PELIGRO 12V:</strong> ¡NUNCA conecte el +12V directamente al ESP32! El ESP32 funciona exclusivamente a 3.3V. El módulo de relé proporciona aislamiento galvánico y protege su microcontrolador.`
-          : `<strong>AISLAMIENTO DEL RELÉ (${volt}):</strong> El módulo de relé aísla el ESP32 del circuito de potencia de ${volt}. Asegúrese de conectar la masa (GND) del relé a la del ESP32.`;
+          ? `<strong>PELIGRO 12V:</strong> ¡NUNCA conecte el +12V directamente al ESP32! El ESP32 funciona exclusivamente a 3.3V. El módulo de relé proporciona aislamiento galvánico. Alimente el VCC del relé con 5V (VIN) o 3.3V.`
+          : `<strong>AISLAMIENTO DEL RELÉ (${volt}):</strong> El módulo de relé aísla el ESP32 del circuito de potencia de ${volt}. Alimente el VCC del relé con 5V (VIN) o 3.3V y conecte GND al ESP32.`;
       }
       return (volt === '12V')
-        ? `<strong>DANGER 12V :</strong> Ne reliez <u>JAMAIS</u> le +12V directement à l'ESP32 ! L'ESP32 fonctionne exclusivement en 3.3V. Le module relais assure l'isolation galvanique et protège votre microcontrôleur.`
-        : `<strong>ISOLATION DU RELAIS (${volt}) :</strong> Le module relais isole l'ESP32 du circuit de puissance ${volt}. Veillez à relier la masse (GND) du relais à celle de l'ESP32.`;
+        ? `<strong>DANGER 12V :</strong> Ne reliez <u>JAMAIS</u> le +12V directement à l'ESP32 ! L'ESP32 fonctionne exclusivement en 3.3V. Le module relais assure l'isolation galvanique. Alimentez la carte relais en VCC (5V/VIN ou 3.3V).`
+        : `<strong>ISOLATION DU RELAIS (${volt}) :</strong> Le module relais isole l'ESP32 du circuit de puissance ${volt}. Alimentez le relais en VCC (5V/VIN ou 3.3V) et veillez à relier la masse (GND) à celle de l'ESP32.`;
     },
     steps: (gpio, volt) => {
+      const vccRelay = (volt === '3.3V') ? '3.3V' : 'VIN (5V)';
       if (currentLang === 'en') {
-        const source = (volt === '12V') ? '+12V from your auxiliary battery' : (volt === '5V' ? '+5V (VIN pin or 5V PSU)' : 'board 3.3V');
+        const source = (volt === '12V') ? '+12V from your auxiliary battery' : (volt === '5V' ? '+5V power supply' : 'board 3.3V');
         return [
           {
-            title: "1. Ground connection (GND)",
-            desc: "Connect the <strong>GND</strong> pin of the relay module to one of the <strong>GND</strong> pins of the ESP32."
+            title: "1. Relay module power supply (VCC & GND)",
+            desc: `Connect the relay module <strong>VCC</strong> pin to the <strong>${vccRelay}</strong> pin of the ESP32, and the relay <strong>GND</strong> pin to an ESP32 <strong>GND</strong> pin.`
           },
           {
-            title: `2. Power circuit wiring (${volt})`,
-            desc: `Connect <strong>${source}</strong> to the <strong>COM</strong> (Common) terminal of the relay, and the positive equipment wire (${volt}) to <strong>NO</strong> (Normally Open). The negative wire returns to ground (0V / GND).`
-          },
-          {
-            title: "3. Logic control connection",
+            title: "2. Logic control signal (IN)",
             desc: `Connect the relay <strong>IN / Signal</strong> control pin directly to <span class="step-tag">GPIO {{GPIO}}</span> of the ESP32.`
+          },
+          {
+            title: `3. Switched power circuit (${volt})`,
+            desc: `Connect <strong>${source}</strong> to the <strong>COM</strong> (Common) terminal of the relay, and the positive equipment wire (+) to <strong>NO</strong> (Normally Open). Connect the negative equipment wire (-) back to ground (0V / GND).`
           }
         ];
       }
       if (currentLang === 'es') {
-        const source = (volt === '12V') ? 'el +12V de su batería auxiliar' : (volt === '5V' ? 'el +5V (borne VIN o fuente 5V)' : 'el +3.3V de la placa');
+        const source = (volt === '12V') ? 'el +12V de su batería auxiliar' : (volt === '5V' ? 'fuente de alimentación +5V' : 'el +3.3V de la placa');
         return [
           {
-            title: "1. Conexión de masa (GND)",
-            desc: "Conecte el pin <strong>GND</strong> (Masa) del módulo de relé a uno de los pines <strong>GND</strong> del ESP32."
+            title: "1. Alimentación del módulo relé (VCC y GND)",
+            desc: `Conecte el pin <strong>VCC</strong> del módulo relé al pin <strong>${vccRelay}</strong> del ESP32, y el pin <strong>GND</strong> del relé a un pin <strong>GND</strong> del ESP32.`
           },
           {
-            title: `2. Cableado de potencia (${volt})`,
-            desc: `Conecte <strong>${source}</strong> al terminal <strong>COM</strong> (Común) del relé, y el cable positivo del equipo (${volt}) al terminal <strong>NO</strong> (Normalmente Abierto). El cable negativo regresa a masa (0V / GND).`
+            title: "2. Señal de control lógico (IN)",
+            desc: `Conecte el pin de control <strong>IN / Señal</strong> del relé directamente al pin <span class="step-tag">GPIO {{GPIO}}</span> del ESP32.`
           },
           {
-            title: "3. Conexión del control lógico",
-            desc: `Conecte el pin de control <strong>IN / Signal</strong> del relé directamente al <span class="step-tag">GPIO {{GPIO}}</span> del ESP32.`
+            title: `3. Cableado de potencia conmutado (${volt})`,
+            desc: `Conecte <strong>${source}</strong> al terminal <strong>COM</strong> (Común) del relé, y el cable positivo (+) del equipo a <strong>NO</strong> (Normalmente Abierto). El cable negativo (-) del equipo regresa a masa (0V / GND).`
           }
         ];
       }
-      const source = (volt === '12V') ? 'le +12V de votre batterie auxiliaire' : (volt === '5V' ? 'le +5V (borne VIN ou alim 5V)' : 'le +3.3V de la carte');
+      const source = (volt === '12V') ? 'le +12V de votre batterie auxiliaire' : (volt === '5V' ? 'votre alimentation +5V' : 'le +3.3V de la carte');
       return [
         {
-          title: "1. Raccordement de la masse (GND)",
-          desc: "Reliez la broche <strong>GND</strong> (Masse) du module relais à l'une des broches <strong>GND</strong> de l'ESP32."
+          title: "1. Alimentation du module relais (VCC & GND)",
+          desc: `Branchez la broche <strong>VCC</strong> du module relais sur la broche <strong>${vccRelay}</strong> de l'ESP32, et la broche <strong>GND</strong> du relais sur une broche <strong>GND</strong> de l'ESP32.`
         },
         {
-          title: `2. Câblage du circuit de puissance (${volt})`,
-          desc: `Raccordez <strong>${source}</strong> sur la borne <strong>COM</strong> (Commun) du relais, et le fil positif de l'équipement (${volt}) sur la borne <strong>NO</strong> (Normalement Ouvert). Le fil négatif retourne à la masse (0V / GND).`
-        },
-        {
-          title: "3. Raccordement de la commande logique",
+          title: "2. Commande logique (IN)",
           desc: `Reliez la broche de commande <strong>IN / Signal</strong> du relais directement sur la broche <span class="step-tag">GPIO {{GPIO}}</span> de l'ESP32.`
+        },
+        {
+          title: `3. Câblage du circuit de puissance (${volt})`,
+          desc: `Raccordez <strong>${source}</strong> sur la borne <strong>COM</strong> (Commun) du relais, et le fil positif (+) de l'appareil sur la borne <strong>NO</strong> (Normalement Ouvert). Le fil négatif (-) de l'appareil retourne à la masse (0V / GND).`
         }
       ];
     },
-    schematic: (gpio, volt) => `
-      <svg viewBox="0 0 540 160" width="100%" height="150" style="max-width:540px; font-family:monospace;">
-        <rect x="20" y="25" width="120" height="110" rx="8" fill="#151e32" stroke="#2dd4bf" stroke-width="2"/>
-        <text x="80" y="50" fill="#2dd4bf" font-size="12" font-weight="bold" text-anchor="middle">ESP32</text>
-        <circle cx="130" cy="80" r="5" fill="#2dd4bf"/>
-        <text x="120" y="84" fill="#f8fafc" font-size="10" text-anchor="end">GPIO ${gpio}</text>
-        <circle cx="130" cy="110" r="5" fill="#0ea5e9"/>
-        <text x="120" y="114" fill="#8b98a5" font-size="10" text-anchor="end">GND</text>
+    schematic: (gpio, volt) => {
+      const vccLabel = (volt === '3.3V') ? '3.3V' : 'VIN (5V)';
+      const pwrLabel = (volt === '12V') ? '+12V BAT' : (volt === '5V' ? '+5V ALIM' : '+3.3V');
+      return `
+      <svg viewBox="0 0 540 180" width="100%" height="170" style="max-width:540px; font-family:monospace;">
+        <!-- Boîtier ESP32 -->
+        <rect x="15" y="20" width="120" height="140" rx="8" fill="#151e32" stroke="#2dd4bf" stroke-width="2"/>
+        <text x="75" y="42" fill="#2dd4bf" font-size="12" font-weight="bold" text-anchor="middle">ESP32</text>
+        
+        <circle cx="125" cy="60" r="4" fill="#ef4444"/>
+        <text x="115" y="64" fill="#ef4444" font-size="9" text-anchor="end">${vccLabel}</text>
+        
+        <circle cx="125" cy="85" r="4" fill="#2dd4bf"/>
+        <text x="115" y="89" fill="#f8fafc" font-size="9" text-anchor="end">GPIO ${gpio}</text>
+        
+        <circle cx="125" cy="110" r="4" fill="#0ea5e9"/>
+        <text x="115" y="114" fill="#8b98a5" font-size="9" text-anchor="end">GND</text>
 
-        <path d="M135 80 L230 80" stroke="#2dd4bf" stroke-width="2.5" stroke-dasharray="4" fill="none"/>
-        <text x="180" y="72" fill="#2dd4bf" font-size="9" text-anchor="middle">SIGNAL</text>
+        <!-- Lignes ESP32 -> Module Relais -->
+        <path d="M130 60 L210 60" stroke="#ef4444" stroke-width="2" fill="none"/>
+        <text x="170" y="53" fill="#ef4444" font-size="8" text-anchor="middle">VCC</text>
 
-        <path d="M135 110 L230 110" stroke="#0ea5e9" stroke-width="2" fill="none"/>
-        <text x="180" y="125" fill="#0ea5e9" font-size="9" text-anchor="middle">GND</text>
+        <path d="M130 85 L210 85" stroke="#2dd4bf" stroke-width="2.5" stroke-dasharray="3" fill="none"/>
+        <text x="170" y="79" fill="#2dd4bf" font-size="8" text-anchor="middle">IN</text>
 
-        <rect x="230" y="25" width="140" height="110" rx="8" fill="#1c273e" stroke="#0ea5e9" stroke-width="2"/>
-        <text x="300" y="48" fill="#0ea5e9" font-size="11" font-weight="bold" text-anchor="middle">MODULE RELAIS</text>
-        <text x="240" y="84" fill="#2dd4bf" font-size="10">IN</text>
-        <text x="240" y="114" fill="#0ea5e9" font-size="10">GND</text>
-        <text x="360" y="84" fill="#fb923c" font-size="10" text-anchor="end">COM</text>
-        <text x="360" y="114" fill="#fb923c" font-size="10" text-anchor="end">NO</text>
+        <path d="M130 110 L210 110" stroke="#0ea5e9" stroke-width="2" fill="none"/>
+        <text x="170" y="122" fill="#0ea5e9" font-size="8" text-anchor="middle">GND</text>
 
-        <path d="M370 80 L420 80 L420 40 L450 40" stroke="#fb923c" stroke-width="2.5" fill="none"/>
-        <text x="435" y="32" fill="#fb923c" font-size="9" text-anchor="middle">+${volt}</text>
+        <!-- Module Relais -->
+        <rect x="210" y="20" width="145" height="140" rx="8" fill="#1c273e" stroke="#0ea5e9" stroke-width="2"/>
+        <text x="282" y="40" fill="#0ea5e9" font-size="11" font-weight="bold" text-anchor="middle">MODULE RELAIS</text>
+        
+        <text x="218" y="64" fill="#ef4444" font-size="9">VCC</text>
+        <text x="218" y="89" fill="#2dd4bf" font-size="9">IN</text>
+        <text x="218" y="114" fill="#0ea5e9" font-size="9">GND</text>
+        
+        <text x="345" y="74" fill="#fb923c" font-size="9" text-anchor="end">COM</text>
+        <text x="345" y="104" fill="#fb923c" font-size="9" text-anchor="end">NO</text>
 
-        <path d="M370 110 L450 110" stroke="#fb923c" stroke-width="2.5" fill="none"/>
+        <!-- Alimentation Puissance externe vers COM -->
+        <path d="M290 148 L290 162 L390 162 L390 70 L350 70" stroke="#ef4444" stroke-width="2" fill="none"/>
+        <circle cx="390" cy="70" r="3" fill="#ef4444"/>
+        <text x="340" y="174" fill="#ef4444" font-size="9" text-anchor="middle">ALIM (${pwrLabel})</text>
 
-        <rect x="450" y="25" width="80" height="110" rx="8" fill="#151e32" stroke="#fb923c" stroke-width="2"/>
-        <text x="490" y="75" fill="#f8fafc" font-size="11" font-weight="bold" text-anchor="middle">APPAREIL</text>
-        <text x="490" y="95" fill="#fb923c" font-size="10" text-anchor="middle">(${volt})</text>
+        <!-- Ligne NO vers (+) Appareil -->
+        <path d="M350 100 L420 100" stroke="#fb923c" stroke-width="2.5" fill="none"/>
+        <text x="385" y="93" fill="#fb923c" font-size="8" text-anchor="middle">Phase (+)</text>
+
+        <!-- Boîtier Appareil -->
+        <rect x="420" y="30" width="105" height="110" rx="8" fill="#151e32" stroke="#fb923c" stroke-width="2"/>
+        <text x="472" y="52" fill="#f8fafc" font-size="11" font-weight="bold" text-anchor="middle">APPAREIL</text>
+        <text x="472" y="68" fill="#fb923c" font-size="10" text-anchor="middle">(${volt})</text>
+        
+        <text x="428" y="104" fill="#fb923c" font-size="9">(+)</text>
+        <text x="428" y="128" fill="#0ea5e9" font-size="9">(-)</text>
+
+        <!-- Retour Masse Appareil vers GND -->
+        <path d="M420 125 L380 125 L380 145 L130 145" stroke="#0ea5e9" stroke-width="2" stroke-dasharray="3" fill="none"/>
+        <text x="250" y="141" fill="#0ea5e9" font-size="8" text-anchor="middle">Retour Masse GND (0V)</text>
       </svg>
-    `
+      `;
+    }
   },
 
   "ACTUATOR_OUTPUT_PWM": {
@@ -1515,9 +1561,9 @@ const WIRING_TUTORIALS = {
         if (currentLang === 'es') return `<strong>CONTROL LÓGICO DIRECTO (${volt}):</strong> Su equipo dispone de un cable de señal PWM dedicado. Conecte la alimentación (+${volt} y GND) y el cable de señal directamente al GPIO del ESP32. <u>¡NUNCA conecte el cable de alimentación al pin GPIO!</u>`;
         return `<strong>COMMANDE LOGIQUE DIRECTE (${volt}) :</strong> Votre appareil possède un fil de commande PWM séparé de son alimentation. Reliez son alimentation (+${volt} et GND), puis branchez le fil SIGNAL directement sur le GPIO. <u>Ne reliez JAMAIS le fil d'alimentation puissance (+${volt}) sur la broche GPIO !</u>`;
       }
-      if (currentLang === 'en') return `<strong>MOSFET REQUIRED (${volt}):</strong> For a 2-wire device where PWM power is chopped, use a 3.3V logic-level compatible MOSFET module. Power the MOSFET with nominal voltage (${volt}).`;
-      if (currentLang === 'es') return `<strong>MÓDULO MOSFET REQUERIDO (${volt}):</strong> Para un equipo de 2 hilos donde la potencia es modulada, use un módulo MOSFET compatible con nivel lógico de 3.3V. Alimente el MOSFET con su voltaje (${volt}).`;
-      return `<strong>MODULE MOSFET OBLIGATOIRE (${volt}) :</strong> Pour un appareil 2 fils dont la puissance est modulée par découpage, utilisez un module MOSFET compatible commande 3.3V (Logic-Level). Alimentez le MOSFET avec votre tension nominale (${volt}).`;
+      if (currentLang === 'en') return `<strong>MOSFET REQUIRED (${volt}):</strong> For a 2-wire device where PWM power is chopped, use a 3.3V logic-level compatible MOSFET module. Connect power input (DC+ & DC-) to your ${volt} supply and wire the ESP32 PWM control and GND to the MOSFET input.`;
+      if (currentLang === 'es') return `<strong>MÓDULO MOSFET REQUERIDO (${volt}):</strong> Para un equipo de 2 hilos donde la potencia es modulada, use un módulo MOSFET compatible con nivel lógico de 3.3V. Conecte la alimentación (DC+ y DC-) a su fuente de ${volt} y conecte el control PWM y GND del ESP32.`;
+      return `<strong>MODULE MOSFET OBLIGATOIRE (${volt}) :</strong> Pour un appareil 2 fils dont la puissance est modulée par découpage, utilisez un module MOSFET compatible commande 3.3V (Logic-Level). Raccordez l'alimentation de puissance (DC+ et DC-) à votre source ${volt}, et la commande PWM + GND de l'ESP32 sur l'entrée logique.`;
     },
     steps: (gpio, volt, wiringType) => {
       if (wiringType === 'DEDICATED_SIGNAL') {
@@ -1576,52 +1622,52 @@ const WIRING_TUTORIALS = {
       }
 
       if (currentLang === 'en') {
-        const source = (volt === '12V') ? 'to +12V of your battery' : (volt === '5V' ? 'to +5V (VIN or PSU)' : 'to +3.3V');
+        const pwrSrc = (volt === '12V') ? '+12V auxiliary battery' : (volt === '5V' ? '+5V power supply (or VIN)' : '+3.3V rail');
         return [
           {
-            title: "1. Common ground (GND)",
-            desc: "Connect the <strong>GND (Signal)</strong> terminal of the MOSFET module to a <strong>GND</strong> pin of the ESP32 to ensure proper gate triggering."
+            title: "1. Logic Control from ESP32 (PWM & GND)",
+            desc: `Connect the MOSFET <strong>PWM / TRIG / IN</strong> terminal to <span class="step-tag">GPIO {{GPIO}}</span> and the MOSFET <strong>GND (Signal)</strong> to an ESP32 <strong>GND</strong> pin.`
           },
           {
-            title: `2. Power supply (${volt})`,
-            desc: `Connect <strong>DC+ / VIN+</strong> input ${source}, and <strong>DC- / VIN-</strong> to ground (0V). Then connect your 2-wire device (${volt}) to output terminals <strong>OUT+</strong> and <strong>OUT-</strong>.`
+            title: `2. MOSFET Power Supply Input (${volt})`,
+            desc: `Connect the power input <strong>DC+ / VIN+</strong> to ${pwrSrc}, and <strong>DC- / VIN-</strong> to common ground (0V / GND).`
           },
           {
-            title: "3. PWM signal connection",
-            desc: `Connect the <strong>PWM / TRIG / IN</strong> terminal of the MOSFET directly to <span class="step-tag">GPIO {{GPIO}}</span> of the ESP32.`
+            title: "3. 2-Wire Device Output Connection",
+            desc: "Connect the device positive wire (+) to <strong>OUT+</strong> and the device negative wire (-) to <strong>OUT-</strong> (switched ground output)."
           }
         ];
       }
       if (currentLang === 'es') {
-        const source = (volt === '12V') ? 'al +12V de su batería' : (volt === '5V' ? 'al +5V (borne VIN o fuente)' : 'al +3.3V');
+        const pwrSrc = (volt === '12V') ? 'batería auxiliar +12V' : (volt === '5V' ? 'fuente +5V (o VIN)' : 'línea de +3.3V');
         return [
           {
-            title: "1. Masa común (GND)",
-            desc: "Conecte el borne <strong>GND (Señal)</strong> del módulo MOSFET a un pin <strong>GND</strong> del ESP32 para asegurar el disparo de la compuerta (Gate)."
+            title: "1. Control Lógico desde ESP32 (PWM y GND)",
+            desc: `Conecte el borne <strong>PWM / TRIG / IN</strong> del MOSFET al pin <span class="step-tag">GPIO {{GPIO}}</span> y el borne <strong>GND (Señal)</strong> a un pin <strong>GND</strong> del ESP32.`
           },
           {
-            title: `2. Alimentación de potencia (${volt})`,
-            desc: `Conecte la entrada <strong>DC+ / VIN+</strong> ${source}, y <strong>DC- / VIN-</strong> a masa (0V). Luego conecte su equipo de 2 hilos (${volt}) a las salidas <strong>OUT+</strong> y <strong>OUT-</strong>.`
+            title: `2. Alimentación de Potencia del MOSFET (${volt})`,
+            desc: `Conecte la entrada de potencia <strong>DC+ / VIN+</strong> a ${pwrSrc}, y <strong>DC- / VIN-</strong> a masa común (0V / GND).`
           },
           {
-            title: "3. Conexión de señal PWM",
-            desc: `Conecte el borne <strong>PWM / TRIG / IN</strong> del MOSFET directamente al <span class="step-tag">GPIO {{GPIO}}</span> del ESP32.`
+            title: "3. Conexión de Salida del Equipo (2 Hilos)",
+            desc: "Conecte el cable positivo (+) del equipo a <strong>OUT+</strong> y el cable negativo (-) a <strong>OUT-</strong> (masa conmutada por el MOSFET)."
           }
         ];
       }
-      const source = (volt === '12V') ? 'au +12V de votre batterie' : (volt === '5V' ? 'au +5V (borne VIN ou alim)' : 'au +3.3V');
+      const pwrSrc = (volt === '12V') ? 'le +12V de votre batterie auxiliaire' : (volt === '5V' ? 'votre alimentation +5V (ou borne VIN)' : 'le rail +3.3V');
       return [
         {
-          title: "1. Masse commune (GND)",
-          desc: "Reliez la borne <strong>GND (Signal)</strong> du module MOSFET à une broche <strong>GND</strong> de l'ESP32 pour assurer le bon déclenchement de la grille (Gate)."
+          title: "1. Commande logique depuis l'ESP32 (PWM & GND)",
+          desc: `Reliez la borne <strong>PWM / TRIG / IN</strong> du MOSFET sur la broche <span class="step-tag">GPIO {{GPIO}}</span> et la borne <strong>GND (Signal)</strong> sur une broche <strong>GND</strong> de l'ESP32.`
         },
         {
-          title: `2. Alimentation de puissance (${volt})`,
-          desc: `Raccordez l'entrée <strong>DC+ / VIN+</strong> ${source}, et <strong>DC- / VIN-</strong> à la masse (0V). Branchez ensuite votre équipement 2 fils (${volt}) sur les bornes de sortie <strong>OUT+</strong> et <strong>OUT-</strong>.`
+          title: `2. Alimentation de puissance du MOSFET (${volt})`,
+          desc: `Raccordez l'entrée de puissance <strong>DC+ / VIN+</strong> sur ${pwrSrc}, et l'entrée <strong>DC- / VIN-</strong> sur la masse commune (0V / GND).`
         },
         {
-          title: "3. Raccordement du signal PWM",
-          desc: `Reliez la borne <strong>PWM / TRIG / IN</strong> du MOSFET directement sur la broche <span class="step-tag">GPIO {{GPIO}}</span> de l'ESP32.`
+          title: "3. Raccordement de l'appareil 2 fils en sortie",
+          desc: "Branchez le fil positif (+) de l'appareil sur la borne <strong>OUT+</strong> et le fil négatif (-) sur la borne <strong>OUT-</strong> (masse hachée/commutée par le MOSFET)."
         }
       ];
     },
@@ -1661,34 +1707,68 @@ const WIRING_TUTORIALS = {
         `;
       }
 
+      const pwrSourceLabel = (volt === '12V') ? '+12V BAT' : (volt === '5V' ? '+5V ALIM' : '+3.3V');
       return `
-      <svg viewBox="0 0 540 160" width="100%" height="150" style="max-width:540px; font-family:monospace;">
-        <rect x="20" y="25" width="120" height="110" rx="8" fill="#151e32" stroke="#2dd4bf" stroke-width="2"/>
-        <text x="80" y="50" fill="#2dd4bf" font-size="12" font-weight="bold" text-anchor="middle">ESP32</text>
-        <circle cx="130" cy="80" r="5" fill="#a855f7"/>
-        <text x="120" y="84" fill="#f8fafc" font-size="10" text-anchor="end">GPIO ${gpio}</text>
-        <circle cx="130" cy="110" r="5" fill="#0ea5e9"/>
-        <text x="120" y="114" fill="#8b98a5" font-size="10" text-anchor="end">GND</text>
+      <svg viewBox="0 0 540 180" width="100%" height="170" style="max-width:540px; font-family:monospace;">
+        <!-- Boîtier ESP32 -->
+        <rect x="15" y="20" width="115" height="135" rx="8" fill="#151e32" stroke="#2dd4bf" stroke-width="2"/>
+        <text x="72" y="45" fill="#2dd4bf" font-size="12" font-weight="bold" text-anchor="middle">ESP32</text>
+        
+        <circle cx="120" cy="75" r="4" fill="#a855f7"/>
+        <text x="110" y="79" fill="#f8fafc" font-size="9" text-anchor="end">GPIO ${gpio}</text>
+        
+        <circle cx="120" cy="110" r="4" fill="#0ea5e9"/>
+        <text x="110" y="114" fill="#8b98a5" font-size="9" text-anchor="end">GND</text>
 
-        <path d="M135 80 L230 80" stroke="#a855f7" stroke-width="2.5" stroke-dasharray="3" fill="none"/>
-        <text x="180" y="72" fill="#a855f7" font-size="9" text-anchor="middle">PWM</text>
+        <!-- Lignes Commande Logique ESP32 -> MOSFET -->
+        <path d="M125 75 L200 75" stroke="#a855f7" stroke-width="2.5" stroke-dasharray="3" fill="none"/>
+        <text x="160" y="68" fill="#a855f7" font-size="8" text-anchor="middle">PWM</text>
 
-        <path d="M135 110 L230 110" stroke="#0ea5e9" stroke-width="2" fill="none"/>
-        <text x="180" y="125" fill="#0ea5e9" font-size="9" text-anchor="middle">GND</text>
+        <path d="M125 110 L200 110" stroke="#0ea5e9" stroke-width="2" fill="none"/>
+        <text x="160" y="122" fill="#0ea5e9" font-size="8" text-anchor="middle">GND</text>
 
-        <rect x="230" y="25" width="140" height="110" rx="8" fill="#1c273e" stroke="#a855f7" stroke-width="2"/>
-        <text x="300" y="48" fill="#a855f7" font-size="11" font-weight="bold" text-anchor="middle">MODULE MOSFET</text>
-        <text x="240" y="84" fill="#a855f7" font-size="10">PWM IN</text>
-        <text x="240" y="114" fill="#0ea5e9" font-size="10">GND</text>
-        <text x="360" y="84" fill="#fb923c" font-size="10" text-anchor="end">OUT +</text>
-        <text x="360" y="114" fill="#8b98a5" font-size="10" text-anchor="end">OUT -</text>
+        <!-- Module MOSFET -->
+        <rect x="200" y="15" width="170" height="145" rx="8" fill="#1c273e" stroke="#a855f7" stroke-width="2"/>
+        <text x="285" y="35" fill="#a855f7" font-size="11" font-weight="bold" text-anchor="middle">MODULE MOSFET</text>
+        
+        <!-- Bornes Entrée Commande -->
+        <text x="208" y="79" fill="#a855f7" font-size="9">PWM IN</text>
+        <text x="208" y="114" fill="#0ea5e9" font-size="9">GND SIG</text>
 
-        <path d="M370 80 L450 80" stroke="#fb923c" stroke-width="2.5" fill="none"/>
-        <path d="M370 110 L450 110" stroke="#8b98a5" stroke-width="2" fill="none"/>
+        <!-- Bornes Entrée Puissance Alimentation -->
+        <circle cx="250" cy="148" r="4" fill="#ef4444"/>
+        <text x="250" y="142" fill="#ef4444" font-size="8" text-anchor="middle">DC+ IN</text>
 
-        <rect x="450" y="25" width="80" height="110" rx="8" fill="#151e32" stroke="#a855f7" stroke-width="2"/>
-        <text x="490" y="75" fill="#f8fafc" font-size="11" font-weight="bold" text-anchor="middle">APPAREIL 2 FILS</text>
-        <text x="490" y="95" fill="#a855f7" font-size="10" text-anchor="middle">(${volt})</text>
+        <circle cx="320" cy="148" r="4" fill="#0ea5e9"/>
+        <text x="320" y="142" fill="#0ea5e9" font-size="8" text-anchor="middle">DC- IN</text>
+
+        <!-- Alimentation Puissance externe vers MOSFET -->
+        <path d="M250 152 L250 168 L150 168" stroke="#ef4444" stroke-width="2" fill="none"/>
+        <text x="150" y="174" fill="#ef4444" font-size="8" text-anchor="end">${pwrSourceLabel}</text>
+
+        <path d="M320 152 L320 168 L370 168" stroke="#0ea5e9" stroke-width="2" fill="none"/>
+        <text x="375" y="174" fill="#0ea5e9" font-size="8">GND (0V)</text>
+
+        <!-- Bornes Sortie Charge -->
+        <text x="362" y="79" fill="#fb923c" font-size="9" text-anchor="end">OUT +</text>
+        <text x="362" y="114" fill="#8b98a5" font-size="9" text-anchor="end">OUT -</text>
+
+        <!-- Lignes Sortie vers Appareil 2 Fils -->
+        <path d="M370 75 L430 75" stroke="#fb923c" stroke-width="2.5" fill="none"/>
+        <text x="400" y="68" fill="#fb923c" font-size="8" text-anchor="middle">OUT (+)</text>
+
+        <path d="M370 110 L430 110" stroke="#8b98a5" stroke-width="2" fill="none"/>
+        <text x="400" y="122" fill="#8b98a5" font-size="8" text-anchor="middle">OUT (-)</text>
+
+        <!-- Boîtier Appareil 2 Fils -->
+        <rect x="430" y="25" width="95" height="125" rx="8" fill="#151e32" stroke="#a855f7" stroke-width="2"/>
+        <text x="477" y="50" fill="#f8fafc" font-size="10" font-weight="bold" text-anchor="middle">APPAREIL</text>
+        <text x="477" y="65" fill="#f8fafc" font-size="10" font-weight="bold" text-anchor="middle">2 FILS</text>
+        <text x="477" y="82" fill="#a855f7" font-size="9" text-anchor="middle">(${volt})</text>
+        
+        <text x="438" y="79" fill="#fb923c" font-size="9">(+)</text>
+        <text x="438" y="114" fill="#8b98a5" font-size="9">(-)</text>
+        <text x="477" y="138" fill="#8b98a5" font-size="7" text-anchor="middle">(Ventilo/LED/Hatch)</text>
       </svg>
       `;
     }
@@ -2270,10 +2350,18 @@ async function openAddSensorModal() {
   document.getElementById('modal-title').innerText = t('modal_dev_title', "1. Déclarer un équipement");
   document.getElementById('device-name').value = "";
   document.getElementById('device-category').value = "SENSOR";
-  document.getElementById('btn-submit-step1').innerText = t('btn_next_wire', "Suivant : Câbler sur la carte");
+  
+  const directSaveBtn = document.getElementById('btn-save-direct');
+  if (directSaveBtn) directSaveBtn.style.display = 'none';
+  const nextBtn = document.getElementById('btn-submit-step1');
+  if (nextBtn) {
+    nextBtn.className = 'btn-primary';
+    nextBtn.innerText = t('btn_next_wire', "Suivant : Câbler sur la carte");
+  }
+
   onCategoryChange();
-  await populatePinSelect();
   document.getElementById('device-modal').classList.add('active');
+  await populatePinSelect();
 }
 
 async function openAddActuatorModal() {
@@ -2282,10 +2370,18 @@ async function openAddActuatorModal() {
   document.getElementById('modal-title').innerText = t('modal_dev_title', "1. Déclarer un équipement");
   document.getElementById('device-name').value = "";
   document.getElementById('device-category').value = "ACTUATOR";
-  document.getElementById('btn-submit-step1').innerText = t('btn_next_wire', "Suivant : Câbler sur la carte");
+  
+  const directSaveBtn = document.getElementById('btn-save-direct');
+  if (directSaveBtn) directSaveBtn.style.display = 'none';
+  const nextBtn = document.getElementById('btn-submit-step1');
+  if (nextBtn) {
+    nextBtn.className = 'btn-primary';
+    nextBtn.innerText = t('btn_next_wire', "Suivant : Câbler sur la carte");
+  }
+
   onCategoryChange();
-  await populatePinSelect();
   document.getElementById('device-modal').classList.add('active');
+  await populatePinSelect();
 }
 
 function openAddSystemModal() {
@@ -2428,23 +2524,23 @@ function updateClimateOperationalView() {
       checklist.innerHTML = `
         <div class="incomplete-slot-item ${hasAir ? 'ok' : 'missing'}">
           <span class="incomplete-slot-name">${t('slot_air_name', 'Sonde Température Air')} (${t('slot_req', 'Requis')})</span>
-          <span class="incomplete-slot-status ${hasAir ? 'ok' : 'missing'}">${hasAir ? '✓ OK' : '✗ ' + t('slot_unassigned', 'Non assigné')}</span>
+          <span class="incomplete-slot-status ${hasAir ? 'ok' : 'missing'}">${hasAir ? 'OK' : '! ' + t('slot_unassigned', 'Non assigné')}</span>
         </div>
         <div class="incomplete-slot-item ${hasFan ? 'ok' : 'missing'}">
           <span class="incomplete-slot-name">${t('slot_fan_name', 'Ventilateur / Pulseur')} (${t('slot_req', 'Requis')})</span>
-          <span class="incomplete-slot-status ${hasFan ? 'ok' : 'missing'}">${hasFan ? '✓ OK' : '✗ ' + t('slot_unassigned', 'Non assigné')}</span>
+          <span class="incomplete-slot-status ${hasFan ? 'ok' : 'missing'}">${hasFan ? 'OK' : '! ' + t('slot_unassigned', 'Non assigné')}</span>
         </div>
         <div class="incomplete-slot-item ${hasPump ? 'ok' : 'missing'}">
           <span class="incomplete-slot-name">${t('slot_pump_name', 'Pompe de Circulation')} (${t('slot_req', 'Requis')})</span>
-          <span class="incomplete-slot-status ${hasPump ? 'ok' : 'missing'}">${hasPump ? '✓ OK' : '✗ ' + t('slot_unassigned', 'Non assigné')}</span>
+          <span class="incomplete-slot-status ${hasPump ? 'ok' : 'missing'}">${hasPump ? 'OK' : '! ' + t('slot_unassigned', 'Non assigné')}</span>
         </div>
         <div class="incomplete-slot-item ${hasComp ? 'ok' : 'missing'}">
           <span class="incomplete-slot-name">${t('slot_comp_name', 'Compresseur de Froid')} (${t('slot_req', 'Requis')})</span>
-          <span class="incomplete-slot-status ${hasComp ? 'ok' : 'missing'}">${hasComp ? '✓ OK' : '✗ ' + t('slot_unassigned', 'Non assigné')}</span>
+          <span class="incomplete-slot-status ${hasComp ? 'ok' : 'missing'}">${hasComp ? 'OK' : '! ' + t('slot_unassigned', 'Non assigné')}</span>
         </div>
         <div class="incomplete-slot-item ${hasWater ? 'ok' : 'missing'}">
           <span class="incomplete-slot-name">${t('slot_water_name', 'Sonde Température Eau')} (${t('slot_opt', 'Optionnel')})</span>
-          <span class="incomplete-slot-status ${hasWater ? 'ok' : 'missing'}">${b.temp_water_id ? (hasWater ? '✓ OK' : '✗ Invalide') : '— ' + t('slot_opt', 'Optionnel')}</span>
+          <span class="incomplete-slot-status ${hasWater ? 'ok' : 'missing'}">${b.temp_water_id ? (hasWater ? 'OK' : '! Invalide') : '- ' + t('slot_opt', 'Optionnel')}</span>
         </div>
       `;
     }
@@ -2489,7 +2585,7 @@ function renderSystemsCards(systems) {
       const badgeClass = isBound ? 'bound' : (isRequired ? 'missing' : 'optional');
       const badgeText = isBound 
         ? `GPIO ${boundDev.gpio} • ${boundDev.name}` 
-        : (isRequired ? `🔴 ${t('system_status_incomplete', 'Non assigné')}` : `⚪ ${t('slot_opt', 'Optionnel')}`);
+        : (isRequired ? `! ${t('system_status_incomplete', 'Non assigné')}` : `- ${t('slot_opt', 'Optionnel')}`);
 
       const optionsHtml = candidates.map(d => {
         const sel = (d.id === boundDevId) ? 'selected' : '';
@@ -2515,7 +2611,7 @@ function renderSystemsCards(systems) {
 
           <div class="slot-actions">
             <button class="btn-slot-wire" onclick="wireNewDeviceForSlot('${sys.id}', '${slotKey}')">
-              ${t('btn_wire_assign', '⚡ Assigner & Câbler')}
+              ${t('btn_wire_assign', 'Assigner & Câbler')}
             </button>
             ${isBound ? `<button class="btn-slot-unbind" onclick="unbindSlot('${sys.id}', '${slotKey}')" title="${t('btn_unbind', 'Détacher')}">✕</button>` : ''}
           </div>
@@ -2770,7 +2866,11 @@ function renderDeviceTable(devices) {
     let testBtnHtml = '';
     const activeTest = tableTestTimers[dev.id];
     if (activeTest) {
-      testBtnHtml = `<button class="action-btn test-btn testing" id="btn-test-${dev.id}" disabled title="${t('btn_test', 'Tester')}">${t('test_running_sec', 'En marche ({sec}s)...').replace('{sec}', activeTest.remaining)}</button>`;
+      const cls = (activeTest.phase === 'warn') ? 'warning-pulse' : 'testing';
+      const label = (activeTest.phase === 'warn')
+        ? t('test_btn_caution_sec', 'Attention ({sec}s)...').replace('{sec}', activeTest.remaining)
+        : t('test_running_sec', 'En marche ({sec}s)...').replace('{sec}', activeTest.remaining);
+      testBtnHtml = `<button class="action-btn test-btn ${cls}" id="btn-test-${dev.id}" disabled title="${t('btn_test', 'Tester')}">${label}</button>`;
     } else {
       testBtnHtml = `
         <button class="action-btn test-btn" id="btn-test-${dev.id}" title="${t('btn_test', 'Tester')}" onclick="testDevice(${dev.id}, this)">
@@ -2928,28 +3028,44 @@ async function openAddDeviceModal() {
   document.getElementById('modal-title').innerText = t('modal_dev_title', "1. Déclarer un équipement");
   document.getElementById('device-name').value = "";
   document.getElementById('device-category').value = "ACTUATOR";
-  document.getElementById('btn-submit-step1').innerText = t('btn_next_wire', "Suivant : Câbler sur la carte");
+  
+  const directSaveBtn = document.getElementById('btn-save-direct');
+  if (directSaveBtn) directSaveBtn.style.display = 'none';
+  const nextBtn = document.getElementById('btn-submit-step1');
+  if (nextBtn) {
+    nextBtn.className = 'btn-primary';
+    nextBtn.innerText = t('btn_next_wire', "Suivant : Câbler sur la carte");
+  }
   
   onCategoryChange();
-  await populatePinSelect();
-
   document.getElementById('device-modal').classList.add('active');
+  await populatePinSelect();
 }
 
 /**
  * Ouvre la modale pour modifier un équipement existant
  */
 async function openEditDeviceModal(id) {
-  const dev = devicesList.find(d => d.id === id);
-  if (!dev) return;
+  const dev = devicesList.find(d => Number(d.id) === Number(id));
+  if (!dev) {
+    showToast("Équipement introuvable", "warning");
+    return;
+  }
 
   wizardState.id = dev.id;
-  wizardState.isCore = dev.isCore;
+  wizardState.isCore = dev.isCore || false;
 
   document.getElementById('modal-title').innerText = `${t('modal_dev_title_edit', "Modifier l'équipement")} : ${dev.name}`;
   document.getElementById('device-name').value = dev.name;
   document.getElementById('device-category').value = dev.category || 'ACTUATOR';
-  document.getElementById('btn-submit-step1').innerText = t('btn_next_wire', "Suivant : Câbler sur la carte");
+
+  const directSaveBtn = document.getElementById('btn-save-direct');
+  if (directSaveBtn) directSaveBtn.style.display = 'inline-flex';
+  const nextBtn = document.getElementById('btn-submit-step1');
+  if (nextBtn) {
+    nextBtn.className = 'btn-secondary';
+    nextBtn.innerText = t('btn_see_wiring', "Voir le Schéma");
+  }
 
   onCategoryChange();
   document.getElementById('device-signal-mode').value = dev.mode || 'OUTPUT_RELAY';
@@ -2964,8 +3080,72 @@ async function openEditDeviceModal(id) {
     }
   }
 
-  await populatePinSelect(dev.gpio);
   document.getElementById('device-modal').classList.add('active');
+  await populatePinSelect(dev.gpio);
+}
+
+/**
+ * Enregistrement direct des modifications depuis la modale
+ */
+async function saveDeviceFromModal() {
+  const name = document.getElementById('device-name').value.trim();
+  const category = document.getElementById('device-category').value;
+  const voltage = document.getElementById('device-voltage').value;
+  const mode = document.getElementById('device-signal-mode').value;
+  const gpioSelect = document.getElementById('device-gpio').value;
+
+  if (!name) {
+    showToast(t('toast_name_required', "Le nom de l'équipement est requis."), "error");
+    return;
+  }
+
+  let finalGpio = (gpioSelect === 'auto') ? null : parseInt(gpioSelect, 10);
+  if (finalGpio === null || isNaN(finalGpio)) {
+    if (wizardState.id > 0) {
+      const existing = devicesList.find(d => Number(d.id) === Number(wizardState.id));
+      if (existing) finalGpio = existing.gpio;
+    }
+    if (!finalGpio) {
+      try {
+        const data = await fetchApi(`/api/pins/suggest?type=${mode}`);
+        if (data && data.success && data.gpio) finalGpio = data.gpio;
+      } catch(e) {}
+    }
+  }
+
+  if (!finalGpio) {
+    showToast("Veuillez sélectionner une broche GPIO.", "error");
+    return;
+  }
+
+  const payload = {
+    id: wizardState.id || 0,
+    name: name,
+    category: category,
+    voltage: voltage,
+    mode: mode,
+    gpio: finalGpio,
+    isCore: wizardState.isCore || false
+  };
+
+  try {
+    const res = await fetchApi('/api/devices/save', 'POST', payload);
+    if (!res || !res.success) throw new Error((res && res.error) || "Erreur enregistrement");
+    showToast(`"${name}" : ${t('toast_save_success', 'Configuration sauvegardée avec succès.')}`, "success");
+  } catch (err) {
+    if (wizardState.id > 0) {
+      const existing = devicesList.find(d => Number(d.id) === Number(wizardState.id));
+      if (existing) Object.assign(existing, payload);
+    } else {
+      const newId = devicesList.length > 0 ? Math.max(...devicesList.map(d => d.id)) + 1 : 1;
+      devicesList.push({ ...payload, id: newId, state: 0, value: 0 });
+    }
+    try { localStorage.setItem('climate_pro_sim_devices', JSON.stringify(devicesList)); } catch(e){}
+    showToast(`"${name}" : ${t('toast_save_success', 'Configuration sauvegardée avec succès.')}`, "success");
+  }
+
+  closeDeviceModal();
+  await loadDeviceManager();
 }
 
 function closeDeviceModal() {
@@ -3098,6 +3278,15 @@ async function openWizardModal() {
   const tutKey = `${wizardState.category}_${wizardState.mode}`;
   const tutorial = WIRING_TUTORIALS[tutKey] || WIRING_TUTORIALS["ACTUATOR_OUTPUT_RELAY"];
 
+  const quickSelect = document.getElementById('wizard-tuto-quick-select');
+  if (quickSelect) {
+    if (wizardState.mode === 'OUTPUT_PWM') {
+      quickSelect.value = (wizardState.pwmWiringType === 'DEDICATED_SIGNAL') ? 'ACTUATOR_OUTPUT_PWM_DIRECT' : 'ACTUATOR_OUTPUT_PWM_MOSFET';
+    } else {
+      quickSelect.value = tutKey;
+    }
+  }
+
   // 3. Remplissage de l'alerte sécurité
   const alertBox = document.getElementById('wizard-safety-alert');
   const warningText = (typeof tutorial.warning === 'function') 
@@ -3163,6 +3352,86 @@ function openWizardForExistingDevice(id) {
   openWizardModal();
 }
 
+/**
+ * Ouvre directement le répertoire des tutoriels et schémas de câblage
+ */
+function openWiringTutorialDirectory(presetKey = 'ACTUATOR_OUTPUT_RELAY') {
+  closeUnifiedAddModal();
+
+  const presets = {
+    'ACTUATOR_OUTPUT_RELAY': {
+      id: 0,
+      name: (currentLang === 'en' ? "Relay Actuator (On/Off)" : (currentLang === 'es' ? "Actuador Relé (Todo o Nada)" : "Actionneur Relais (Tout-ou-Rien)")),
+      category: 'ACTUATOR',
+      voltage: '12V',
+      mode: 'OUTPUT_RELAY',
+      pwmWiringType: 'MOSFET_POWER',
+      gpio: 18,
+      isCore: false
+    },
+    'ACTUATOR_OUTPUT_PWM_MOSFET': {
+      id: 0,
+      name: (currentLang === 'en' ? "PWM Dimmer via MOSFET (2-Wire)" : (currentLang === 'es' ? "Regulador PWM vía MOSFET (2 Hilos)" : "Variateur PWM via MOSFET (2 fils)")),
+      category: 'ACTUATOR',
+      voltage: '12V',
+      mode: 'OUTPUT_PWM',
+      pwmWiringType: 'MOSFET_POWER',
+      gpio: 19,
+      isCore: false
+    },
+    'ACTUATOR_OUTPUT_PWM_DIRECT': {
+      id: 0,
+      name: (currentLang === 'en' ? "PWM Actuator with Dedicated Signal (3/4-Wire)" : (currentLang === 'es' ? "Actuador PWM con Señal Dedicada (3/4 Hilos)" : "Actionneur PWM avec Signal Dédié (3/4 fils)")),
+      category: 'ACTUATOR',
+      voltage: '12V',
+      mode: 'OUTPUT_PWM',
+      pwmWiringType: 'DEDICATED_SIGNAL',
+      gpio: 19,
+      isCore: false
+    },
+    'SENSOR_INPUT_ONEWIRE': {
+      id: 0,
+      name: (currentLang === 'en' ? "1-Wire Digital Probe (DS18B20)" : (currentLang === 'es' ? "Sonda Digital 1-Wire (DS18B20)" : "Sonde Numérique 1-Wire (DS18B20)")),
+      category: 'SENSOR',
+      voltage: '3.3V',
+      mode: 'INPUT_ONEWIRE',
+      gpio: 4,
+      isCore: false
+    },
+    'SENSOR_INPUT_ADC_NTC': {
+      id: 0,
+      name: (currentLang === 'en' ? "Resistive Temperature Probe (NTC 10k)" : (currentLang === 'es' ? "Sonda Resistiva de Temperatura (NTC 10k)" : "Sonde Température Résistive (NTC 10k)")),
+      category: 'SENSOR',
+      voltage: '3.3V',
+      mode: 'INPUT_ADC_NTC',
+      gpio: 34,
+      isCore: false
+    },
+    'SENSOR_INPUT_DIGITAL': {
+      id: 0,
+      name: (currentLang === 'en' ? "Dry Contact / Float Switch (Passive)" : (currentLang === 'es' ? "Contacto Seco / Flotador (Pasivo)" : "Contact Sec / Flotteur (Passif)")),
+      category: 'SENSOR',
+      voltage: '3.3V',
+      mode: 'INPUT_DIGITAL',
+      gpio: 21,
+      isCore: false
+    },
+    'SENSOR_INPUT_ADC': {
+      id: 0,
+      name: (currentLang === 'en' ? "Active Analog Sensor (0-3.3V, 3-Wire)" : (currentLang === 'es' ? "Sensor Analógico Activo (0-3.3V, 3 Hilos)" : "Capteur Analogique Actif 3 fils (0-3.3V)")),
+      category: 'SENSOR',
+      voltage: '3.3V',
+      mode: 'INPUT_ADC',
+      gpio: 35,
+      isCore: false
+    }
+  };
+
+  const preset = presets[presetKey] || presets['ACTUATOR_OUTPUT_RELAY'];
+  wizardState = { ...preset };
+  openWizardModal();
+}
+
 let wizardDelayTimer = null;
 let wizardActTimer = null;
 
@@ -3191,36 +3460,53 @@ async function runWizardTest() {
   if (wizardActTimer) { clearInterval(wizardActTimer); wizardActTimer = null; }
 
   if (wizardState.category === 'ACTUATOR') {
-    // --- TEST ACTIONNEUR : Enclenchement immédiat 3s ---
+    // --- TEST ACTIONNEUR : Prévention 5s puis Mise en marche 3s à fond puis Arrêt ---
     btn.disabled = true;
-    statusBox.className = "wizard-test-status testing";
+    statusBox.className = "wizard-test-status warning";
 
-    let actSec = 3;
-    btnText.innerText = t('test_running_sec', 'En marche ({sec}s)...').replace('{sec}', actSec);
-    statusBox.innerHTML = t('test_pulse_active_html', 'Impulsion active sur GPIO {gpio} ({sec}s)...').replace('{gpio}', wizardState.gpio).replace('{sec}', actSec);
-    showToast(t('toast_actuator_test_start', 'Enclenchement immédiat de l\'actionneur (3s)...'), 'info');
+    let warnSec = 5;
+    btnText.innerText = t('test_btn_caution_sec', 'Attention ({sec}s)...').replace('{sec}', warnSec);
+    statusBox.innerHTML = t('test_warn_starting_html', 'Attention : l\'appareil va démarrer dans <strong>{sec} secondes</strong> !').replace('{sec}', warnSec);
+    showToast(t('toast_dev_warn_start_5s', 'Attention : "{name}" va démarrer dans 5 secondes !').replace('{name}', wizardState.name || 'Actionneur'), 'warning');
 
-    // Déclenchement matériel immédiat sur l'ESP32
-    fetchApi('/api/devices/test', 'POST', { 
-      id: wizardState.id, 
-      gpio: wizardState.gpio, 
-      mode: wizardState.mode, 
-      duration: 3000 
-    }).catch(e => console.warn("Erreur test matériel", e));
-
-    wizardActTimer = setInterval(() => {
-      actSec--;
-      if (actSec > 0) {
-        btnText.innerText = t('test_running_sec', 'En marche ({sec}s)...').replace('{sec}', actSec);
-        statusBox.innerHTML = t('test_pulse_active_html', 'Impulsion active sur GPIO {gpio} ({sec}s)...').replace('{gpio}', wizardState.gpio).replace('{sec}', actSec);
+    wizardDelayTimer = setInterval(() => {
+      warnSec--;
+      if (warnSec > 0) {
+        btnText.innerText = t('test_btn_caution_sec', 'Attention ({sec}s)...').replace('{sec}', warnSec);
+        statusBox.innerHTML = t('test_warn_starting_html', 'Attention : l\'appareil va démarrer dans <strong>{sec} secondes</strong> !').replace('{sec}', warnSec);
       } else {
-        clearInterval(wizardActTimer);
-        wizardActTimer = null;
-        statusBox.className = "wizard-test-status success";
-        statusBox.innerHTML = t('test_actuator_validated_html', 'Test validé : Actionneur activé pendant 3 secondes sur GPIO {gpio}.').replace('{gpio}', wizardState.gpio);
-        btn.disabled = false;
-        btnText.innerText = t('test_retest_actuator', "Re-tester l'actionneur");
-        showToast(t('toast_actuator_test_success', "Test actionneur terminé avec succès."), "success");
+        clearInterval(wizardDelayTimer);
+        wizardDelayTimer = null;
+
+        // Phase 2 : Enclenchement 3s à fond (duration 3000)
+        let actSec = 3;
+        btnText.innerText = t('test_running_sec', 'En marche ({sec}s)...').replace('{sec}', actSec);
+        statusBox.className = "wizard-test-status testing";
+        statusBox.innerHTML = t('test_pulse_active_html', 'Impulsion active sur GPIO {gpio} ({sec}s)...').replace('{gpio}', wizardState.gpio).replace('{sec}', actSec);
+        showToast(t('toast_actuator_test_start', 'Enclenchement immédiat de l\'actionneur (3s)...'), 'info');
+
+        fetchApi('/api/devices/test', 'POST', { 
+          id: wizardState.id, 
+          gpio: wizardState.gpio, 
+          mode: wizardState.mode, 
+          duration: 3000 
+        }).catch(e => console.warn("Erreur test matériel", e));
+
+        wizardActTimer = setInterval(() => {
+          actSec--;
+          if (actSec > 0) {
+            btnText.innerText = t('test_running_sec', 'En marche ({sec}s)...').replace('{sec}', actSec);
+            statusBox.innerHTML = t('test_pulse_active_html', 'Impulsion active sur GPIO {gpio} ({sec}s)...').replace('{gpio}', wizardState.gpio).replace('{sec}', actSec);
+          } else {
+            clearInterval(wizardActTimer);
+            wizardActTimer = null;
+            statusBox.className = "wizard-test-status success";
+            statusBox.innerHTML = t('test_actuator_validated_html', 'Test validé : Actionneur activé pendant 3 secondes sur GPIO {gpio}.').replace('{gpio}', wizardState.gpio);
+            btn.disabled = false;
+            btnText.innerText = t('test_retest_actuator', "Re-tester l'actionneur");
+            showToast(t('toast_actuator_test_success', "Test actionneur terminé avec succès."), "success");
+          }
+        }, 1000);
       }
     }, 1000);
 
@@ -3413,42 +3699,77 @@ async function testDevice(id, btnElement) {
     }
 
   } else {
-    // --- TEST ACTIONNEUR : Enclenchement immédiat 3s ---
-    let actSec = 3;
-    tableTestTimers[id] = { remaining: actSec };
+    // --- TEST ACTIONNEUR : Prévention 5s puis Mise en marche 3s à fond puis Arrêt ---
+    let warnSec = 5;
+    tableTestTimers[id] = { phase: 'warn', remaining: warnSec };
 
     const btn = getBtn();
     if (btn) {
       btn.disabled = true;
-      btn.classList.add('testing');
-      btn.innerHTML = t('test_running_sec', 'En marche ({sec}s)...').replace('{sec}', actSec);
+      btn.classList.remove('testing');
+      btn.classList.add('warning-pulse');
+      btn.innerHTML = t('test_btn_caution_sec', 'Attention ({sec}s)...').replace('{sec}', warnSec);
     }
-    showToast(`Test lancé : "${dev.name}" enclenché pendant 3s...`, 'info');
+    showToast(t('toast_dev_warn_start_5s', 'Attention : "{name}" va démarrer dans 5 secondes !').replace('{name}', dev.name), 'warning');
 
-    // Déclenchement matériel immédiat sur l'ESP32
-    fetchApi('/api/devices/test', 'POST', { id: dev.id, duration: 3000 }).catch(e => console.warn("Erreur test actionneur", e));
-
-    tableTestTimers[id].act = setInterval(() => {
-      actSec--;
-      if (tableTestTimers[id]) tableTestTimers[id].remaining = actSec;
+    tableTestTimers[id].delay = setInterval(() => {
+      warnSec--;
+      if (tableTestTimers[id]) tableTestTimers[id].remaining = warnSec;
       const activeBtn = getBtn();
-      if (actSec > 0) {
+
+      if (warnSec > 0) {
         if (activeBtn) {
           activeBtn.disabled = true;
-          activeBtn.classList.add('testing');
-          activeBtn.innerHTML = t('test_running_sec', 'En marche ({sec}s)...').replace('{sec}', actSec);
+          activeBtn.classList.remove('testing');
+          activeBtn.classList.add('warning-pulse');
+          activeBtn.innerHTML = t('test_btn_caution_sec', 'Attention ({sec}s)...').replace('{sec}', warnSec);
         }
       } else {
-        clearInterval(tableTestTimers[id].act);
-        delete tableTestTimers[id];
+        clearInterval(tableTestTimers[id].delay);
 
-        const finalBtn = getBtn();
-        if (finalBtn) {
-          finalBtn.classList.remove('testing', 'warning-pulse');
-          finalBtn.disabled = false;
-          finalBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M7,2V4H8V18A4,4 0 0,0 12,22A4,4 0 0,0 16,18V4H17V2H7M11,16C10.45,16 10,15.55 10,15C10,14.45 10.45,14 11,14C11.55,14 12,14.45 12,15C12,15.55 11.55,16 11,16M13,12C12.45,12 12,11.55 12,11C12,10.45 12.45,10 13,10C13.55,10 14,10.45 14,11C14,11.55 13.55,12 13,12Z"/></svg> ${t('btn_test', 'Tester')}`;
+        // Phase 2 : Enclenchement 3s à fond (duration 3000)
+        let actSec = 3;
+        if (tableTestTimers[id]) {
+          tableTestTimers[id].phase = 'act';
+          tableTestTimers[id].remaining = actSec;
         }
-        showToast(t('toast_dev_test_done', 'Test terminé pour "{name}".').replace('{name}', dev.name), 'success');
+
+        const runBtn = getBtn();
+        if (runBtn) {
+          runBtn.disabled = true;
+          runBtn.classList.remove('warning-pulse');
+          runBtn.classList.add('testing');
+          runBtn.innerHTML = t('test_running_sec', 'En marche ({sec}s)...').replace('{sec}', actSec);
+        }
+        showToast(`Test lancé : "${dev.name}" enclenché pendant 3s...`, 'info');
+
+        // Déclenchement matériel immédiat sur l'ESP32
+        fetchApi('/api/devices/test', 'POST', { id: dev.id, duration: 3000 }).catch(e => console.warn("Erreur test actionneur", e));
+
+        tableTestTimers[id].act = setInterval(() => {
+          actSec--;
+          if (tableTestTimers[id]) tableTestTimers[id].remaining = actSec;
+          const currentBtn = getBtn();
+          if (actSec > 0) {
+            if (currentBtn) {
+              currentBtn.disabled = true;
+              currentBtn.classList.remove('warning-pulse');
+              currentBtn.classList.add('testing');
+              currentBtn.innerHTML = t('test_running_sec', 'En marche ({sec}s)...').replace('{sec}', actSec);
+            }
+          } else {
+            clearInterval(tableTestTimers[id].act);
+            delete tableTestTimers[id];
+
+            const finalBtn = getBtn();
+            if (finalBtn) {
+              finalBtn.classList.remove('testing', 'warning-pulse');
+              finalBtn.disabled = false;
+              finalBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M7,2V4H8V18A4,4 0 0,0 12,22A4,4 0 0,0 16,18V4H17V2H7M11,16C10.45,16 10,15.55 10,15C10,14.45 10.45,14 11,14C11.55,14 12,14.45 12,15C12,15.55 11.55,16 11,16M13,12C12.45,12 12,11.55 12,11C12,10.45 12.45,10 13,10C13.55,10 14,10.45 14,11C14,11.55 13.55,12 13,12Z"/></svg> ${t('btn_test', 'Tester')}`;
+            }
+            showToast(t('toast_dev_test_done', 'Test terminé pour "{name}".').replace('{name}', dev.name), 'success');
+          }
+        }, 1000);
       }
     }, 1000);
   }
@@ -4178,7 +4499,7 @@ function handleIncomingTelemetry(data) {
   if (watchdogBanner) {
     if (data.probe_alert) {
       watchdogBanner.style.display = 'block';
-      watchdogBanner.innerHTML = t('probe_alert_disconnected', "⚠️ ALERTE : Sonde de température déconnectée (-127°C). Sécurité compresseur active.");
+      watchdogBanner.innerHTML = t('probe_alert_disconnected', "ALERTE : Sonde de température déconnectée (-127°C). Sécurité compresseur active.");
     } else if (!watchdogInterval) {
       watchdogBanner.style.display = 'none';
     }
@@ -4734,6 +5055,7 @@ function sendCompressorTimings() {
 }
 
 function loadChartHistory() {
+  const now = Date.now();
   try {
     const raw = localStorage.getItem('climate_chart_history_v2');
     if (raw) {
@@ -4742,7 +5064,12 @@ function loadChartHistory() {
   } catch (e) {
     chartHistoryData = [];
   }
-  if (!Array.isArray(chartHistoryData) || chartHistoryData.length === 0) {
+
+  // Si pas d'historique ou si le dernier point date de plus de 30 minutes (ex: ESP éteint toute la nuit)
+  const isStale = Array.isArray(chartHistoryData) && chartHistoryData.length > 0 && 
+                  (now - chartHistoryData[chartHistoryData.length - 1].time > 30 * 60 * 1000);
+
+  if (!Array.isArray(chartHistoryData) || chartHistoryData.length === 0 || isStale) {
     seedInitialChartHistory();
   }
 }
@@ -4760,8 +5087,8 @@ function seedInitialChartHistory() {
   const now = Date.now();
   chartHistoryData = [];
   const startRoom = (currentRoomTemp !== null && !isNaN(currentRoomTemp)) ? currentRoomTemp : 24.5;
-  const startWater = (typeof targetWaterTemp !== 'undefined' ? targetWaterTemp : 8.0) + 4.5;
-  const target = targetTemp || 21.0;
+  const startWater = (currentWaterTemp !== null && !isNaN(currentWaterTemp)) ? currentWaterTemp : 12.0;
+  const target = (targetTemp !== undefined && !isNaN(targetTemp)) ? targetTemp : 21.0;
   
   // Génère un historique initial propre de 24h (1 point toutes les 5 minutes)
   for (let i = 288; i >= 0; i--) {
@@ -4777,6 +5104,7 @@ function seedInitialChartHistory() {
       target: target
     });
   }
+  saveChartHistory();
 }
 
 function recordChartTelemetry(tAir, tWater, target) {
@@ -4784,9 +5112,22 @@ function recordChartTelemetry(tAir, tWater, target) {
   if (now - lastChartRecordTime < 10000) return; // Échantillonnage à 10 secondes
   lastChartRecordTime = now;
 
-  const validAir = (tAir !== null && tAir !== undefined && !isNaN(tAir)) ? parseFloat(tAir) : (currentRoomTemp || 21.0);
-  const validWater = (tWater !== null && tWater !== undefined && !isNaN(tWater)) ? parseFloat(tWater) : 8.0;
+  const validAir = (tAir !== null && tAir !== undefined && !isNaN(tAir)) ? parseFloat(tAir) : ((currentRoomTemp !== null && !isNaN(currentRoomTemp)) ? currentRoomTemp : 24.5);
+  const validWater = (tWater !== null && tWater !== undefined && !isNaN(tWater)) ? parseFloat(tWater) : ((currentWaterTemp !== null && !isNaN(currentWaterTemp)) ? currentWaterTemp : 12.0);
   const validTarget = (target !== null && target !== undefined && !isNaN(target)) ? parseFloat(target) : targetTemp;
+
+  if (!Array.isArray(chartHistoryData) || chartHistoryData.length === 0) {
+    seedInitialChartHistory();
+  }
+
+  // Si grand trou temporel (> 15 minutes), lier proprement le point
+  if (chartHistoryData.length > 0) {
+    const lastPt = chartHistoryData[chartHistoryData.length - 1];
+    if (now - lastPt.time > 15 * 60 * 1000) {
+      // Re-seed pour garder la continuité fluide
+      seedInitialChartHistory();
+    }
+  }
 
   chartHistoryData.push({
     time: now,
@@ -4797,8 +5138,7 @@ function recordChartTelemetry(tAir, tWater, target) {
 
   saveChartHistory();
   
-  const statsView = document.getElementById('view-stats');
-  if (statsView && statsView.classList.contains('active')) {
+  if (window.myTempChart) {
     updateTempChart();
   }
 }
@@ -4826,14 +5166,28 @@ function setChartTimeWindow(val, btn) {
 }
 
 function updateTempChart() {
-  if (!window.myTempChart || !chartHistoryData || chartHistoryData.length === 0) return;
+  if (!window.myTempChart) return;
+  if (!chartHistoryData || chartHistoryData.length === 0) {
+    loadChartHistory();
+  }
+  if (!chartHistoryData || chartHistoryData.length === 0) return;
 
   const now = Date.now();
   const startTime = (chartTimeWindowMs === Infinity) ? 0 : (now - chartTimeWindowMs);
   
   let filtered = chartHistoryData.filter(pt => pt.time >= startTime);
   if (filtered.length === 0) {
-    filtered = chartHistoryData.slice(-10);
+    filtered = chartHistoryData.slice(-20);
+  }
+
+  // Si 1 seul point, ajouter un point de début pour que Chart.js trace immédiatement la ligne
+  if (filtered.length === 1) {
+    const single = filtered[0];
+    const prevTime = (startTime > 0 && startTime < single.time) ? startTime : (single.time - 60000);
+    filtered = [
+      { time: prevTime, tAir: single.tAir, tWater: single.tWater, target: single.target },
+      single
+    ];
   }
 
   // Échantillonnage maximal pour une fluidité d'affichage optimale
@@ -4899,7 +5253,7 @@ function triggerWatchdogTest() {
 }
 
 function initCharts() {
-  if (chartsInitialized) return;
+  if (chartsInitialized && window.myTempChart) return;
   if (typeof Chart === 'undefined') {
     console.warn("Chart.js non disponible (mode hors ligne / AP Wi-Fi sans accès Internet).");
     return;
@@ -4915,9 +5269,9 @@ function initCharts() {
       data: {
         labels: [],
         datasets: [
-          { label: t('chart_label_air', 'Air Habitacle (°C)'), borderColor: '#2dd4bf', backgroundColor: 'rgba(45,212,191,0.05)', fill: true, data: [] }, 
-          { label: t('chart_label_water', 'Boucle d\'Eau (°C)'), borderColor: '#0ea5e9', backgroundColor: 'rgba(14,165,233,0.05)', fill: true, data: [] },
-          { label: t('chart_label_target', 'Consigne (°C)'), borderColor: '#fb923c', backgroundColor: 'transparent', borderDash: [5, 5], data: [], hidden: !targetEnabled }
+          { label: t('chart_label_air', 'Air Habitacle (°C)'), borderColor: '#2dd4bf', backgroundColor: 'rgba(45,212,191,0.05)', fill: true, data: [], spanGaps: true }, 
+          { label: t('chart_label_water', 'Boucle d\'Eau (°C)'), borderColor: '#0ea5e9', backgroundColor: 'rgba(14,165,233,0.05)', fill: true, data: [], spanGaps: true },
+          { label: t('chart_label_target', 'Consigne (°C)'), borderColor: '#fb923c', backgroundColor: 'transparent', borderDash: [5, 5], data: [], hidden: !targetEnabled, spanGaps: true }
         ]
       },
       options: { 
@@ -4930,7 +5284,7 @@ function initCharts() {
           x: { ticks: { color: '#8b98a5', maxRotation: 45, minRotation: 0 }, grid:{color:'#151e32'} }, 
           y: { ticks: { color: '#8b98a5' }, grid:{color:'#151e32'} } 
         },
-        elements: { line: { tension: 0.3 }, point: { radius: 2, hoverRadius: 5 } }
+        elements: { line: { tension: 0.3 }, point: { radius: 3, hoverRadius: 6 } }
       }
     });
 
@@ -5371,7 +5725,7 @@ async function scanWifiNetworks() {
             data.networks.forEach(net => {
               const opt = document.createElement('option');
               opt.value = net.ssid;
-              const lock = net.secure ? ' 🔒' : '';
+              const lock = net.secure ? ' [Secured]' : '';
               opt.textContent = `${net.ssid} (${net.rssi} dBm${lock})`;
               select.appendChild(opt);
             });
@@ -5709,11 +6063,9 @@ async function confirmSystemRestart() {
 function initApp() {
   setLanguage(currentLang);
   try { initWebSocket(); } catch (e) {}
-  try { loadWifiStatus(); } catch (e) {}
+  try { initCharts(); } catch (e) {}
   try { startDeviceAutoRefresh(); } catch (e) {}
-  try { loadDeviceManager(); } catch (e) {}
   try { updateTimerDisplay(); } catch (e) {}
-  try { fetchDiagnostics(); } catch (e) {}
 }
 
 if (document.readyState === 'loading') {

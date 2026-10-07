@@ -80,7 +80,8 @@ void loop() {
     // 2. Régulation thermique continue 24/24 & acquisition capteurs physiques
     climManager.update(devManager, sysManager);
 
-    // 3. Mise à jour des capteurs physiques généraux (Digital, ADC, NTC)
+    // 3. Mise à jour des capteurs physiques généraux et fin des tests matériels temporaires
+    devManager.updateHardwareTests();
     devManager.updateSensors();
 
     // 4. Évaluation et exécution autonome des règles d'automatisation
