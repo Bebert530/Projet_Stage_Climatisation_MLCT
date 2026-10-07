@@ -117,6 +117,11 @@ public:
     void updateSensors();
 
     /**
+     * @brief Met à jour et arrête les tests matériels temporaires expirés
+     */
+    void updateHardwareTests();
+
+    /**
      * @brief Teste le câblage d'un périphérique existant (3s pulse pour actionneur, lecture directe pour capteur)
      */
     DeviceTestResult testDevice(uint8_t id, uint16_t durationMs = 3000);
@@ -170,7 +175,6 @@ private:
     void setupHardware(Device& dev);
     void releaseHardware(Device& dev);
     void applyHardwareState(const Device& dev);
-    void updateHardwareTests();
 
     int8_t allocatePwmChannel();
     void freePwmChannel(int8_t channel);

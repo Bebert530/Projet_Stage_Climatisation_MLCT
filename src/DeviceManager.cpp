@@ -482,14 +482,16 @@ void DeviceManager::applyHardwareState(const Device& dev) {
     if (!isPinSafe(dev.gpio)) return;
 
     if (dev.mode == MODE_OUTPUT_RELAY) {
+        pinMode(dev.gpio, OUTPUT);
         digitalWrite(dev.gpio, dev.state ? HIGH : LOW);
     } else if (dev.mode == MODE_OUTPUT_PWM) {
-        // Logique normalement éteint : sortie à 0V si state == 0 ou value == 0
         uint8_t pwmVal = (dev.state == 0) ? 0 : ((dev.value > 255) ? 255 : ((dev.value < 0) ? 0 : (uint8_t)dev.value));
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
+        ledcAttach(dev.gpio, 5000, 8);
         ledcWrite(dev.gpio, pwmVal);
 #else
         if (dev.pwmChannel >= 0) {
+            ledcAttachPin(dev.gpio, dev.pwmChannel);
             ledcWrite(dev.pwmChannel, pwmVal);
         }
 #endif
@@ -621,7 +623,7 @@ void DeviceManager::updateHardwareTests() {
             Device* dev = getDeviceById(_testDeviceId);
             if (dev) {
                 applyHardwareState(*dev);
-                Serial.printf("[Test] Fin du test sur '%s' (GPIO %d) - État normal restauré.\n", dev->name.c_str(), dev->gpio);
+                Serial.printf("[Test] Fin du test sur '%s' (GPIO %d) - État normal restauré (state=%d, val=%d).\n", dev->name.c_str(), dev->gpio, dev->state, dev->value);
             }
         } else if (_testGpio != 255) {
             if (_testMode == MODE_OUTPUT_PWM) {
@@ -638,7 +640,7 @@ void DeviceManager::updateHardwareTests() {
                 pinMode(_testGpio, OUTPUT);
                 digitalWrite(_testGpio, LOW);
             }
-            Serial.printf("[Test] Fin du test direct sur GPIO %d - Sortie désactivée.\n", _testGpio);
+            Serial.printf("[Test] Fin du test direct sur GPIO %d - Sortie désactivée et arrêtée.\n", _testGpio);
         }
 
         _testDeviceId = 0;
@@ -699,6 +701,7 @@ void DeviceManager::updateSensors() {
         OneWire ow(gpio);
         DallasTemperature ds(&ow);
         ds.begin();
+        ds.setResolution(10);
         ds.setWaitForConversion(true);
         uint8_t count = ds.getDeviceCount();
         if (count > 0) {
@@ -761,18 +764,18 @@ DeviceTestResult DeviceManager::testPinDirect(uint8_t gpio, SignalMode mode, uin
         _testTimer.start(durationMs);
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
         ledcAttach(gpio, 5000, 8);
-        ledcWrite(gpio, 128); // 50%
+        ledcWrite(gpio, 255); // 100% à fond
 #else
         ledcSetup(15, 5000, 8);
         ledcAttachPin(gpio, 15);
-        ledcWrite(15, 128);
+        ledcWrite(15, 255); // 100% à fond
 #endif
         xSemaphoreGive(_mutex);
 
         result.success = true;
-        result.rawValue = 128;
-        result.voltageValue = 1.65f;
-        result.message = "Signal PWM 50% envoyé pendant 3s avec succès.";
+        result.rawValue = 255;
+        result.voltageValue = 3.3f;
+        result.message = "Signal PWM 100% (plein régime) envoyé pendant 3s avec succès.";
     } else if (mode == MODE_INPUT_ONEWIRE) {
         OneWire testOw(gpio);
         DallasTemperature testSensors(&testOw);
@@ -887,21 +890,22 @@ DeviceTestResult DeviceManager::testDevice(uint8_t id, uint16_t durationMs) {
 
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
         ledcAttach(gpio, 5000, 8);
-        ledcWrite(gpio, 128); // 50%
+        ledcWrite(gpio, 255); // 100% à fond
 #else
         if (pwmChannel >= 0) {
-            ledcWrite(pwmChannel, 128); // 50%
+            ledcAttachPin(gpio, pwmChannel);
+            ledcWrite(pwmChannel, 255); // 100% à fond
         } else {
             ledcSetup(15, 5000, 8);
             ledcAttachPin(gpio, 15);
-            ledcWrite(15, 128);
+            ledcWrite(15, 255); // 100% à fond
         }
 #endif
         xSemaphoreGive(_mutex);
 
-        res.rawValue = 128;
-        res.voltageValue = 1.65f;
-        res.message = "Signal PWM 50% envoyé pendant 3s avec succès.";
+        res.rawValue = 255;
+        res.voltageValue = 3.3f;
+        res.message = "Signal PWM 100% (plein régime) envoyé pendant 3s avec succès.";
     } else if (mode == MODE_INPUT_ONEWIRE) {
         // Déterminer l'index de cette sonde sur son bus GPIO
         uint8_t busIndex = 0;

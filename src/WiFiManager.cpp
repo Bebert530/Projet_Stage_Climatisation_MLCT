@@ -38,31 +38,31 @@ bool WiFiManager::begin(const char* configPath) {
     // 1. Initialisation des événements Wi-Fi asynchrones
     setupEvents();
 
-    // 2. Désactiver la mise en veille RF et la persistance NVS non maîtrisée
+    // 2. Désactiver la mise en veille RF et maximiser la puissance d'émission Wi-Fi
     WiFi.persistent(false);
+    WiFi.setSleep(false);
+    WiFi.setTxPower(WIFI_POWER_19_5dBm);
 
-    // 3. Chargement de la configuration Wi-Fi sauvegardée (/wifi.json) avec fallback "iPhone de Bebert"
-    if (!loadConfig() || _staSSID.length() == 0) {
-        _staSSID = "iPhone de Bebert";
-        _staPass = "pouletgalant";
-        _isConfigured = true;
-        saveConfig();
-    }
+    // 3. Allumage IMMÉDIAT du point d'accès SoftAP pour un accès instantané garanti (192.168.4.1 / clim.local)
+    enableAP();
+    setupMDNS();
 
-    // 4. Si un réseau Wi-Fi est connu, tenter la connexion pendant 15s en mode Station pure (AP éteint)
-    if (_isConfigured && _staSSID.length() > 0) {
-        WiFi.mode(WIFI_STA);
+    // 4. Chargement de la configuration Wi-Fi station sauvegardée (/wifi.json)
+    bool hasConfig = loadConfig();
+
+    // 5. Si un réseau Wi-Fi station est configuré, tenter la connexion en arrière-plan (mode AP+STA)
+    if (hasConfig && _staSSID.length() > 0) {
+        WiFi.mode(WIFI_AP_STA);
         WiFi.setSleep(false);
-        _apActive = false;
-        Serial.printf("[WiFiManager] Recherche et tentative de connexion au Wi-Fi connu '%s' (délai : 15s)...\n", _staSSID.c_str());
+        Serial.printf("[WiFiManager] Tentative de connexion au Wi-Fi station '%s' (SoftAP actif en parallèle)...\n", _staSSID.c_str());
         _staState = STA_STATE_CONNECTING;
-        _connectTimeoutTimer.start(15000);
+        _connectTimeoutTimer.start(10000);
+        _reconnectAttempts = 0;
         WiFi.begin(_staSSID.c_str(), _staPass.c_str());
     } else {
-        // Aucun Wi-Fi connu configuré : Allumage immédiat de l'Access Point
-        Serial.println("[WiFiManager] Aucun Wi-Fi connu configuré. Activation immédiate du point d'accès AP.");
-        enableAP();
-        setupMDNS();
+        Serial.println("[WiFiManager] Aucun réseau Wi-Fi station configuré. Point d'accès local seul actif.");
+        _staState = STA_STATE_IDLE;
+        _isConfigured = false;
     }
 
     return true;
@@ -209,31 +209,28 @@ void WiFiManager::update() {
     }
     xSemaphoreGive(_mutex);
 
-    // 2. Timeout de recherche de connexion station (15 secondes)
-    // Si aucun réseau connu n'est joint après 15 secondes -> allumage de l'AP de secours
+    // 2. Timeout de recherche de connexion station (8 secondes)
     xSemaphoreTake(_mutex, portMAX_DELAY);
-    if (_staState == STA_STATE_CONNECTING || _staState == STA_STATE_DISCONNECTED) {
+    if (_staState == STA_STATE_CONNECTING) {
         if (_connectTimeoutTimer.isRunning() && _connectTimeoutTimer.hasExpired()) {
-            Serial.println("[WiFiManager] Aucun Wi-Fi connu trouvé après 15s de recherche -> Allumage du point d'accès AP.");
+            Serial.println("[WiFiManager] Délai de connexion station dépassé. Le point d'accès AP reste 100% opérationnel.");
             _connectTimeoutTimer.stop();
             _staState = STA_STATE_FAILED;
-            _reconnectTimer.start(30000);
+            // Ne pas spammer les scans Wi-Fi : pause de 5 minutes avant prochaine tentative discrète
+            _reconnectTimer.start(300000);
             xSemaphoreGive(_mutex);
-
-            enableAP();
-            setupMDNS();
             return;
         }
     }
 
-    // 3. Reconnexion automatique non-bloquante si configuré et déconnecté (toutes les 30 secondes)
+    // 3. Reconnexion automatique espacée si configuré et déconnecté (toutes les 5 minutes max 3 essais)
     if (_isConfigured && !_pendingConnect && _staSSID.length() > 0 && (_staState == STA_STATE_DISCONNECTED || _staState == STA_STATE_FAILED)) {
-        if (!_reconnectTimer.isRunning() || _reconnectTimer.hasExpired()) {
-            _reconnectTimer.start(30000);
+        if (_reconnectAttempts < 3 && (!_reconnectTimer.isRunning() || _reconnectTimer.hasExpired())) {
+            _reconnectTimer.start(300000); // 5 minutes
             _reconnectAttempts++;
-            Serial.printf("[WiFiManager] Tentative de reconnexion station #%d à '%s'...\n", _reconnectAttempts, _staSSID.c_str());
+            Serial.printf("[WiFiManager] Tentative de reconnexion station discrète #%d à '%s'...\n", _reconnectAttempts, _staSSID.c_str());
             _staState = STA_STATE_CONNECTING;
-            _connectTimeoutTimer.start(15000);
+            _connectTimeoutTimer.start(8000);
             WiFi.begin(_staSSID.c_str(), _staPass.c_str());
         }
     }
